@@ -12,11 +12,11 @@ pub fn get_config_dir() -> PathBuf {
     #[cfg(target_os = "windows")]
     {
         let program_data = std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
-        PathBuf::from(program_data).join("PollenDEK").join("Config")
+        PathBuf::from(program_data).join("PollenDEK").join("config")
     }
     #[cfg(target_os = "macos")]
     {
-        PathBuf::from("/Library/Application Support/PollenDEK/Config")
+        PathBuf::from("/Library/Application Support/PollenDEK/config")
     }
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     {
@@ -25,6 +25,10 @@ pub fn get_config_dir() -> PathBuf {
 }
 
 pub fn get_data_dir() -> PathBuf {
+    // This represents the State directory
+    if let Ok(dir) = std::env::var("DEK_STATE_DIR") {
+        return PathBuf::from(dir);
+    }
     if let Ok(dir) = std::env::var("DEK_DATA_DIR") {
         return PathBuf::from(dir);
     }
@@ -36,11 +40,11 @@ pub fn get_data_dir() -> PathBuf {
     #[cfg(target_os = "windows")]
     {
         let program_data = std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
-        PathBuf::from(program_data).join("PollenDEK").join("Data")
+        PathBuf::from(program_data).join("PollenDEK").join("state")
     }
     #[cfg(target_os = "macos")]
     {
-        PathBuf::from("/Library/Application Support/PollenDEK/Data")
+        PathBuf::from("/var/db/pollen-dek")
     }
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     {
@@ -60,7 +64,7 @@ pub fn get_log_dir() -> PathBuf {
     #[cfg(target_os = "windows")]
     {
         let program_data = std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
-        PathBuf::from(program_data).join("PollenDEK").join("Logs")
+        PathBuf::from(program_data).join("PollenDEK").join("logs")
     }
     #[cfg(target_os = "macos")]
     {
@@ -72,16 +76,38 @@ pub fn get_log_dir() -> PathBuf {
     }
 }
 
+pub fn get_runtime_dir() -> PathBuf {
+    if let Ok(dir) = std::env::var("DEK_RUNTIME_DIR") {
+        return PathBuf::from(dir);
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        PathBuf::from("/run/pollen-dek")
+    }
+    #[cfg(target_os = "windows")]
+    {
+        // On Windows, runtime paths for named pipes are usually \\.\pipe\...
+        // But for consistent path usage, we might just use a runtime directory.
+        let program_data = std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
+        PathBuf::from(program_data).join("PollenDEK").join("run")
+    }
+    #[cfg(target_os = "macos")]
+    {
+        PathBuf::from("/var/run/pollen-dek")
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+    {
+        PathBuf::from("run")
+    }
+}
+
 pub fn get_plugin_dir() -> PathBuf {
     if let Ok(dir) = std::env::var("DEK_PLUGIN_DIR") {
         return PathBuf::from(dir);
     }
 
-    std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("plugins")
+    get_data_dir().join("plugins")
 }
 
 pub fn get_bootstrap_path() -> PathBuf {

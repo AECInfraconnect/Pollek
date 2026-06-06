@@ -14,8 +14,8 @@ pub struct CloudTelemetrySink {
 }
 
 impl CloudTelemetrySink {
-    pub fn new(endpoint_url: &str, mtls: &MtlsConfig) -> Result<Self> {
-        let client = Arc::new(RwLock::new(mtls.build_client()?));
+    pub fn new(endpoint_url: &str, mtls: &MtlsConfig, client_key_override: Option<&[u8]>) -> Result<Self> {
+        let client = Arc::new(RwLock::new(mtls.build_client(client_key_override)?));
 
         // MPSC channel with buffer size of 1024
         let (tx, mut rx) = mpsc::channel::<Value>(1024);
@@ -61,7 +61,7 @@ impl CloudTelemetrySink {
     }
 
     pub async fn update_mtls(&self, mtls: &MtlsConfig) -> Result<()> {
-        let new_client = mtls.build_client()?;
+        let new_client = mtls.build_client(None)?;
         let mut client_lock = self.client.write().await;
         *client_lock = new_client;
         info!("[Telemetry] Successfully updated internal HTTP client with new mTLS configuration");

@@ -1,4 +1,5 @@
 pub mod paths;
+pub mod logging;
 
 use anyhow::{Context, Result};
 use reqwest::{Certificate, Identity};
@@ -14,12 +15,17 @@ pub struct MtlsConfig {
 }
 
 impl MtlsConfig {
-    pub fn build_client(&self) -> Result<reqwest::Client> {
+    pub fn build_client(&self, client_key_override: Option<&[u8]>) -> Result<reqwest::Client> {
         let root_ca_der = fs::read(&self.root_ca_path).context(format!("Failed to read root CA from {}", self.root_ca_path))?;
         let root_ca = Certificate::from_pem(&root_ca_der)?;
 
         let client_cert = fs::read(&self.client_cert_path).context("Failed to read client cert")?;
-        let client_key = fs::read(&self.client_key_path).context("Failed to read client key")?;
+        
+        let client_key = match client_key_override {
+            Some(key) => key.to_vec(),
+            None => fs::read(&self.client_key_path).context("Failed to read client key")?
+        };
+        
         let mut id_pem = client_cert;
         id_pem.extend_from_slice(b"\n");
         id_pem.extend_from_slice(&client_key);
@@ -63,7 +69,13 @@ impl BootstrapConfig {
             if let Some(parent) = p.parent() {
                 let _ = fs::create_dir_all(parent);
             }
-            let _ = fs::write(p, json_str); // Ignore initial write failure if lack of permission (e.g. proxy starting before daemon)
+            if fs::write(p, json_str).is_ok() {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let _ = fs::set_permissions(p, fs::Permissions::from_mode(0o600));
+                }
+            }
             Ok(default_config)
         }
     }
@@ -99,7 +111,16 @@ pub struct SpireServerConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwtConfig {
-    pub public_key_pem: String,
+    pub public_key_pem: Option<String>,
+    pub jwks: Option<serde_json::Value>,
+    pub issuer_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateConfig {
+    pub download_url: String,
+    pub signature_b64: String,
+    pub version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -110,6 +131,7 @@ pub struct DekConfig {
     pub spire_server: Option<SpireServerConfig>,
     pub policy_config: Option<PolicyConfig>,
     pub jwt_config: Option<JwtConfig>,
+    pub update_config: Option<UpdateConfig>,
 }
 
 impl DekConfig {
@@ -117,7 +139,7 @@ impl DekConfig {
         bootstrap: &BootstrapConfig,
         endpoint_base: &str,
     ) -> Result<Self> {
-        let client = bootstrap.mtls.build_client()?;
+        let client = bootstrap.mtls.build_client(None)?;
 
         let url = format!("{}/config/{}", endpoint_base, bootstrap.device_id);
         println!("Fetching dynamic config from cloud over MTLS: {}", url);

@@ -39,16 +39,11 @@ impl ServiceManager for OsServiceManager {
         std::fs::copy(&exe_path, &target_exe)?;
         
         let _ = Command::new("icacls")
-            .args(&[
-                root_dir.to_str().unwrap(),
-                "/grant",
-                "*S-1-5-20:(OI)(CI)RX",
-                "/T",
-            ])
+            .args([root_dir.to_str().unwrap(), "/grant", "*S-1-5-20:(OI)(CI)RX", "/T"])
             .output();
 
         let output = Command::new("sc")
-            .args(&[
+            .args([
                 "create",
                 self.service_name,
                 &format!("binPath=\"{}\"", target_exe.display()),
@@ -65,7 +60,7 @@ impl ServiceManager for OsServiceManager {
         }
 
         Command::new("sc")
-            .args(&["description", self.service_name, "Pollen DEK IPC Supervisor and Policy Enforcer"])
+            .args(["description", self.service_name, "Pollen DEK IPC Supervisor and Policy Enforcer"])
             .output()?;
 
         Ok(())
@@ -74,7 +69,7 @@ impl ServiceManager for OsServiceManager {
     fn uninstall(&self) -> Result<()> {
         let _ = self.stop();
         let output = Command::new("sc")
-            .args(&["delete", self.service_name])
+            .args(["delete", self.service_name])
             .output()
             .context("Failed to run sc delete")?;
             
@@ -86,7 +81,7 @@ impl ServiceManager for OsServiceManager {
 
     fn start(&self) -> Result<()> {
         let output = Command::new("sc")
-            .args(&["start", self.service_name])
+            .args(["start", self.service_name])
             .output()
             .context("Failed to start service")?;
         if !output.status.success() {
@@ -97,7 +92,7 @@ impl ServiceManager for OsServiceManager {
 
     fn stop(&self) -> Result<()> {
         let output = Command::new("sc")
-            .args(&["stop", self.service_name])
+            .args(["stop", self.service_name])
             .output()
             .context("Failed to stop service")?;
         if !output.status.success() {
@@ -108,7 +103,7 @@ impl ServiceManager for OsServiceManager {
 
     fn status(&self) -> Result<String> {
         let output = Command::new("sc")
-            .args(&["query", self.service_name])
+            .args(["query", self.service_name])
             .output()
             .context("Failed to get status")?;
         Ok(String::from_utf8_lossy(&output.stdout).to_string())

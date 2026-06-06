@@ -15,7 +15,7 @@ pub struct OpenFgaAdapter {
 impl OpenFgaAdapter {
     pub fn new(endpoint: &str, store_id: &str, mtls: Option<&MtlsConfig>) -> Result<Self> {
         let client = if let Some(m) = mtls {
-            m.build_client()?
+            m.build_client(None)?
         } else {
             Client::new()
         };

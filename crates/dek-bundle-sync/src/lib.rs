@@ -55,8 +55,9 @@ impl BundleSyncAgent {
         device_id: &str,
         mtls: &MtlsConfig,
         pinned_public_key: &str,
+        client_key_override: Option<&[u8]>
     ) -> Result<Self> {
-        let client = mtls.build_client()?;
+        let client = mtls.build_client(client_key_override)?;
         Ok(Self {
             cloud_url: cloud_url.to_string(),
             device_id: device_id.to_string(),
@@ -66,7 +67,7 @@ impl BundleSyncAgent {
     }
 
     pub async fn update_mtls(&self, mtls: &MtlsConfig) -> Result<()> {
-        let new_client = mtls.build_client()?;
+        let new_client = mtls.build_client(None)?;
         let mut client_lock = self.client.write().await;
         *client_lock = new_client;
         info!("[BundleSync] Successfully updated internal HTTP client with new mTLS configuration");
@@ -208,6 +209,11 @@ impl BundleSyncAgent {
         // Write to temporary file and rename for atomic update
         let tmp_path = target_dir.join("active_bundle.tmp.json");
         fs::write(&tmp_path, payload_string)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = fs::set_permissions(&tmp_path, fs::Permissions::from_mode(0o600));
+        }
         fs::rename(&tmp_path, &active_bundle_path)?;
 
         info!(

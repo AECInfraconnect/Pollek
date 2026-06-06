@@ -25,8 +25,9 @@ where
 
     use std::sync::OnceLock;
 
+    type ServiceLogic = Box<dyn FnOnce() + Send + 'static>;
     static SHUTDOWN_TX: OnceLock<Mutex<Option<mpsc::Sender<()>>>> = OnceLock::new();
-    static LOGIC_WRAPPER: OnceLock<Mutex<Option<Box<dyn FnOnce() + Send + 'static>>>> = OnceLock::new();
+    static LOGIC_WRAPPER: OnceLock<Mutex<Option<ServiceLogic>>> = OnceLock::new();
 
     define_windows_service!(ffi_service_main, my_service_main);
 
@@ -107,7 +108,7 @@ where
                 let _ = std::fs::write("C:\\ProgramData\\PollenDEK\\error.log", format!("Fatal error in core logic: {:?}", e));
             }
             Ok(()) => {
-                let _ = std::fs::write("C:\\ProgramData\\PollenDEK\\error.log", "Core logic returned Ok(())".to_string());
+                let _ = std::fs::write("C:\\ProgramData\\PollenDEK\\error.log", "Core logic returned Ok(())");
             }
         }
     });
@@ -117,7 +118,7 @@ where
 
     match service_dispatcher::start("PollenDEK", ffi_service_main) {
         Ok(_) => Ok(()),
-        Err(e) => {
+        Err(_e) => {
             // Error 1063 means we are not running as a service.
             // If it's a different error, we should probably log it, but let's just run normally.
             

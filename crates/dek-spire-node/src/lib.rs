@@ -21,7 +21,7 @@ pub struct SpireNodeAgent {
 impl SpireNodeAgent {
     pub fn new(endpoint: &str, mtls: &MtlsConfig) -> Result<Self> {
         let mtls_client = mtls
-            .build_client()
+            .build_client(None)
             .context("Failed to build mTLS client for SPIRE Node Agent")?;
         Ok(Self {
             endpoint: endpoint.to_string(),

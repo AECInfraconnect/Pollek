@@ -31,6 +31,8 @@ struct Cli {
 enum Commands {
     /// Check health of DEK Core
     Health,
+    /// Detailed local status of DEK Core
+    Status,
     /// Trigger dynamic configuration reload
     Reload,
     /// Agent configuration commands
@@ -117,6 +119,23 @@ async fn main() -> Result<()> {
                 }) => {
                     info!("DEK Core Status: {}", status);
                     info!("Core Version: {}", core_version);
+                }
+                Ok(IpcResponse::Error(e)) => error!("Error from DEK Core: {}", e),
+                Ok(_) => error!("Unexpected response from DEK Core"),
+                Err(e) => error!("IPC Request Failed: {}", e),
+            }
+        }
+        Commands::Status => {
+            info!("Sending status request to DEK Core...");
+            match send_ipc_request(&cli.host, cli.port, IpcRequest::Status).await {
+                Ok(IpcResponse::ServiceStatus(status)) => {
+                    info!("--- DEK Core Service Status ---");
+                    info!("Core Version: {}", status.core_version);
+                    info!("Uptime (seconds): {}", status.uptime_seconds);
+                    info!("eBPF Active: {}", status.ebpf_active);
+                    info!("Active Bundle: {}", status.active_bundle_version.unwrap_or_else(|| "None".to_string()));
+                    info!("Update State: {}", status.update_state);
+                    info!("-------------------------------");
                 }
                 Ok(IpcResponse::Error(e)) => error!("Error from DEK Core: {}", e),
                 Ok(_) => error!("Unexpected response from DEK Core"),

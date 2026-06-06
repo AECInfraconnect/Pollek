@@ -29,6 +29,8 @@ use uuid::Uuid;
 
 mod service_integration;
 mod ebpf;
+mod keystore_migration;
+mod updater;
 
 const IPC_READ_TIMEOUT_SECS: u64 = 5;
 const IPC_MAX_LINE_BYTES: usize = 64 * 1024;
@@ -149,9 +151,12 @@ fn spawn_bundle_sync_task(
     cancel_token: CancellationToken,
     sync_agent: Arc<dek_bundle_sync::BundleSyncAgent>,
     bundle_sync_interval: u64,
+    metrics_client: Arc<RwLock<reqwest::Client>>,
+    pinned_key: String,
 ) -> JoinHandle<()> {
     tokio::spawn(
         async move {
+            let mut current_version = String::new();
             loop {
                 tokio::select! {
                     _ = cancel_token.cancelled() => {
@@ -161,8 +166,23 @@ fn spawn_bundle_sync_task(
                     _ = sleep(Duration::from_secs(bundle_sync_interval)) => {
                         debug!("Running unified bundle sync pipeline...");
                         match timeout(Duration::from_secs(30), sync_agent.run_pipeline()).await {
-                            Ok(Ok(_)) => {
+                            Ok(Ok(new_config)) => {
                                 counter!("dek_core_bundle_sync_success_total").increment(1);
+                                if let Some(update) = new_config.update_config {
+                                    if update.version != current_version {
+                                        info!("New binary update found: version {}", update.version);
+                                        let client = metrics_client.read().await.clone();
+                                        match crate::updater::run_update(&client, &update.download_url, &update.signature_b64, &pinned_key).await {
+                                            Ok(_) => {
+                                                info!("Update applied successfully. Version updated to {}", update.version);
+                                                current_version = update.version;
+                                            }
+                                            Err(e) => {
+                                                error!("Failed to apply binary update: {}", e);
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             Ok(Err(e)) => {
                                 warn!(error = %e, "Bundle sync pipeline failed");
@@ -188,6 +208,7 @@ async fn spawn_ipc_server_task(
     telemetry_sink: Arc<CloudTelemetrySink>,
     bundle_agent: Arc<dek_bundle_sync::BundleSyncAgent>,
     metrics_client: Arc<RwLock<reqwest::Client>>,
+    start_time: Instant,
 ) -> Result<JoinHandle<()>> {
     let listener = TcpListener::bind(&ipc_listen_addr).await?;
     info!("IPC Endpoint listening on {}", ipc_listen_addr);
@@ -257,6 +278,27 @@ async fn spawn_ipc_server_task(
                                                     status: "HEALTHY".to_string(),
                                                     core_version: "0.1.0".to_string(),
                                                 },
+                                                IpcRequest::Status => {
+                                                    let uptime = start_time.elapsed().as_secs();
+                                                    
+                                                    let bundle_path = dek_config::paths::get_active_bundle_path();
+                                                    let bundle_version = std::fs::read_to_string(&bundle_path)
+                                                        .ok()
+                                                        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+                                                        .and_then(|v| v.get("id").and_then(|id| id.as_str()).map(|s| s.to_string()));
+                                                    
+                                                    // TODO: Get real eBPF status and update state
+                                                    let ebpf_active = cfg!(target_os = "linux"); 
+                                                    let update_state = "IDLE".to_string();
+
+                                                    IpcResponse::ServiceStatus(dek_ipc::ServiceStatus {
+                                                        uptime_seconds: uptime,
+                                                        ebpf_active,
+                                                        active_bundle_version: bundle_version,
+                                                        update_state,
+                                                        core_version: "0.1.0".to_string(),
+                                                    })
+                                                },
                                                 IpcRequest::ReloadConfig => {
                                                     info!("Received ReloadConfig IPC command. Triggering unified sync pipeline...");
                                                     match sync_agent_clone.run_pipeline().await {
@@ -270,7 +312,7 @@ async fn spawn_ipc_server_task(
                                                                 error!("Failed to update Bundle Sync Agent mTLS: {}", e);
                                                                 success = false;
                                                             }
-                                                            match new_config.mtls.build_client() {
+                                                            match new_config.mtls.build_client(None) {
                                                                 Ok(c) => {
                                                                     *metrics_client_clone.write().await = c;
                                                                     info!("Successfully updated Metrics Client mTLS");
@@ -368,7 +410,9 @@ fn main() -> Result<()> {
 }
 
 async fn core_main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    dek_config::logging::init_logging("dek-core").unwrap_or_else(|e| {
+        eprintln!("Failed to initialize logging: {}", e);
+    });
     info!("Starting Pollen DEK Core Supervisor...");
 
     // Load Layer 2 eBPF Guardrails (Linux only)
@@ -408,27 +452,46 @@ async fn core_main() -> Result<()> {
 
     let bootstrap = load_bootstrap(&bootstrap_path).await?;
 
+    let mut client_key_override: Option<Vec<u8>> = None;
+    let mut pinned_key_override: Option<String> = None;
+    if keystore_migration::run_migration(&bootstrap, &pollen_cloud_url).await {
+        let keystore = dek_keystore::get_keystore();
+        if let Ok(key_data) = keystore.load_key("mtls_client_key") {
+            client_key_override = Some(key_data);
+        }
+        if let Ok(bundle_pk_data) = keystore.load_key("pinned_bundle_public_key") {
+            if let Ok(pk_str) = String::from_utf8(bundle_pk_data) {
+                pinned_key_override = Some(pk_str);
+            }
+        }
+    }
+
+    let actual_pinned_key = pinned_key_override.unwrap_or_else(|| bootstrap.pinned_bundle_public_key.clone());
+
     // Create BundleSyncAgent using Bootstrap mTLS
     let bundle_agent = Arc::new(dek_bundle_sync::BundleSyncAgent::new(
         &pollen_cloud_url,
         &bootstrap.device_id,
         &bootstrap.mtls,
-        &bootstrap.pinned_bundle_public_key,
+        &actual_pinned_key,
+        client_key_override.as_deref(),
     )?);
 
     let telemetry_sink = Arc::new(CloudTelemetrySink::new(
         &pollen_telemetry_url,
         &bootstrap.mtls,
+        client_key_override.as_deref(),
     )?);
 
     let metrics_client = Arc::new(RwLock::new(
         bootstrap
             .mtls
-            .build_client()
+            .build_client(client_key_override.as_deref())
             .context("Failed to build metrics MTLS client")?,
     ));
 
     let cancel_token = CancellationToken::new();
+    let start_time = Instant::now();
 
     let ipc_handle = spawn_ipc_server_task(
         cancel_token.clone(),
@@ -436,6 +499,7 @@ async fn core_main() -> Result<()> {
         telemetry_sink.clone(),
         bundle_agent.clone(),
         metrics_client.clone(),
+        start_time,
     )
     .await?;
 
@@ -471,6 +535,8 @@ async fn core_main() -> Result<()> {
             sync_cancel_token.clone(),
             sync_bundle_agent,
             bundle_sync_interval,
+            sync_metrics_client.clone(),
+            actual_pinned_key.clone(),
         );
 
         let metrics_handle = spawn_metrics_push_task(
@@ -590,6 +656,13 @@ mod tests {
                                     status: "HEALTHY".to_string(),
                                     core_version: "0.1.0".to_string(),
                                 },
+                                IpcRequest::Status => IpcResponse::ServiceStatus(dek_ipc::ServiceStatus {
+                                    uptime_seconds: 100,
+                                    ebpf_active: true,
+                                    active_bundle_version: Some("v1".to_string()),
+                                    update_state: "IDLE".to_string(),
+                                    core_version: "0.1.0".to_string(),
+                                }),
                                 IpcRequest::ReloadConfig => IpcResponse::ReloadStatus {
                                     status: "SUCCESS".to_string(),
                                 },

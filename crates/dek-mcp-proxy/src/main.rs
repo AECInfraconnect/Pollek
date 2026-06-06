@@ -22,7 +22,9 @@ struct DekMetadata {
     tenant_id: String,
     device_id: String,
     spiffe_id: Option<String>,
-    jwt_public_key_pem: Option<String>,
+    pub jwt_public_key_pem: Option<String>,
+    pub jwks: Option<jsonwebtoken::jwk::JwkSet>,
+    pub issuer_url: Option<String>,
 }
 
 struct AppState {
@@ -36,7 +38,9 @@ use dek_config::{BootstrapConfig, DekConfig};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    dek_config::logging::init_logging("dek-mcp-proxy").unwrap_or_else(|e| {
+        eprintln!("Failed to initialize logging: {}", e);
+    });
     info!("Starting Pollen DEK MCP Proxy...");
 
     let bootstrap = BootstrapConfig::load_or_default("bootstrap.json")?;
@@ -63,6 +67,8 @@ async fn main() -> Result<()> {
         device_id: device_id.clone(),
         spiffe_id: None,
         jwt_public_key_pem: None,
+        jwks: None,
+        issuer_url: None,
     };
 
     // Attempt to load from staged bundle first
@@ -82,6 +88,14 @@ async fn main() -> Result<()> {
                 if let Some(jwt_cfg) = payload.get("jwt_config") {
                     if let Some(pem) = jwt_cfg.get("public_key_pem").and_then(|v| v.as_str()) {
                         initial_metadata.jwt_public_key_pem = Some(pem.to_string());
+                    }
+                    if let Some(jwks_val) = jwt_cfg.get("jwks") {
+                        if let Ok(jwks) = serde_json::from_value::<jsonwebtoken::jwk::JwkSet>(jwks_val.clone()) {
+                            initial_metadata.jwks = Some(jwks);
+                        }
+                    }
+                    if let Some(issuer) = jwt_cfg.get("issuer_url").and_then(|v| v.as_str()) {
+                        initial_metadata.issuer_url = Some(issuer.to_string());
                     }
                 }
             }
@@ -192,6 +206,14 @@ async fn main() -> Result<()> {
                                             metadata_lock.jwt_public_key_pem =
                                                 Some(pem.to_string());
                                         }
+                                        if let Some(jwks_val) = jwt_cfg.get("jwks") {
+                                            if let Ok(jwks) = serde_json::from_value::<jsonwebtoken::jwk::JwkSet>(jwks_val.clone()) {
+                                                metadata_lock.jwks = Some(jwks);
+                                            }
+                                        }
+                                        if let Some(issuer) = jwt_cfg.get("issuer_url").and_then(|v| v.as_str()) {
+                                            metadata_lock.issuer_url = Some(issuer.to_string());
+                                        }
                                     }
 
                                     info!("Hot-reloaded policies and metadata from disk successfully!");
@@ -222,6 +244,11 @@ async fn main() -> Result<()> {
 
     info!("MCP Proxy shut down gracefully.");
     Ok(())
+}
+
+async fn handle_forward_proxy() -> impl IntoResponse {
+    // Basic forward proxy placeholder
+    (StatusCode::BAD_GATEWAY, "Forward proxy not yet fully implemented")
 }
 
 async fn shutdown_signal() {
@@ -268,37 +295,69 @@ async fn handle_mcp_request(
     let mut principal = None;
 
     if let Some(token) = auth_header {
-        if let Some(pem) = &metadata.jwt_public_key_pem {
-            if let Ok(decoding_key) = jsonwebtoken::DecodingKey::from_rsa_pem(pem.as_bytes()) {
-                let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
-                // We enforce signature validation.
-                // But we accept any aud/iss for now since it's a mock test environment.
-                validation.validate_exp = false; // For mock testing, ignore expiration
-                validation.validate_aud = false; // Ignore audience for now
+        let mut decoding_key_opt = None;
+        let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
 
-                match jsonwebtoken::decode::<Value>(token, &decoding_key, &validation) {
-                    Ok(token_data) => {
-                        let claims = token_data.claims;
-                        jwt_tenant_id = claims
-                            .get("tenant_id")
-                            .or(claims.get("tenant"))
-                            .and_then(|s| s.as_str())
-                            .map(|s| s.to_string());
-                        principal = claims
-                            .get("sub")
-                            .and_then(|s| s.as_str())
-                            .map(|s| s.to_string());
+        // 1. Primary: Use JWKS if available
+        if let Some(jwks) = &metadata.jwks {
+            if let Ok(header) = jsonwebtoken::decode_header(token) {
+                if let Some(kid) = header.kid {
+                    if let Some(jwk) = jwks.find(&kid) {
+                        match jsonwebtoken::DecodingKey::from_jwk(jwk) {
+                            Ok(key) => {
+                                decoding_key_opt = Some(key);
+                                // Optional: Configure validation based on issuer config if present
+                                if let Some(issuer) = &metadata.issuer_url {
+                                    validation.set_issuer(&[issuer]);
+                                }
+                            }
+                            Err(e) => warn!("Failed to create decoding key from JWK: {}", e),
+                        }
+                    } else {
+                        warn!("JWK not found for kid: {}", kid);
                     }
-                    Err(e) => {
-                        warn!("JWT Signature verification failed: {}", e);
-                    }
+                } else {
+                    warn!("JWT header missing kid");
                 }
-            } else {
-                warn!("Invalid RSA public key PEM configured");
+            }
+        }
+
+        // 2. Fallback: Use static PEM if JWKS not available or failed
+        if decoding_key_opt.is_none() {
+            if let Some(pem) = &metadata.jwt_public_key_pem {
+                if let Ok(key) = jsonwebtoken::DecodingKey::from_rsa_pem(pem.as_bytes()) {
+                    decoding_key_opt = Some(key);
+                } else {
+                    warn!("Invalid RSA public key PEM configured");
+                }
+            }
+        }
+
+        if let Some(decoding_key) = decoding_key_opt {
+            // We enforce signature validation.
+            // But we accept any aud for now since it's a mock test environment.
+            validation.validate_exp = false; // For mock testing, ignore expiration
+            validation.validate_aud = false; // Ignore audience for now
+
+            match jsonwebtoken::decode::<Value>(token, &decoding_key, &validation) {
+                Ok(token_data) => {
+                    let claims = token_data.claims;
+                    jwt_tenant_id = claims
+                        .get("tenant_id")
+                        .or(claims.get("tenant"))
+                        .and_then(|s| s.as_str())
+                        .map(|s| s.to_string());
+                    principal = claims
+                        .get("sub")
+                        .and_then(|s| s.as_str())
+                        .map(|s| s.to_string());
+                }
+                Err(e) => {
+                    warn!("JWT Signature verification failed: {}", e);
+                }
             }
         } else {
-            warn!("No JWT public key configured, cannot verify signatures");
-            // Fail closed! If no public key is present, reject.
+            warn!("No valid key (JWKS or PEM) available to verify signature");
         }
     }
 
