@@ -39,6 +39,14 @@ pub fn spawn_bundle_sync_task(
                                 if let Err(e) = reload_coordinator.process_staged_bundle(&new_config, &staged_path).await {
                                     error!("Bundle Activation Failed: {}", e);
                                     counter!("dek_core_bundle_activation_errors_total").increment(1);
+                                } else {
+                                    // Enforce Enterprise Profiles
+                                    use dek_config::{EnterpriseProfile, ActivationMode};
+                                    if new_config.enterprise_profile == EnterpriseProfile::Enterprise || new_config.enterprise_profile == EnterpriseProfile::Regulated {
+                                        if new_config.activation_mode != ActivationMode::Full {
+                                            warn!("Enterprise Profile enforces 'Full' activation mode. Overriding '{}'", format!("{:?}", new_config.activation_mode));
+                                        }
+                                    }
                                 }
 
                                 if let Some(update) = new_config.update_config {

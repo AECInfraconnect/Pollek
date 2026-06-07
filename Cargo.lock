@@ -1531,6 +1531,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "dek-updater"
+version = "0.1.0"
+
+[[package]]
 name = "dek-wasm-host"
 version = "0.1.0"
 dependencies = [

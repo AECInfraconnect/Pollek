@@ -151,6 +151,16 @@ pub struct PreflightTest {
     pub expected_decision: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum EnterpriseProfile {
+    #[default]
+    Developer,
+    Pilot,
+    Enterprise,
+    Regulated,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DekConfig {
     pub device_id: String,
@@ -162,6 +172,8 @@ pub struct DekConfig {
     pub update_config: Option<UpdateConfig>,
     #[serde(default)]
     pub activation_mode: ActivationMode,
+    #[serde(default)]
+    pub enterprise_profile: EnterpriseProfile,
     #[serde(default)]
     pub preflight_tests: Vec<PreflightTest>,
 }

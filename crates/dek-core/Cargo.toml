@@ -2,6 +2,9 @@
 name = "dek-core"
 version = "0.1.0"
 edition = "2021"
+authors = ["Pollen DEK Team"]
+license = "Apache-2.0"
+description = "Pollen DEK Supervisor and Agent"
 
 [dependencies]
 dek-config = { path = "../dek-config" }

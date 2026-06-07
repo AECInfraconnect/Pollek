@@ -2,7 +2,9 @@
 members = [
     "crates/*",
     "plugins/*",
-    "crates/dek-ext-authz"
+    "crates/dek-ext-authz",
+    "crates/dek-router-builder",
+    "crates/dek-updater"
 ]
 exclude = [
     "crates/dek-ebpf-prog",
