@@ -117,13 +117,45 @@ async fn main() -> Result<()> {
         }
     });
 
+    // Initialize PluginHost for redaction
+    let mut plugin_paths = std::collections::HashMap::new();
+    let base_dir = dek_config::paths::get_plugin_dir().to_string_lossy().into_owned();
+    let paths_to_try = vec![
+        format!("{}/pii_redactor.wasm", base_dir),
+        "target/wasm32-wasip1/release/pii_redactor.wasm".to_string(),
+        "target/wasm32-wasip1/debug/pii_redactor.wasm".to_string(),
+    ];
+    for p in paths_to_try {
+        if std::path::Path::new(&p).exists() {
+            plugin_paths.insert("pii-redactor".to_string(), p.to_string());
+            break;
+        }
+    }
+    
+    let plugin_host_res = dek_wasm_host::WasmtimePluginHost::new(plugin_paths);
+    let plugin_host = Arc::new(plugin_host_res.unwrap_or_else(|_| {
+        warn!("Failed to load WasmtimePluginHost. Redaction may be unavailable.");
+        dek_wasm_host::WasmtimePluginHost::new(std::collections::HashMap::new()).unwrap()
+    }));
+
     // Task 2: Read child stdout and pipe to our stdout
     let mut child_stdout_reader = BufReader::new(child_stdout).lines();
     let tx_out_clone = tx_out.clone();
+    let plugin_host_clone = plugin_host.clone();
     tokio::spawn(async move {
         while let Ok(Some(line)) = child_stdout_reader.next_line().await {
-            // Forward unmodified (for now, phase 4 handles redaction)
-            let _ = tx_out_clone.send(line).await;
+            use dek_wasm_host::PluginHost;
+            if let Ok(mut payload) = serde_json::from_str::<Value>(&line) {
+                // Determine if we need to redact. For Phase 4, we assume redaction is an obligation.
+                // In a full impl, we'd check `decision.obligations`. We will just run it if loaded.
+                if let Ok(redacted) = plugin_host_clone.invoke("pii-redactor", payload.clone()) {
+                    payload = redacted;
+                }
+                let _ = tx_out_clone.send(payload.to_string()).await;
+            } else {
+                // Forward unmodified if not JSON
+                let _ = tx_out_clone.send(line).await;
+            }
         }
     });
 

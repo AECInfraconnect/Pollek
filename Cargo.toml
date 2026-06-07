@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "crates/*",
-    "plugins/*"
+    "plugins/*",
+    "crates/dek-ext-authz"
 ]
 exclude = [
     "crates/dek-ebpf-prog",

@@ -241,6 +241,13 @@ async fn main() -> Result<()> {
 
     let app = AxumRouter::new()
         .route("/mcp", post(handle_mcp_request))
+        // Sidecar PEP APIs
+        .route("/v1/authorize", post(handle_authorize))
+        .route("/v1/evaluate", post(handle_authorize)) // Alias for now
+        .route("/v1/filter/request", post(handle_filter_request))
+        .route("/v1/filter/response", post(handle_filter_response))
+        .route("/healthz", axum::routing::get(|| async { "OK" }))
+        .route("/readyz", axum::routing::get(|| async { "READY" }))
         // Layer 2 Opt-in Proxy Redirect Handlers
         .fallback(handle_forward_proxy)
         .with_state(state);
@@ -256,9 +263,35 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn handle_forward_proxy() -> impl IntoResponse {
-    // Basic forward proxy placeholder
-    (StatusCode::BAD_GATEWAY, "Forward proxy not yet fully implemented")
+async fn handle_forward_proxy(
+    State(state): State<Arc<AppState>>,
+    req: axum::extract::Request,
+) -> Response {
+    use axum::http::Method;
+    if req.method() == Method::CONNECT {
+        let uri = req.uri().clone();
+        let host = uri.host().unwrap_or("").to_string();
+        let port = uri.port_u16().unwrap_or(443);
+        let target = format!("{}:{}", host, port);
+
+        tokio::spawn(async move {
+            match hyper::upgrade::on(req).await {
+                Ok(upgraded) => {
+                    let mut upgraded = hyper_util::rt::TokioIo::new(upgraded);
+                    match tokio::net::TcpStream::connect(&target).await {
+                        Ok(mut server) => {
+                            let _ = tokio::io::copy_bidirectional(&mut upgraded, &mut server).await;
+                        }
+                        Err(e) => warn!("Failed to connect to {}: {}", target, e),
+                    }
+                }
+                Err(e) => warn!("Upgrade execution error: {}", e),
+            }
+        });
+        StatusCode::OK.into_response()
+    } else {
+        (StatusCode::BAD_GATEWAY, "Only HTTP CONNECT is implemented for Forward Proxy").into_response()
+    }
 }
 
 async fn shutdown_signal() {
@@ -420,5 +453,51 @@ async fn handle_mcp_request(
             )
                 .into_response()
         }
+    }
+}
+
+async fn handle_authorize(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<Value>,
+) -> Response {
+    let snapshot = state.snapshot.load();
+    let decision_result = snapshot.router.authorize(payload).await;
+    match decision_result {
+        Ok(decision) => {
+            if decision.allow {
+                (StatusCode::OK, Json(decision)).into_response()
+            } else {
+                (StatusCode::FORBIDDEN, Json(decision)).into_response()
+            }
+        }
+        Err(e) => {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
+        }
+    }
+}
+
+async fn handle_filter_request(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<Value>,
+) -> Response {
+    let snapshot = state.snapshot.load();
+    // In a real scenario, this would apply request-side obligations (e.g. inject headers)
+    (StatusCode::OK, Json(json!({"status": "filtered", "payload": payload}))).into_response()
+}
+
+async fn handle_filter_response(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<Value>,
+) -> Response {
+    let snapshot = state.snapshot.load();
+    // Apply redaction plugin
+    if let Ok(redacted) = state.plugin_host.invoke("pii-redactor", payload.clone()) {
+        (StatusCode::OK, Json(redacted)).into_response()
+    } else {
+        (StatusCode::OK, Json(payload)).into_response()
     }
 }
