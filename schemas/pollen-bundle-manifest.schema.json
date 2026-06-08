@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BundleManifest",
+  "type": "object",
+  "required": [
+    "activation_mode",
+    "artifacts",
+    "bundle_generation",
+    "bundle_id",
+    "bundle_version",
+    "created_at",
+    "expires_at",
+    "schema_version",
+    "tenant_id"
+  ],
+  "properties": {
+    "activation_mode": {
+      "$ref": "#/definitions/ActivationMode"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BundleArtifact"
+      }
+    },
+    "bundle_generation": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "bundle_id": {
+      "type": "string"
+    },
+    "bundle_version": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "ActivationMode": {
+      "type": "string",
+      "enum": [
+        "full",
+        "canary",
+        "dry_run"
+      ]
+    },
+    "BundleArtifact": {
+      "type": "object",
+      "required": [
+        "artifact_type",
+        "name",
+        "sha256"
+      ],
+      "properties": {
+        "artifact_type": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

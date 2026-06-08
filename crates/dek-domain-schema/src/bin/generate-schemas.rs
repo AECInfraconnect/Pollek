@@ -11,6 +11,7 @@ use dek_domain_schema::policy_target::PolicyTarget;
 use dek_domain_schema::decision::{DecisionRequest, DecisionResult};
 use dek_domain_schema::telemetry::TelemetryEnvelope;
 use dek_domain_schema::ebpf::EbpfMapUpdate;
+use dek_domain_schema::bundle::BundleManifest;
 
 fn main() {
     let schema_dir = Path::new("../../schemas");
@@ -27,6 +28,7 @@ fn main() {
         ("pollen-decision-result.schema.json", schema_for!(DecisionResult)),
         ("pollen-telemetry-envelope.schema.json", schema_for!(TelemetryEnvelope)),
         ("pollen-ebpf-map-update.schema.json", schema_for!(EbpfMapUpdate)),
+        ("pollen-bundle-manifest.schema.json", schema_for!(BundleManifest)),
     ];
 
     for (filename, schema) in schemas {

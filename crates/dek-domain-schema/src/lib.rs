@@ -8,3 +8,4 @@ pub mod decision;
 pub mod telemetry;
 pub mod ebpf;
 pub mod spiffe;
+pub mod bundle;
