@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Entity",
+  "type": "object",
+  "required": [
+    "attributes",
+    "entity_id",
+    "entity_type",
+    "external_ids",
+    "identity_assurance",
+    "schema_version",
+    "status",
+    "tenant_id"
+  ],
+  "properties": {
+    "attributes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "entity_id": {
+      "type": "string"
+    },
+    "entity_type": {
+      "type": "string"
+    },
+    "external_ids": {
+      "$ref": "#/definitions/ExternalIds"
+    },
+    "identity_assurance": {
+      "$ref": "#/definitions/IdentityAssurance"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "ExternalIds": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "oidc_sub": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spiffe_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "IdentityAssurance": {
+      "type": "object",
+      "required": [
+        "aal",
+        "auth_time",
+        "ial",
+        "mfa"
+      ],
+      "properties": {
+        "aal": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "auth_time": {
+          "type": "string"
+        },
+        "ial": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "mfa": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

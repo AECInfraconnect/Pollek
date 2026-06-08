@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Agent",
+  "type": "object",
+  "required": [
+    "agent_id",
+    "agent_type",
+    "capabilities",
+    "device_id",
+    "labels",
+    "name",
+    "owner_user_id",
+    "risk_level",
+    "runtime",
+    "schema_version",
+    "spiffe_id",
+    "status",
+    "tenant_id"
+  ],
+  "properties": {
+    "agent_id": {
+      "type": "string"
+    },
+    "agent_type": {
+      "type": "string"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "name": {
+      "type": "string"
+    },
+    "owner_user_id": {
+      "type": "string"
+    },
+    "risk_level": {
+      "type": "string"
+    },
+    "runtime": {
+      "$ref": "#/definitions/Runtime"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "spiffe_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "Runtime": {
+      "type": "object",
+      "required": [
+        "binary_hash",
+        "os",
+        "process_name",
+        "sandbox",
+        "version"
+      ],
+      "properties": {
+        "binary_hash": {
+          "type": "string"
+        },
+        "os": {
+          "type": "string"
+        },
+        "process_name": {
+          "type": "string"
+        },
+        "sandbox": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

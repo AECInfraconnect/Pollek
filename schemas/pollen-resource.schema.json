@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Resource",
+  "type": "object",
+  "required": [
+    "allowed_actions",
+    "classification",
+    "data_categories",
+    "labels",
+    "name",
+    "owner_entity_id",
+    "region",
+    "resource_id",
+    "resource_type",
+    "schema_version",
+    "tenant_id",
+    "uri"
+  ],
+  "properties": {
+    "allowed_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "classification": {
+      "type": "string"
+    },
+    "data_categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "name": {
+      "type": "string"
+    },
+    "owner_entity_id": {
+      "type": "string"
+    },
+    "region": {
+      "type": "string"
+    },
+    "resource_id": {
+      "type": "string"
+    },
+    "resource_type": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "uri": {
+      "type": "string"
+    }
+  }
+}

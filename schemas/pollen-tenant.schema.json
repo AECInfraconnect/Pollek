@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tenant",
+  "type": "object",
+  "required": [
+    "created_at",
+    "data_region",
+    "display_name",
+    "policy_mode",
+    "schema_version",
+    "tenant_id",
+    "tenant_type",
+    "trust_domain_strategy"
+  ],
+  "properties": {
+    "created_at": {
+      "type": "string"
+    },
+    "data_region": {
+      "type": "string"
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "policy_mode": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "tenant_type": {
+      "type": "string"
+    },
+    "trust_domain_strategy": {
+      "type": "string"
+    }
+  }
+}

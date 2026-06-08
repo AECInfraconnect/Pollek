@@ -35,7 +35,6 @@ impl MtlsConfig {
             .tls_built_in_root_certs(false) // trust ONLY the pinned private root
             .add_root_certificate(root_ca)
             .min_tls_version(reqwest::tls::Version::TLS_1_2)
-            .https_only(true)
             .identity(identity)
             .connect_timeout(std::time::Duration::from_secs(5))
             .timeout(std::time::Duration::from_secs(10))
