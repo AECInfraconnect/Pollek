@@ -110,4 +110,18 @@ pub enum TelemetryEvent {
         details: Option<String>,
         timestamp: String,
     },
+    #[serde(rename = "audit")]
+    Audit {
+        #[serde(default)]
+        schema_version: String,
+        tenant_id: String,
+        device_id: String,
+        action: String,
+        severity: String,
+        #[serde(flatten)]
+        details: HashMap<String, serde_json::Value>,
+        timestamp: String,
+        seq: u64,
+        prev_digest: String,
+    },
 }

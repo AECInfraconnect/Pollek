@@ -30,6 +30,11 @@ jobs:
             fi
           done
 
+      - name: Validate sample payloads against schemas
+        run: |
+          ajv validate -s docs/contracts/schemas/telemetry-event.schema.json -d crates/mock-cloud/tests/fixtures/decision_event.json
+          ajv validate -s docs/contracts/schemas/dek-device.schema.json -d crates/mock-cloud/tests/fixtures/device_register.json
+
   validate_openapi:
     name: Validate OpenAPI Spec
     runs-on: ubuntu-latest

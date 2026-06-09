@@ -19,6 +19,9 @@ pub mod approvals;
 pub mod decision_logs;
 pub mod mtls;
 
+#[cfg(test)]
+mod contract_test;
+
 
 use anyhow::Result;
 use askama::Template;
@@ -178,6 +181,7 @@ CwIDAQAB\n-----END PUBLIC KEY-----\n".to_string();
             "/admin/devices/:device_id/revoke",
             post(admin_revoke_device),
         )
+        .route("/admin/approvals/approve", post(crate::admin::admin_approvals_approve_all))
         .with_state(state.clone());
 
     // ---- :43891 mTLS Config ----
@@ -360,6 +364,14 @@ async fn dashboard_page(State(state): State<AppState>) -> impl IntoResponse {
                     event_type: format!("OS Lifecycle ({})", os_platform),
                     details: format!("{} : {}", component, event),
                 }
+            },
+            TelemetryEvent::Audit { timestamp, device_id, action, .. } => {
+                LogEntryView {
+                    timestamp: timestamp.clone(),
+                    device_id: device_id.clone(),
+                    event_type: "Audit".to_string(),
+                    details: action.clone(),
+                }
             }
         }
     }).collect();
@@ -441,17 +453,19 @@ async fn get_config(
             "spire_server": { "endpoint": "https://127.0.0.1:43891/spire" },
             "jwt_config": { "public_key_pem": state.rsa_public_key_pem.clone(), "issuer_url": "https://127.0.0.1:43891", "audience": ["pollen-dek"] },
             "policy_config": {
+                "version": "1.0",
+                "policy": { "engine": "cedar" },
                 "openfga": { "endpoint": "http://127.0.0.1:8080", "store_id": store_id },
-                "cedar": { "policy_src": format!("permit(\n  principal == User::\"user_bob\",\n  action == Action::\"tools/call\",\n  resource == Resource::\"mcp_tool\"\n); // rev {}", rev) },
+                "cedar": { "policy_src": state.rollout.lock().unwrap().latest_bundle.cedar_src.clone() },
                 "opa_wasm": { "policy_path": wasm_path },
                 "routes": [
                     { "id": "route_tools_call", "priority": 100,
                       "match_rule": { "method": "tools/call", "tool_category": null },
-                      "pdp_required": ["openfga", "opa_wasm"],
-                      "pdp_conditional": [ { "evaluator": "cedar", "required_payload_key": "*" } ] },
+                      "pdp_required": ["cedar"],
+                      "pdp_conditional": [] },
                     { "id": "route_default", "priority": 10,
                       "match_rule": { "method": "*", "tool_category": null },
-                      "pdp_required": ["openfga"], "pdp_conditional": [] }
+                      "pdp_required": ["cedar"], "pdp_conditional": [] }
                 ]
             }
         })),

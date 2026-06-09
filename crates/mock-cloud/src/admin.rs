@@ -125,8 +125,29 @@ pub async fn admin_keys_rotate(State(state): State<AppState>) -> impl IntoRespon
 // Wait, `mock-cloud` currently uses the `v1/tenants/:tenant_id/bundles/publish` which bumps revision.
 pub async fn admin_policies_publish(
     State(state): State<AppState>,
+    axum::extract::Json(body): axum::extract::Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    state.revision.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let mut require_approval = false;
+    if let Some(rules) = body.get("rules").and_then(|r| r.as_array()) {
+        for rule in rules {
+            if let Some(obs) = rule.get("obligations").and_then(|o| o.as_array()) {
+                if obs.iter().any(|v| v.as_str() == Some("require_approval")) {
+                    require_approval = true;
+                }
+            }
+        }
+    }
+
+    let rev = state.revision.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+    let mut rollout = state.rollout.lock().unwrap();
+    let cedar_src = if require_approval {
+        format!("@obligations(\"require_approval\")\npermit(\n  principal == User::\"user_bob\",\n  action == Action::\"tools/call\",\n  resource == Resource::\"mcp_tool\"\n); // rev {}", rev)
+    } else {
+        format!("permit(\n  principal == User::\"user_bob\",\n  action == Action::\"tools/call\",\n  resource == Resource::\"mcp_tool\"\n); // rev {}", rev)
+    };
+    rollout.latest_bundle.cedar_src = cedar_src;
+    drop(rollout);
+
     state.audit_logs.lock().unwrap().push(crate::state::AuditLog {
         timestamp: chrono::Utc::now().to_rfc3339(),
         actor: "test-harness".to_string(),
@@ -134,6 +155,23 @@ pub async fn admin_policies_publish(
         details: "Published new policy version".to_string(),
     });
     (axum::http::StatusCode::OK, axum::Json(serde_json::json!({"status": "published"})))
+}
+
+pub async fn admin_approvals_approve_all(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let rev = state.revision.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+    let mut rollout = state.rollout.lock().unwrap();
+    rollout.latest_bundle.cedar_src = format!("permit(\n  principal == User::\"user_bob\",\n  action == Action::\"tools/call\",\n  resource == Resource::\"mcp_tool\"\n); // rev {}", rev);
+    drop(rollout);
+
+    state.audit_logs.lock().unwrap().push(crate::state::AuditLog {
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        actor: "admin".to_string(),
+        action: "APPROVE_ALL".to_string(),
+        details: "Approved all pending requests and updated policy".to_string(),
+    });
+    (axum::http::StatusCode::OK, axum::Json(serde_json::json!({"status": "approved"})))
 }
 
 pub async fn admin_policies_publish_tampered(

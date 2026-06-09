@@ -156,6 +156,7 @@ impl ActivationCoordinator {
             metadata,
             current_plugin_host,
         );
+        new_snapshot.router.clear_caches().await;
         self.snapshot.store(Arc::new(new_snapshot));
 
         *state = ActivationState::Idle;
@@ -214,6 +215,7 @@ mod tests {
                 metadata,
                 current_plugin_host,
             );
+            new_snapshot.router.clear_caches().await;
             coordinator.snapshot.store(Arc::new(new_snapshot));
         }
 

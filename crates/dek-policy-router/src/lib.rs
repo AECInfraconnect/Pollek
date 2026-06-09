@@ -31,11 +31,13 @@ pub struct Route {
     #[serde(default)]
     pub enforcement_mode: EnforcementMode,
     pub match_rule: EnterpriseMatchRule,
+    #[serde(default)]
     pub pdp_required: Vec<String>,
     #[serde(default)]
     pub pdp_pool: Vec<String>,
     #[serde(default)]
     pub failover_strategy: FailoverStrategy,
+    #[serde(default)]
     pub pdp_conditional: Vec<ConditionalPdp>,
 }
 
@@ -216,6 +218,11 @@ impl PolicyRouter {
                     .and_then(|mcp| mcp.get("method"))
                     .and_then(|v| v.as_str())
             })
+            .or_else(|| {
+                payload
+                    .get("action")
+                    .and_then(|v| v.as_str())
+            })
             .unwrap_or("");
 
         // Extract optional matching context from payload
@@ -223,7 +230,13 @@ impl PolicyRouter {
             .get("mcp")
             .and_then(|mcp| mcp.get("category"))
             .and_then(|v| v.as_str());
-        let resource_type = payload.get("resource").and_then(|v| v.as_str());
+        let resource_type = payload.get("resource").and_then(|v| {
+            if v.is_object() {
+                v.get("kind").and_then(|k| k.as_str())
+            } else {
+                v.as_str()
+            }
+        });
         let severity_level = payload.get("severity").and_then(|v| v.as_str());
 
         let mut matched_route = None;

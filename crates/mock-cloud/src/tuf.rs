@@ -71,7 +71,7 @@ async fn get_tuf_metadata(
         ),
         "targets.json" => {
             let routes_json = json!([
-                { "id": "route_tools_call", "priority": 100, "match_rule": { "method": "tools/call", "tool_category": null }, "pdp_required": ["openfga"] }
+                { "id": "route_tools_call", "priority": 100, "match_rule": { "method": "tools/call", "tool_category": null }, "pdp_required": ["cedar"] }
             ]);
             let manifest_json = json!({
                 "manifest_version": "1.0",
@@ -80,7 +80,7 @@ async fn get_tuf_metadata(
                 "bundle_generation": 1,
                 "tenant_id": "tenant-production-1",
                 "created_at": "2024-01-01T00:00:00Z",
-                "expires_at": "2025-01-01T00:00:00Z",
+                "expires_at": "2030-01-01T00:00:00Z",
                 "activation_mode": "full",
                 "artifacts": []
             });
@@ -167,7 +167,7 @@ async fn get_tuf_metadata(
     let mut response = payload;
     use base64::Engine;
     response["signatures"] = json!([{
-        "keyid": "key-prod-1",
+        "keyid": "bootstrap",
         "sig": base64::prelude::BASE64_STANDARD.encode(signature.to_bytes())
     }]);
 
@@ -179,7 +179,7 @@ async fn get_tuf_artifact(
     State(_state): State<AppState>,
 ) -> impl IntoResponse {
     let routes_json = json!([
-        { "id": "route_tools_call", "priority": 100, "match_rule": { "method": "tools/call", "tool_category": null }, "pdp_required": ["openfga"] }
+        { "id": "route_tools_call", "priority": 100, "match_rule": { "method": "tools/call", "tool_category": null }, "pdp_required": ["cedar"] }
     ]);
     let manifest_json = json!({
         "manifest_version": "1.0",
@@ -188,7 +188,7 @@ async fn get_tuf_artifact(
         "bundle_generation": 1,
         "tenant_id": "tenant-production-1",
         "created_at": "2024-01-01T00:00:00Z",
-        "expires_at": "2025-01-01T00:00:00Z",
+        "expires_at": "2030-01-01T00:00:00Z",
         "activation_mode": "full",
         "artifacts": []
     });

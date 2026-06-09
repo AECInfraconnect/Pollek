@@ -34,8 +34,17 @@ pub async fn spawn_ipc_server_task(
     metrics_client: Arc<RwLock<reqwest::Client>>,
     start_time: Instant,
     reload_coordinator: Arc<crate::reload_coordinator::ReloadCoordinator>,
+    renew_cfg: crate::svid_renewal::RenewalConfig,
 ) -> Result<JoinHandle<()>> {
-    let listener = TcpListener::bind(&ipc_listen_addr).await?;
+    let socket_addr: std::net::SocketAddr = ipc_listen_addr.parse()?;
+    let socket = if socket_addr.is_ipv6() {
+        tokio::net::TcpSocket::new_v6()?
+    } else {
+        tokio::net::TcpSocket::new_v4()?
+    };
+    let _ = socket.set_reuseaddr(true);
+    socket.bind(socket_addr)?;
+    let listener = socket.listen(1024)?;
     info!("IPC Endpoint listening on {}", ipc_listen_addr);
 
     let ipc_semaphore = Arc::new(Semaphore::new(IPC_MAX_CONCURRENT_CONNECTIONS));
@@ -68,6 +77,7 @@ pub async fn spawn_ipc_server_task(
                             let sync_agent_clone = bundle_agent.clone();
                             let metrics_client_clone = metrics_client.clone();
                             let reload_coordinator_clone = reload_coordinator.clone();
+                            let renew_cfg_clone = renew_cfg.clone();
 
                             ipc_join_set.spawn({
                                 let req_id = Uuid::new_v4();
@@ -157,8 +167,15 @@ pub async fn spawn_ipc_server_task(
                                                     }
                                                 },
                                                 IpcRequest::RotateIdentity => {
-                                                    // TODO: trigger actual SPIRE rotation.
-                                                    IpcResponse::Error("rotation not yet supported".to_string())
+                                                    match crate::svid_renewal::force_renew(
+                                                        &renew_cfg_clone,
+                                                        &sink_clone,
+                                                        &sync_agent_clone,
+                                                        &metrics_client_clone,
+                                                    ).await {
+                                                        Ok(id) => IpcResponse::RotateStatus { status: format!("rotated:{id}") },
+                                                        Err(e) => IpcResponse::Error(format!("rotation failed: {e}")),
+                                                    }
                                                 }
                                             };
                                             let res_msg = IpcMessage { version: req_msg.version, payload: res };

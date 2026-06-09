@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn validate_all_fixtures() {
-        let schemas_dir = Path::new("../../schemas");
+        let schemas_dir = Path::new("../../docs/contracts/schemas");
         let fixtures_dir = Path::new("./fixtures");
 
         let pairs = vec![

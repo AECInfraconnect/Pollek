@@ -130,6 +130,8 @@ pub struct PolicyConfig {
     pub openfga: Option<OpenFgaConfig>,
     pub cedar: Option<CedarConfig>,
     pub opa_wasm: Option<WasmConfig>,
+    #[serde(flatten)]
+    pub extra: std::collections::HashMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

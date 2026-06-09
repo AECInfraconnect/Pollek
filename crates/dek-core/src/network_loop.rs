@@ -212,6 +212,7 @@ pub fn spawn(
     tenant_id: String,
     device_id: String,
     cancel: CancellationToken,
+    reload_coord: std::sync::Arc<crate::reload_coordinator::ReloadCoordinator>,
 ) -> JoinHandle<()> {
     tokio::spawn(async move {
         let mut enforcer = match platform_enforcer(&tenant_id, &device_id) {
@@ -233,28 +234,34 @@ pub fn spawn(
                 }
                 msg = rx.recv() => {
                     match msg {
-                        Some(SyncOutcome::Updated { network_rules: Some(rules), .. }) => {
-                            match enforcer.apply(&rules) {
-                                Ok(()) => {
-                                    metrics::counter!("dek_network_rule_enforced_total",
-                                        "backend" => backend, "result" => "applied").increment(1);
-                                    lkg = Some(rules);
-                                }
-                                Err(e) => {
-                                    error!("[net] apply failed: {e}; reverting to LKG / fail-closed");
-                                    let reverted = lkg.as_ref()
-                                        .map(|r| enforcer.apply(r).is_ok())
-                                        .unwrap_or(false);
-                                    if !reverted {
-                                        let _ = enforcer.fail_closed();
-                                        metrics::counter!("dek_network_failclosed_total",
-                                            "backend" => backend, "reason" => "apply_error").increment(1);
+                        Some(SyncOutcome::Updated { network_rules, config, manifest_path, .. }) => {
+                            if let Err(e) = reload_coord.process_staged_bundle(&config, &manifest_path).await {
+                                error!("[net] Failed to load new Sidecar API snapshot after bundle sync: {}", e);
+                            } else {
+                                info!("[net] Successfully reloaded Sidecar API snapshot due to bundle sync");
+                            }
+
+                            if let Some(rules) = network_rules {
+                                match enforcer.apply(&rules) {
+                                    Ok(()) => {
+                                        metrics::counter!("dek_network_rule_enforced_total",
+                                            "backend" => backend, "result" => "applied").increment(1);
+                                        lkg = Some(rules);
+                                    }
+                                    Err(e) => {
+                                        error!("[net] apply failed: {e}; reverting to LKG / fail-closed");
+                                        let reverted = lkg.as_ref()
+                                            .map(|r| enforcer.apply(r).is_ok())
+                                            .unwrap_or(false);
+                                        if !reverted {
+                                            let _ = enforcer.fail_closed();
+                                            metrics::counter!("dek_network_failclosed_total",
+                                                "backend" => backend, "reason" => "apply_error").increment(1);
+                                        }
                                     }
                                 }
                             }
                         }
-                        // Updated but no network rules in this bundle -> keep current set.
-                        Some(SyncOutcome::Updated { network_rules: None, .. }) => {}
                         // Sync failed (cloud blip): keep LKG; if we never had any -> fail-closed.
                         Some(SyncOutcome::Failed { .. }) => {
                             if lkg.is_none() {

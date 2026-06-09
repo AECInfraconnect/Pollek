@@ -14,7 +14,7 @@ use std::time::Duration;
 pub struct CedarAdapter {
     policy_src: String,
     policy_set: PolicySet,
-    cache: Cache<String, PolicyDecision>,
+    cache: Cache<String, (PolicyDecision, std::time::Instant)>,
 }
 
 impl CedarAdapter {
@@ -23,7 +23,6 @@ impl CedarAdapter {
             .map_err(|e| anyhow::anyhow!("Cedar Parse Error: {}", e))?;
         let cache = Cache::builder()
             .max_capacity(10_000)
-            .time_to_live(Duration::from_secs(60))
             .build();
         Ok(Self {
             policy_src: policy_src.to_string(),
@@ -36,27 +35,41 @@ impl CedarAdapter {
 #[async_trait]
 impl PolicyRuntime for CedarAdapter {
     async fn evaluate(&self, input: serde_json::Value) -> dek_policy_runtime::PolicyResult {
+        let risk = input.get("risk_tier").and_then(|v| v.as_str()).unwrap_or("low");
+        let ttl = match risk {
+            "high" | "critical" => Duration::from_secs(0),
+            "medium" => Duration::from_secs(15),
+            _ => Duration::from_secs(300),
+        };
+
         let cache_key = serde_json::to_string(&input).unwrap_or_default();
-        if !cache_key.is_empty() {
-            if let Some(decision) = self.cache.get(&cache_key) {
-                return Ok(decision);
+        if !ttl.is_zero() && !cache_key.is_empty() {
+            if let Some((decision, ts)) = self.cache.get(&cache_key) {
+                if ts.elapsed() <= ttl {
+                    return Ok(decision);
+                }
             }
         }
 
-        let principal = input
-            .get("principal")
-            .and_then(|v| v.as_str())
-            .unwrap_or("User::\"unknown\"");
-        let action = input
-            .get("action")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Action::\"unknown\"");
-        let resource = input
-            .get("resource")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Resource::\"unknown\"");
+        let get_field = |key: &str| -> Option<String> {
+            input.get(key).and_then(|v| {
+                if v.is_object() {
+                    v.get("kind")
+                        .or_else(|| v.get("id"))
+                        .and_then(|val| val.as_str().map(|s| s.to_string()))
+                } else if v.is_string() {
+                    v.as_str().map(|s| s.to_string())
+                } else {
+                    None
+                }
+            })
+        };
 
-        tracing::info!("Evaluating Cedar Policy:\n{}", self.policy_src);
+        let principal = get_field("principal").unwrap_or_else(|| "User::\"unknown\"".to_string());
+        let action = get_field("action").unwrap_or_else(|| "Action::\"unknown\"".to_string());
+        let resource = get_field("resource").unwrap_or_else(|| "Resource::\"unknown\"".to_string());
+
+        tracing::info!("Evaluating Cedar Policy:\n{}\nInput: principal={}, action={}, resource={}", self.policy_src, principal, action, resource);
 
         let context = match input.get("context") {
             Some(ctx_val) => Context::from_json_value(ctx_val.clone(), None).map_err(|e| {
@@ -100,9 +113,9 @@ impl PolicyRuntime for CedarAdapter {
             }
         };
 
-        let principal_uid = make_uid("User", principal)?;
-        let action_uid = make_uid("Action", action)?;
-        let resource_uid = make_uid("Resource", resource)?;
+        let principal_uid = make_uid("User", &principal)?;
+        let action_uid = make_uid("Action", &action)?;
+        let resource_uid = make_uid("Resource", &resource)?;
 
         let request = Request::new(principal_uid, action_uid, resource_uid, context, None)
             .map_err(|e| {
@@ -113,6 +126,17 @@ impl PolicyRuntime for CedarAdapter {
         let answer = authorizer.is_authorized(&request, &self.policy_set, &entities);
 
         let allowed = answer.decision() == Decision::Allow;
+
+        let mut obligations = vec![];
+        for reason in answer.diagnostics().reason() {
+            if let Some(policy) = self.policy_set.policy(reason) {
+                if let Some(obs) = policy.annotation("obligations") {
+                    let text = obs.to_string();
+                    let text = text.trim_matches('"');
+                    obligations.push(text.to_string());
+                }
+            }
+        }
 
         let decision_res = PolicyDecision {
             evaluator_id: "cedar_native".to_string(),
@@ -131,12 +155,12 @@ impl PolicyRuntime for CedarAdapter {
                 "Denied by Cedar policy".to_string()
             },
             effects: serde_json::json!({}),
-            obligations: vec![],
+            obligations,
             metadata: serde_json::json!({ "policy_version": "1.0", "diagnostics": format!("{:?}", answer.diagnostics()) }),
         };
 
-        if !cache_key.is_empty() {
-            self.cache.insert(cache_key, decision_res.clone());
+        if !ttl.is_zero() && !cache_key.is_empty() {
+            self.cache.insert(cache_key, (decision_res.clone(), std::time::Instant::now()));
         }
 
         Ok(decision_res)
@@ -165,5 +189,28 @@ mod tests {
         let _ents = Entities::from_json_value(ent_val, None)?;
 
         Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cache_ttl_logic() {
+        let policy = "permit(principal, action, resource);";
+        let adapter = CedarAdapter::new(policy).unwrap();
+        
+        let high_risk = json!({ "principal": "User::\"u\"", "action": "Action::\"a\"", "resource": "Resource::\"r\"", "risk_tier": "high" });
+        let low_risk = json!({ "principal": "User::\"u\"", "action": "Action::\"a\"", "resource": "Resource::\"r\"", "risk_tier": "low" });
+        
+        // Evaluate high risk: should not cache
+        let _ = adapter.evaluate(high_risk.clone()).await.unwrap();
+        let cache_key_high = serde_json::to_string(&high_risk).unwrap();
+        assert!(adapter.cache.get(&cache_key_high).is_none(), "High risk should not be cached");
+
+        // Evaluate low risk: should cache
+        let _ = adapter.evaluate(low_risk.clone()).await.unwrap();
+        let cache_key_low = serde_json::to_string(&low_risk).unwrap();
+        assert!(adapter.cache.get(&cache_key_low).is_some(), "Low risk should be cached");
+
+        // Clear cache
+        adapter.clear_cache().await;
+        assert!(adapter.cache.get(&cache_key_low).is_none(), "Cache should be cleared");
     }
 }

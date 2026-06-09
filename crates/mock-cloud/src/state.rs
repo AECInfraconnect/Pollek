@@ -102,3 +102,15 @@ pub fn rand_hex(n_bytes: usize) -> String {
     rand_core::OsRng.fill_bytes(&mut b);
     b.iter().map(|x| format!("{:02x}", x)).collect()
 }
+
+impl AppState {
+    pub fn audit_push(&self, actor: &str, action: &str, details: &str) {
+        let mut logs = self.audit_logs.lock().unwrap();
+        logs.push(AuditLog {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            actor: actor.to_string(),
+            action: action.to_string(),
+            details: details.to_string(),
+        });
+    }
+}

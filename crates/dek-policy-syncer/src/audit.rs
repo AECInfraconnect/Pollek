@@ -36,9 +36,10 @@ impl AuditTrail {
         let ts = chrono_now_rfc3339();
 
         if let Some(obj) = payload.as_object_mut() {
-            obj.insert("event_type".into(), json!(event_type));
+            obj.insert("event_type".into(), json!("audit"));
+            obj.insert("action".into(), json!(event_type));
             obj.insert("severity".into(), json!(severity));
-            obj.insert("ts".into(), json!(ts));
+            obj.insert("timestamp".into(), json!(ts)); // use timestamp instead of ts for TelemetryEvent
             obj.insert("seq".into(), json!(seq));
             obj.insert("prev_digest".into(), json!(prev));
             obj.insert("device_id".into(), json!(self.device_id));

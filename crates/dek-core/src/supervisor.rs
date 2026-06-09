@@ -110,14 +110,9 @@ impl Supervisor {
             &pinned_key,
             client_key_override.as_deref(),
         )?);
-        let telemetry_url = format!(
-            "{}/v1/tenants/{}/telemetry/events",
-            cloud_url.trim_end_matches('/'),
-            tenant_id
-        );
         let data_dir = dek_config::paths::get_data_dir();
         let telemetry_sink = CloudTelemetrySink::new(
-            &telemetry_url,
+            &cloud_url.trim_end_matches('/'),
             &bootstrap.mtls,
             client_key_override.as_deref(),
             &data_dir.join("telemetry.db").to_string_lossy(),
@@ -168,6 +163,20 @@ impl Supervisor {
     pub async fn run(mut self) -> Result<()> {
         let reload_coordinator = Arc::new(crate::reload_coordinator::ReloadCoordinator::new());
 
+        let renew_cfg = crate::svid_renewal::RenewalConfig {
+            renew_url: format!(
+                "{}/v1/tenants/{}/devices/{}/spire/svid/renew",
+                self.cloud_url.trim_end_matches('/'),
+                self.bootstrap
+                    .tenant_id
+                    .as_deref()
+                    .unwrap_or("unknown_tenant"),
+                self.bootstrap.device_id
+            ),
+            device_id: self.bootstrap.device_id.clone(),
+            mtls: self.bootstrap.mtls.clone(),
+        };
+
         // 1) IPC first so probation/dekctl can probe immediately.
         let ipc_handle: JoinHandle<()> = crate::ipc_server::spawn_ipc_server_task(
             self.cancel.clone(),
@@ -177,24 +186,23 @@ impl Supervisor {
             self.metrics_client.clone(),
             self.start_time,
             reload_coordinator.clone(),
+            renew_cfg.clone(),
         )
         .await?;
 
         crate::service_integration::notify_ready();
 
-        let snapshot_ref = reload_coordinator.activation.snapshot.clone();
-        tokio::spawn(async move {
-            if let Err(e) = crate::api::start_sidecar_api(snapshot_ref, 43892).await {
-                error!("Sidecar API failed: {}", e);
-            }
-        });
-
         // 2) Bundle sync + auto-update loop.
 
         use dek_policy_syncer::{PolicySyncer, FreshnessConfig};
 
+        let max_stale = std::env::var("DEK_MAX_STALE_SECS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(86400);
+
         let fresh_cfg = FreshnessConfig {
-            max_bundle_age_secs: 86400, // Default according to config
+            max_bundle_age_secs: max_stale, // Configurable for tests
             grace_secs: 600,
         };
         let tenant_id = self.bootstrap.tenant_id.clone().unwrap_or_else(|| "unknown_tenant".to_string());
@@ -207,6 +215,16 @@ impl Supervisor {
             self.cloud_url.clone(),
             self.pinned_key.clone(),
         );
+
+        let snapshot_ref = reload_coordinator.activation.snapshot.clone();
+        let enforcement_ref = syncer.enforcement();
+        tokio::spawn(async move {
+            if let Err(e) = crate::api::start_sidecar_api(snapshot_ref, enforcement_ref, 43890).await {
+                error!("Sidecar API failed: {}", e);
+            }
+        });
+
+
         let (sync_tx, sync_rx) = tokio::sync::mpsc::channel::<dek_policy_syncer::SyncOutcome>(100);
         let bundle_handle = syncer.clone().spawn(
             std::time::Duration::from_secs(self.bundle_interval),
@@ -220,6 +238,7 @@ impl Supervisor {
             tenant_id.clone(),
             self.bootstrap.device_id.clone(),
             self.cancel.clone(),
+            reload_coordinator.clone(),
         );
 
         // 3) Probation finalize (only if an update is on trial). After services up.
@@ -254,19 +273,7 @@ impl Supervisor {
         // Spawn SVID Renewal Task
         let renew_handle = crate::svid_renewal::spawn_svid_renewal_task(
             self.cancel.clone(),
-            crate::svid_renewal::RenewalConfig {
-                renew_url: format!(
-                    "{}/v1/tenants/{}/devices/{}/spire/svid/renew",
-                    self.cloud_url.trim_end_matches('/'),
-                    self.bootstrap
-                        .tenant_id
-                        .as_deref()
-                        .unwrap_or("unknown_tenant"),
-                    self.bootstrap.device_id
-                ),
-                device_id: self.bootstrap.device_id.clone(),
-                mtls: self.bootstrap.mtls.clone(),
-            },
+            renew_cfg,
             self.telemetry_sink.clone(),
             self.bundle_agent.clone(),
             self.metrics_client.clone(),

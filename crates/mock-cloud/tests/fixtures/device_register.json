@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "device_id": "device-123",
+  "tenant_id": "tenant-456",
+  "enrollment_token": "token-xyz",
+  "hostname": "pollen-macbook",
+  "os_version": "macOS 14.5",
+  "os_platform": "darwin",
+  "hardware_id": "HW-123",
+  "capabilities": {
+    "transparent_proxy": true,
+    "bpf_lsm": false,
+    "network_extension": true,
+    "app_sandbox": true
+  }
+}

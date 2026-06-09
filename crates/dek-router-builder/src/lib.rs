@@ -66,12 +66,13 @@ pub fn load_router_config(router: &mut PolicyRouter, payload: &Value) {
     }
 
     if let Some(routes_val) = payload.get("routes") {
-        if let Ok(routes) =
-            serde_json::from_value::<Vec<dek_policy_router::Route>>(routes_val.clone())
-        {
-            router.set_routes(routes);
-        } else {
-            error!("Failed to parse routes from bundle");
+        match serde_json::from_value::<Vec<dek_policy_router::Route>>(routes_val.clone()) {
+            Ok(routes) => {
+                router.set_routes(routes);
+            }
+            Err(e) => {
+                error!("Failed to parse routes from bundle: {} (routes_val: {})", e, routes_val);
+            }
         }
     }
 }

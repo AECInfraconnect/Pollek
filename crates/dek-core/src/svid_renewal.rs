@@ -20,6 +20,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
+#[derive(Clone)]
 pub struct RenewalConfig {
     /// `{cloud_url}/spire/svid/renew`
     pub renew_url: String,
@@ -138,6 +139,16 @@ async fn renew_once(
         *metrics_client.write().await = c;
     }
     Ok(spiffe_id)
+}
+
+/// Force a renewal explicitly (e.g. via IPC RotateIdentity).
+pub async fn force_renew(
+    cfg: &RenewalConfig,
+    sink: &Arc<CloudTelemetrySink>,
+    bundle_agent: &Arc<BundleSyncAgent>,
+    metrics_client: &Arc<RwLock<reqwest::Client>>,
+) -> Result<String> {
+    renew_once(cfg, sink, bundle_agent, metrics_client).await
 }
 
 /// Renew the SVID and atomically install the new key+cert at the given paths.

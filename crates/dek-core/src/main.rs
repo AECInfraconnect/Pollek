@@ -16,12 +16,11 @@ mod supervisor;
 mod svid_renewal;
 mod updater;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
     #[cfg(windows)]
     service_integration::run_as_service_if_needed(async { run().await })?;
     #[cfg(not(windows))]
-    run().await?;
+    service_integration::run_as_service_if_needed(async { run().await })?;
     Ok(())
 }
 

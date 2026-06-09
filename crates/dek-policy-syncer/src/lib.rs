@@ -34,11 +34,13 @@ use sha2::Digest;
 pub use state::{evaluate_state, EnforcementState, EnforcementStatus, FreshnessConfig};
 
 /// Outcome of one sync attempt.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum SyncOutcome {
-    Updated { 
+    Updated {
         version: String,
         network_rules: Option<Vec<dek_domain_schema::CompiledNetworkRules>>,
+        config: Box<dek_config::DekConfig>,
+        manifest_path: std::path::PathBuf,
     },
     Failed { reason: String },
     StateTransition(EnforcementState),
@@ -70,11 +72,16 @@ impl PolicySyncer {
         cloud_url: String,
         pinned_b64: String,
     ) -> Arc<Self> {
-        let audit = AuditTrail::new(telemetry.clone(), device_id, tenant_id);
+        let audit = AuditTrail::new(telemetry.clone(), device_id.clone(), tenant_id.clone());
         let set = keymgr::load_or_bootstrap(&pinned_b64);
         bundle_agent.update_keys(set);
 
-        let keys_url = format!("{}/v1/keys", cloud_url);
+        let keys_url = format!(
+            "{}/v1/tenants/{}/devices/{}/trusted-keys",
+            cloud_url.trim_end_matches('/'),
+            tenant_id,
+            device_id
+        );
         let push_url = format!("{}/v1/push", cloud_url);
 
         Arc::new(Self {
@@ -146,7 +153,12 @@ impl PolicySyncer {
                     }
                 };
 
-                SyncOutcome::Updated { version, network_rules }
+                SyncOutcome::Updated {
+                    version,
+                    network_rules,
+                    config: Box::new(_dek_config),
+                    manifest_path,
+                }
             }
             Err(e) => {
                 let reason = e.to_string();
@@ -247,7 +259,7 @@ impl PolicySyncer {
         let c2 = cancel.clone();
         let sync_tx2 = sync_tx.clone();
         let watch = tokio::spawn(async move {
-            let mut tick = tokio::time::interval(Duration::from_secs(5));
+            let mut tick = tokio::time::interval(Duration::from_secs(1));
             loop {
                 tokio::select! {
                     _ = c2.cancelled() => break,
