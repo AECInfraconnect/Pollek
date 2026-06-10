@@ -30,9 +30,20 @@ arc-swap = "1.7"
 chrono = "0.4"
 dek-pdp-sdk = { path = "crates/dek-pdp-sdk" }
 
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+unused_must_use = "deny"
+
 [workspace.lints.clippy]
 unwrap_used = "deny"
 expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+print_stdout = "warn"
+print_stderr = "warn"
 
 
 [profile.release]
