@@ -1,25 +1,12 @@
-use crate::AppState;
+use crate::{error::{ApiError, ApiResult}, state::AppState};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
 use dek_control_plane_api::policy::*;
-use dek_control_plane_api::policy::*;
 use serde_json::json;
-
-fn not_found() -> (StatusCode, Json<serde_json::Value>) {
-    (StatusCode::NOT_FOUND, Json(json!({"error": "not found"})))
-}
-
-fn internal_error(e: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({"error": e.to_string()})),
-    )
-}
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -48,33 +35,29 @@ pub fn router() -> Router<AppState> {
 async fn list_policies(
     Path(tenant_id): Path<String>,
     State(state): State<AppState>,
-) -> impl IntoResponse {
-    match state.policy_store.list_policies(&tenant_id).await {
-        Ok(items) => (StatusCode::OK, Json(json!(items))),
-        Err(e) => internal_error(e),
-    }
+) -> ApiResult<Json<serde_json::Value>> {
+    let items = state.policy_store.list_policies(&tenant_id).await.map_err(ApiError::Internal)?;
+    Ok(Json(json!(items)))
 }
 
 async fn create_policy(
     Path(tenant_id): Path<String>,
     State(state): State<AppState>,
     Json(mut payload): Json<PolicyDraft>,
-) -> impl IntoResponse {
+) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
     payload.meta.tenant_id = tenant_id;
-    match state.policy_store.upsert_policy(payload.clone()).await {
-        Ok(item) => (StatusCode::CREATED, Json(json!(item))),
-        Err(e) => internal_error(e),
-    }
+    let item = state.policy_store.upsert_policy(payload).await.map_err(ApiError::Internal)?;
+    Ok((StatusCode::CREATED, Json(json!(item))))
 }
 
 async fn get_policy(
     Path((tenant_id, policy_id)): Path<(String, String)>,
     State(state): State<AppState>,
-) -> impl IntoResponse {
-    match state.policy_store.get_policy(&tenant_id, &policy_id).await {
-        Ok(Some(item)) => (StatusCode::OK, Json(json!(item))),
-        Ok(None) => not_found(),
-        Err(e) => internal_error(e),
+) -> ApiResult<Json<serde_json::Value>> {
+    let item = state.policy_store.get_policy(&tenant_id, &policy_id).await.map_err(ApiError::Internal)?;
+    match item {
+        Some(i) => Ok(Json(json!(i))),
+        None => Err(ApiError::NotFound(policy_id)),
     }
 }
 
@@ -82,26 +65,21 @@ async fn patch_policy(
     Path((tenant_id, _policy_id)): Path<(String, String)>,
     State(state): State<AppState>,
     Json(mut payload): Json<PolicyDraft>,
-) -> impl IntoResponse {
+) -> ApiResult<Json<serde_json::Value>> {
     payload.meta.tenant_id = tenant_id;
-    match state.policy_store.upsert_policy(payload.clone()).await {
-        Ok(item) => (StatusCode::OK, Json(json!(item))),
-        Err(e) => internal_error(e),
-    }
+    let item = state.policy_store.upsert_policy(payload).await.map_err(ApiError::Internal)?;
+    Ok(Json(json!(item)))
 }
 
 async fn delete_policy(
     Path((tenant_id, policy_id)): Path<(String, String)>,
     State(state): State<AppState>,
-) -> impl IntoResponse {
-    match state
-        .policy_store
-        .delete_policy(&tenant_id, &policy_id)
-        .await
-    {
-        Ok(true) => (StatusCode::NO_CONTENT, Json(json!({}))),
-        Ok(false) => not_found(),
-        Err(e) => internal_error(e),
+) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
+    let deleted = state.policy_store.delete_policy(&tenant_id, &policy_id).await.map_err(ApiError::Internal)?;
+    if deleted {
+        Ok((StatusCode::NO_CONTENT, Json(json!({}))))
+    } else {
+        Err(ApiError::NotFound(policy_id))
     }
 }
 
@@ -109,12 +87,11 @@ async fn publish_policy(
     Path((tenant, _policy_id)): Path<(String, String)>,
     State(st): State<AppState>,
     Json(draft): Json<PolicyDraft>,
-) -> impl IntoResponse {
+) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
     let build_number = st
         .build_number
         .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-    // 1. "Compile" draft into compiled artifacts
     let mut compiled = vec![];
     if let dek_control_plane_api::policy::PolicySource::RawText { language, text } = &draft.source {
         compiled.push(crate::bundle::CompiledArtifact {
@@ -132,7 +109,6 @@ async fn publish_policy(
         });
     }
 
-    // 2. Snapshot registry
     let agents = st
         .registry_store
         .list_agents(&tenant)
@@ -140,7 +116,6 @@ async fn publish_policy(
         .unwrap_or_default();
     let registry_snap = serde_json::json!({ "agents": agents });
 
-    // 3. Build & Sign Bundle
     let built = crate::bundle::build_signed_bundle(
         &st.signer,
         &tenant,
@@ -153,62 +128,59 @@ async fn publish_policy(
         None,
     )
     .await
-    .unwrap();
+    .map_err(ApiError::Internal)?;
 
-    // 4. Store raw payload and blobs
     st.policy_store
         .upsert_policy_raw(
             &tenant,
             "bundle:latest",
-            &serde_json::to_value(&built.manifest).unwrap(),
+            &serde_json::to_value(&built.manifest).map_err(|e| ApiError::Internal(e.into()))?,
         )
         .await
-        .unwrap();
+        .map_err(ApiError::Internal)?;
+
     for (path, bytes) in built.blobs {
         st.policy_store
             .put_blob(&tenant, &path, &bytes)
             .await
-            .unwrap();
+            .map_err(ApiError::Internal)?;
     }
 
-    // 5. Broadcast to SSE for hot-reload
     let _ = st.bundle_tx.send(built.manifest.bundle_id.clone());
 
-    (
+    Ok((
         StatusCode::OK,
         Json(json!({
             "published": true,
             "bundle_id": built.manifest.bundle_id,
             "manifest": built.manifest
         })),
-    )
+    ))
 }
 
 async fn validate_policy(
     Path((tenant_id, policy_id)): Path<(String, String)>,
     State(state): State<AppState>,
-) -> impl IntoResponse {
+) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
     let _ = (tenant_id, policy_id, state);
-    // Mock validate implementation
-    (
+    Ok((
         StatusCode::OK,
         Json(json!({ "is_valid": true, "errors": [] })),
-    )
+    ))
 }
 
 async fn simulate_policy(
     Path((tenant_id, policy_id)): Path<(String, String)>,
     State(state): State<AppState>,
     Json(input): Json<serde_json::Value>,
-) -> impl IntoResponse {
+) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
     let _ = (tenant_id, policy_id, state, input);
-    // Mock simulate implementation
-    (
+    Ok((
         StatusCode::OK,
         Json(json!({
             "allowed": true,
             "evaluation_time_ms": 2,
             "log_output": ["mock simulate"]
         })),
-    )
+    ))
 }

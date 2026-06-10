@@ -95,7 +95,7 @@ async fn store_events(
             .get("event_id")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
-            .unwrap_or_else(|| format!("ev_{}", chrono::Utc::now().timestamp_nanos()));
+            .unwrap_or_else(|| format!("ev_{}", chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)));
 
         if st
             .telemetry_store

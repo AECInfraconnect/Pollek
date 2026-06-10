@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 //! bundle.rs — build signed policy bundles in the SAME format as Pollen Cloud
 
+use crate::error::{ApiError, ApiResult};
+use crate::state::AppState;
 use anyhow::{Context, Result};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json, Router,
+};
 use dek_control_plane_api::bundle::{
     ActivationStrategy, BundleArtifactV2, BundleSignature, PollenPolicyBundleManifestV2,
 };
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 
 use crate::signing::LocalSigner;
 
@@ -39,18 +45,20 @@ pub async fn build_signed_bundle(
     let mut artifacts = vec![];
     let mut blobs = vec![];
 
+    use sha2::{Digest, Sha256};
+
     // Snapshot
     let snap_bytes = serde_json::to_vec(registry_snap)?;
-    let snap_sha256 = hex::encode(sha2::Sha256::digest(&snap_bytes));
+    let snap_sha256 = hex::encode(Sha256::digest(&snap_bytes));
     blobs.push((format!("registry/{}", snap_sha256), snap_bytes));
 
     // Router
     let router_bytes = serde_json::to_vec(router_config)?;
-    let router_sha256 = hex::encode(sha2::Sha256::digest(&router_bytes));
+    let router_sha256 = hex::encode(Sha256::digest(&router_bytes));
     blobs.push((format!("router/{}", router_sha256), router_bytes));
 
     for ca in compiled {
-        let sha = hex::encode(sha2::Sha256::digest(&ca.bytes));
+        let sha = hex::encode(Sha256::digest(&ca.bytes));
         let blob_path = format!("artifacts/{}", sha);
         blobs.push((blob_path.clone(), ca.bytes.clone()));
 
@@ -91,7 +99,6 @@ pub async fn build_signed_bundle(
     manifest.signatures.clear(); // Ensure empty for signing
     let signed_bytes = serde_json::to_vec(&manifest).unwrap();
 
-    use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(&signed_bytes);
     let hash_bytes = hasher.finalize();
@@ -147,4 +154,125 @@ pub fn verify_bundle(manifest: &PollenPolicyBundleManifestV2, public_b64: &str) 
         }
     }
     false
+}
+
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route(
+            "/v1/tenants/:tenant/devices/:device/bundles/manifest",
+            axum::routing::get(get_manifest),
+        )
+        .route(
+            "/v1/tenants/:tenant/devices/:device/bundles/artifacts/:sha",
+            axum::routing::get(get_artifact),
+        )
+        .route(
+            "/v1/tenants/:tenant/devices/:device/trusted-keys",
+            axum::routing::get(get_trusted_keys),
+        )
+        .route(
+            "/v1/tenants/:tenant/devices/:device/config",
+            axum::routing::get(get_mock_config),
+        )
+}
+
+async fn get_mock_config(
+    Path((tenant, _device)): Path<(String, String)>,
+    State(st): State<AppState>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let mut combined_cedar = String::new();
+
+    if let Ok(Some(manifest_val)) = st
+        .policy_store
+        .get_policy_raw(&tenant, "bundle:latest")
+        .await
+    {
+        if let Ok(manifest) = serde_json::from_value::<PollenPolicyBundleManifestV2>(manifest_val) {
+            for artifact in manifest.artifacts {
+                if artifact.adapter_id == "cedar" {
+                    if let Ok(Some(bytes)) = st.policy_store.get_blob(&tenant, &artifact.path).await
+                    {
+                        if let Ok(text) = String::from_utf8(bytes) {
+                            combined_cedar.push_str(&text);
+                            combined_cedar.push('\n');
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(Json(serde_json::json!({
+        "device_id": "device-001",
+        "tenant_id": tenant,
+        "mtls": {
+            "root_ca_path": "certs/root_ca.crt",
+            "client_cert_path": "certs/device.crt",
+            "client_key_path": "certs/device.key"
+        },
+        "policy_config": {
+            "mode": "strict_enforce",
+            "fail_closed": true,
+            "cedar": {
+                "policy_src": combined_cedar
+            },
+            "routes": [
+                {
+                    "id": "route_default",
+                    "priority": 10,
+                    "match_rule": { "method": "*", "tool_category": null },
+                    "pdp_required": ["cedar"],
+                    "pdp_conditional": []
+                }
+            ]
+        }
+    })))
+}
+
+async fn get_trusted_keys(State(st): State<AppState>) -> ApiResult<Json<serde_json::Value>> {
+    Ok(Json(serde_json::json!({ "keys": [{
+        "key_id": st.signer.key_id, "public_b64": st.signer.public_key_b64(),
+        "status": "active", "not_before_unix": 0, "not_after_unix": 0
+    }]})))
+}
+
+async fn get_manifest(
+    Path((tenant, _device)): Path<(String, String)>,
+    State(st): State<AppState>,
+) -> ApiResult<Json<serde_json::Value>> {
+    match st.policy_store.get_policy_raw(&tenant, "bundle:latest").await {
+        Ok(Some(val)) => Ok(Json(val)),
+        Ok(None) => Err(ApiError::NotFound("bundle".into())),
+        Err(e) => Err(ApiError::Internal(e.into())),
+    }
+}
+
+async fn get_artifact(
+    Path((tenant, _device, sha)): Path<(String, String, String)>,
+    State(st): State<AppState>,
+) -> ApiResult<(StatusCode, Vec<u8>)> {
+    if sha == "network_guardrails.json" {
+        let signed_bytes = serde_json::to_vec(&serde_json::json!([])).unwrap();
+        let sig_b64 = st.signer.sign_b64(&signed_bytes);
+        let signed_payload = serde_json::json!({
+            "signed": [],
+            "signatures": [{
+                "signature_id": st.signer.key_id,
+                "signature_type": "ed25519",
+                "payload": sig_b64,
+                "public_key_fingerprint": st.signer.public_key_b64(),
+            }]
+        });
+        return Ok((
+            StatusCode::OK,
+            serde_json::to_vec(&signed_payload).unwrap(),
+        ));
+    }
+
+    let path = format!("artifacts/{sha}");
+    match st.policy_store.get_blob(&tenant, &path).await {
+        Ok(Some(bytes)) => Ok((StatusCode::OK, bytes)),
+        Ok(None) => Err(ApiError::NotFound("artifact".into())),
+        Err(e) => Err(ApiError::Internal(e.into())),
+    }
 }
