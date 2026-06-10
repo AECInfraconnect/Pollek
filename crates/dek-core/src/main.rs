@@ -9,6 +9,7 @@ mod bundle_loop;
 mod ebpf;
 mod ipc_client;
 mod ipc_server;
+mod kernel_guard;
 mod keystore_migration;
 mod metrics_push;
 mod network_loop;

@@ -32,6 +32,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Update Pollen DEK (Proxy to dek-updater)
+    Update {
+        #[arg(long, default_value = "beta")]
+        channel: String,
+    },
     /// Enroll device
     Enroll {
         #[arg(long)]
@@ -162,6 +167,33 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Update { channel } => {
+            info!("Initiating update via dek-updater (channel: {})...", channel);
+            let exe_path = std::env::current_exe()?;
+            let updater_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
+            let updater_exe = if cfg!(windows) {
+                updater_dir.join("dek-updater.exe")
+            } else {
+                updater_dir.join("dek-updater")
+            };
+            
+            if !updater_exe.exists() {
+                error!("Updater not found at {:?}", updater_exe);
+                std::process::exit(1);
+            }
+            
+            let status = std::process::Command::new(&updater_exe)
+                .arg("upgrade")
+                .arg("--channel")
+                .arg(&channel)
+                .status()?;
+                
+            if !status.success() {
+                error!("Update failed.");
+                std::process::exit(1);
+            }
+            info!("Update successful.");
+        }
         Commands::Enroll { cloud_url } => {
             service::enroll::run(&cloud_url).await?;
         }

@@ -42,6 +42,8 @@ pub struct DecisionResult {
     pub adapter_results: Vec<AdapterDecisionResult>,
     pub obligations: Vec<DecisionObligation>,
     pub latency_ms: u64,
+    pub selected_engine: Option<String>,
+    pub enforcement_plane: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

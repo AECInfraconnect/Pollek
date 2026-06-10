@@ -1,17 +1,31 @@
-# Release Notes: v1.0.0-beta.1 (OSS Launch)
+# Pollen DEK v1.0.0-beta.1 Release Notes
 
-Pollen DEK v1.0.0-beta.1 represents the first official Open Source Software (OSS) candidate, providing enterprise-grade distributed authorization natively on the edge.
+This release introduces end-to-end auto-update capabilities, OS installers, and kernel-level enforcement foundations.
 
 ## Highlights
-- **Cosign Integration:** The release workflow now enforces sigstore keyless OIDC signatures for all artifacts. `dek-updater` fully verifies the `cosign` cryptographic signature prior to executing atomic swaps, blocking maliciously signed or foreign binaries.
-- **Fail-Closed Auto-Update:** The updater ensures robust SHA256 matches and cosign verification before writing the new executable payload, maintaining service uptime through `apply_with_rollback`.
-- **First Run Documentation:** We've introduced `FIRST_RUN_UX.md` for a streamlined quickstart guide covering CA compilation, mock enrollment, and local policy testing.
-- **Socket Resilience:** Addressed Windows ephemeral port exhaustion under heavy scale by swapping default HTTP bindings to native `TcpSocket` implementations explicitly tuned with `SO_REUSEADDR`.
+- **Automated Installers**: `pollen-dek-linux-amd64.deb` and `pollen-dek-windows-amd64.zip` are now generated automatically.
+- **End-to-End Auto-Updater**: `dek-updater` now performs atomic executable swaps with automatic rollback on health-check failure.
+- **CLI Proxy**: `dek-cli update --channel beta` seamlessly invokes `dek-updater`.
+- **Adaptive Policy Routing**: Automatic selection between Cedar, OpenFGA, OPA, and eBPF based on decision kind and complexity.
+- **Kernel Guard**: eBPF network rules are now limited to 1024 exact match rules to prevent verifier limits/crashes, gracefully falling back to user-mode PDP.
 
-## Compliance
-- This release is compliant with our internal matrix validations across A to K evaluation sequences.
-- SPDX licensing headers will be progressively rolled out in P1 (OSS ecosystem alignment).
-- All Linux, Windows, and macOS targets are verifiably built using `cargo-auditable`.
+## Downloads and Verification
 
-## Usage
-To download and install the agent manually, fetch the appropriate OS archive below. For automated deployment, use `dek-updater upgrade`.
+| OS | File |
+|---|---|
+| Linux (deb) | `pollen-dek-linux-amd64.deb` |
+| Linux (tar) | `pollen-dek-linux-amd64.tar.gz` |
+| Windows (zip) | `pollen-dek-windows-amd64.zip` |
+| macOS (tar) | `pollen-dek-macos-amd64.tar.gz` |
+
+To verify the integrity of these artifacts, download `SHA256SUMS` and `SHA256SUMS.sig`, then run:
+```bash
+sha256sum -c SHA256SUMS
+
+cosign verify-blob \
+  --certificate pollen-dek-linux-amd64.tar.gz.pem \
+  --signature pollen-dek-linux-amd64.tar.gz.sig \
+  --certificate-identity-regexp "^https://github.com/AECInfraconnect/AntiG_Pollen_DEK/.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  pollen-dek-linux-amd64.tar.gz
+```

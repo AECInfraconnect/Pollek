@@ -77,4 +77,6 @@ pub struct DecisionResult {
     pub combined_reason: String,
     pub evaluator_results: Vec<EvaluatorResult>,
     pub obligations: Vec<String>,
+    pub selected_engine: Option<String>,
+    pub enforcement_plane: Option<String>,
 }

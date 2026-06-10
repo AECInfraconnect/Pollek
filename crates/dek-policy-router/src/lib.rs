@@ -8,6 +8,9 @@ use dek_policy_runtime::{PolicyDecision, PolicyRuntime};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+mod engine_selector;
+pub use engine_selector::{DecisionKind, EngineSelector};
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum EnforcementMode {
@@ -122,6 +125,11 @@ impl PolicyRouter {
             pdp_timeout_ms: 200,
             circuit_config: CircuitConfig::default(),
         }
+    }
+
+    /// ids ของ evaluator ที่ register จริงใน build นี้ (feature-gated adapters)
+    pub fn evaluator_ids(&self) -> Vec<String> {
+        self.evaluators.keys().cloned().collect()
     }
 
     pub fn set_scale_config(
@@ -347,6 +355,28 @@ impl PolicyRouter {
             }
         }
 
+        // AUTO-SELECT: ไม่มี PDP ระบุเลย -> เลือก engine ตาม decision kind
+        if to_evaluate.is_empty() {
+            let available = self.evaluator_ids();
+            match EngineSelector::resolve(method, &payload, &available) {
+                Some(engine) => {
+                    tracing::info!("auto-selected engine '{}' (kind inferred from request)", engine);
+                    to_evaluate.push(engine);
+                }
+                None => {
+                    // fail-closed: ไม่มี engine ที่เหมาะ + build ไม่มี -> deny
+                    return Ok(PolicyDecision {
+                        evaluator_id: "router_autoselect".into(), evaluator_type: "router".into(),
+                        required: true, status: "success".into(), decision: "deny".into(), allow: false,
+                        reason: "no suitable policy engine available for request".into(),
+                        effects: serde_json::json!({}), obligations: vec![],
+                        metadata: serde_json::json!({ "auto_select": "none_available" }),
+                    });
+                }
+            }
+        }
+
+        let to_evaluate_clone = to_evaluate.clone();
         for ev_id in to_evaluate {
             if let Some(evaluator) = self.evaluators.get(&ev_id) {
                 let breaker = self.breakers.get(&ev_id).cloned();
@@ -479,6 +509,12 @@ impl PolicyRouter {
                 break;
             }
         }
+
+        combined_decision.metadata = serde_json::json!({
+            "matched_route": route.id,
+            "selected_engines": to_evaluate_clone,
+            "auto_selected": route.pdp_required.is_empty() && route.pdp_pool.is_empty(),
+        });
 
         Ok(combined_decision)
     }

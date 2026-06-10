@@ -73,6 +73,8 @@ pub struct DecisionResult {
     pub adapter_results: Vec<AdapterDecisionResult>,
     pub obligations: Vec<serde_json::Value>,
     pub latency_ms: u64,
+    pub selected_engine: Option<String>,
+    pub enforcement_plane: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,6 +130,8 @@ impl PolicyRouter {
             adapter_results,
             obligations: vec![],
             latency_ms: 1,
+            selected_engine: None,
+            enforcement_plane: None,
         }
     }
 }

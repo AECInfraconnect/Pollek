@@ -15,6 +15,7 @@ use dek_domain_schema::network_guardrail::{
     CompiledNetworkRules, NetworkConditions, NetworkDestination, NetworkFallback,
     NetworkGuardrailEffect, NetworkTargets,
 };
+use dek_domain_schema::capabilities::EnforcementLevel;
 use dek_policy_syncer::SyncOutcome;
 
 use tokio::sync::mpsc::Receiver;
@@ -30,6 +31,8 @@ pub trait NetworkEnforcer: Send {
     fn fail_closed(&mut self) -> anyhow::Result<()>;
     /// Human-readable backend name for logs/metrics.
     fn backend(&self) -> &'static str;
+    /// The actual enforcement level capability of this backend (e.g. KernelEnforced vs RedirectAdvisory)
+    fn enforcement_level(&self) -> EnforcementLevel;
 }
 
 /// A synthesized deny-all rule used for fail-closed mode. The cloud control
@@ -97,6 +100,10 @@ pub mod wfp_backend {
         fn backend(&self) -> &'static str {
             "wfp"
         }
+        fn enforcement_level(&self) -> EnforcementLevel {
+            // WFP in user-mode is only a RedirectAdvisory until the driver is deployed
+            EnforcementLevel::RedirectAdvisory
+        }
     }
 }
 
@@ -133,6 +140,10 @@ pub mod nefilter_backend {
         }
         fn backend(&self) -> &'static str {
             "nefilter"
+        }
+        fn enforcement_level(&self) -> EnforcementLevel {
+            // macOS NEFilter in user-mode proxy is RedirectAdvisory
+            EnforcementLevel::RedirectAdvisory
         }
     }
 }
@@ -203,6 +214,10 @@ pub mod ebpf_backend {
         fn backend(&self) -> &'static str {
             "ebpf"
         }
+        fn enforcement_level(&self) -> EnforcementLevel {
+            // eBPF natively drops traffic in kernel plane
+            EnforcementLevel::KernelEnforced
+        }
     }
 }
 
@@ -269,11 +284,28 @@ pub fn spawn(
                             }
 
                             if let Some(rules) = network_rules {
-                                match enforcer.apply(&rules) {
+                                let mut kernel_rules_vec = Vec::new();
+                                for r in &rules {
+                                    let (kr, part) = crate::kernel_guard::kernel_subset(r);
+                                    tracing::info!(
+                                        "network rules (policy {}): {} kernel-safe, {} user-mode ({} overflow) — complexity-guarded",
+                                        r.policy_id, part.kernel.len(), part.user_mode.len(), part.overflow_to_user
+                                    );
+                                    if !kr.conditions.destinations.is_empty() {
+                                        kernel_rules_vec.push(kr);
+                                    }
+                                    if !part.user_mode.is_empty() {
+                                        tracing::info!("complex rules routed to user-mode proxy for policy {}", r.policy_id);
+                                    }
+                                    metrics::gauge!("dek_network_rules_kernel", "policy" => r.policy_id.clone()).set(part.kernel.len() as f64);
+                                    metrics::gauge!("dek_network_rules_usermode", "policy" => r.policy_id.clone()).set(part.user_mode.len() as f64);
+                                }
+
+                                match enforcer.apply(&kernel_rules_vec) {
                                     Ok(()) => {
                                         metrics::counter!("dek_network_rule_enforced_total",
                                             "backend" => backend, "result" => "applied").increment(1);
-                                        lkg = Some(rules);
+                                        lkg = Some(kernel_rules_vec);
                                     }
                                     Err(e) => {
                                         error!("[net] apply failed: {e}; reverting to LKG / fail-closed");

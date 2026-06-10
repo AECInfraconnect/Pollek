@@ -91,7 +91,24 @@ jobs:
           [IO.File]::WriteAllBytes("cert.pfx", $pfxBytes)
           & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe" sign /f cert.pfx /p $env:WINDOWS_PFX_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 staging\dek-core.exe staging\dek-mcp-proxy.exe staging\dek-ext-authz.exe
 
-      - name: Compress Artifacts
+      - name: Package (Linux .deb + tar.gz)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          cargo install cargo-deb --locked || true
+          cargo deb -p dek-core --no-build --target ${{ matrix.target }} || true
+          cd staging
+          tar -czvf ../${{ matrix.artifact_name }}.tar.gz *
+          cp ../target/${{ matrix.target }}/debian/*.deb ../ || true
+
+      - name: Package (Windows zip)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          Compress-Archive -Path staging\* -DestinationPath ${{ matrix.artifact_name }}.zip
+
+      - name: Package (macOS tar.gz)
+        if: matrix.os == 'macos-latest'
         shell: bash
         run: |
           cd staging
@@ -101,7 +118,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_name }}.tar.gz
+          path: |
+            ${{ matrix.artifact_name }}.tar.gz
+            ${{ matrix.artifact_name }}.zip
+            *.deb
 
   ebpf:
     name: Build eBPF Bytecode
@@ -184,7 +204,7 @@ jobs:
         run: |
           # Verify that we correctly signed our own artifacts before publishing
           # This acts as an integrity check to prevent releasing unsigned binaries
-          for file in *.tar.gz; do
+          for file in *.tar.gz *.zip *.deb; do
             if [ -f "$file" ]; then
               cosign verify-blob \
                 --certificate "$file.pem" \
