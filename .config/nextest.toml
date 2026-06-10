@@ -1,2 +1,10 @@
 [profile.ci]
 junit = { path = "junit.xml" }
+
+[test-groups]
+serial-e2e = { max-threads = 1 }
+
+[[profile.ci.overrides]]
+filter = 'test(/e2e/) or test(/local_/) or test(/matrix/) or test(/soak/)'
+test-group = 'serial-e2e'
+

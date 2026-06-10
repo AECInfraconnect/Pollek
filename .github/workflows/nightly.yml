@@ -1,0 +1,14 @@
+name: Nightly Soak Test
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run Soak Test
+        run: SOAK_SECS=1800 cargo test -p acceptance-tests --test soak -- --ignored --nocapture

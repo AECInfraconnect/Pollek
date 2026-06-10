@@ -67,6 +67,23 @@ async fn wait_http(url: &str, tries: u32) -> Result<()> {
     anyhow::bail!("timeout waiting for {url}")
 }
 
+pub async fn poll_until<F, Fut>(timeout: Duration, interval: Duration, mut f: F) -> anyhow::Result<()>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = bool>,
+{
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        if f().await {
+            return Ok(());
+        }
+        if std::time::Instant::now() >= deadline {
+            anyhow::bail!("poll_until timed out after {:?}", timeout);
+        }
+        tokio::time::sleep(interval).await;
+    }
+}
+
 /// Fetch the local control plane's bundle-signing public key (base64) so the DEK
 /// can be configured to trust it (the local equivalent of pinning the Cloud key).
 async fn fetch_local_trust_key(c: &reqwest::Client) -> Result<String> {
@@ -251,7 +268,10 @@ async fn local_e2e_author_publish_enforce_log() -> Result<()> {
             .context("spawn dek-core")?,
     );
     wait_http(&format!("{PEP}/healthz"), 30).await?;
-    sleep(Duration::from_secs(4)).await; // allow first bundle sync + verify
+    poll_until(Duration::from_secs(30), Duration::from_millis(300), || async {
+        let (st, _allow, _body) = authorize(&c, &serde_json::json!({})).await;
+        st == 200 // PEP is ready
+    }).await?;
 
     let req = serde_json::json!({
         "request_id": "req-e2e-1",
@@ -276,7 +296,16 @@ async fn local_e2e_author_publish_enforce_log() -> Result<()> {
     // ======================================================================
     // STEP 4 — DECISION LOG: the DEK's decision telemetry lands in local-cp
     // ======================================================================
-    sleep(Duration::from_secs(3)).await; // allow telemetry flush
+    poll_until(Duration::from_secs(15), Duration::from_millis(300), || async {
+        let r = c.get(format!("{LCP}/v1/tenants/local/telemetry/decision-logs")).send().await;
+        if let Ok(resp) = r {
+            if let Ok(logs) = resp.json::<serde_json::Value>().await {
+                return logs["decisions"].as_array().map(|a| !a.is_empty()).unwrap_or(false);
+            }
+        }
+        false
+    }).await?;
+    
     let logs: serde_json::Value = c
         .get(format!("{LCP}/v1/tenants/local/telemetry/decision-logs"))
         .send()
