@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
+#[cfg(not(target_os = "linux"))]
 use crate::paths::get_log_dir;
+#[cfg(not(target_os = "linux"))]
 use std::fs;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
-pub fn init_logging(service_name: &str) -> anyhow::Result<()> {
+pub fn init_logging(#[allow(unused_variables)] service_name: &str) -> anyhow::Result<()> {
     #[cfg(target_os = "linux")]
     {
         // On Linux, log to stderr and let journald handle rotation.
