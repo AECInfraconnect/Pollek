@@ -92,21 +92,21 @@ impl Spooler {
                 return Ok(*Key::<Aes256Gcm>::from_slice(&key_bytes));
             }
         }
-        
+
         let mut key_bytes = [0u8; 32];
         OsRng.fill_bytes(&mut key_bytes);
-        
+
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
         std::fs::write(&path, &key_bytes)?;
-        
+
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
         }
-        
+
         info!("Generated and stored new telemetry spool encryption key in fallback file");
         Ok(*Key::<Aes256Gcm>::from_slice(&key_bytes))
     }
