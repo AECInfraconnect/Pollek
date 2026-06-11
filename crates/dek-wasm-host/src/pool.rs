@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 use crate::{compiled_plugin::CompiledPlugin, worker::PluginWorker};
 use anyhow::Result;
 use parking_lot::Mutex;
