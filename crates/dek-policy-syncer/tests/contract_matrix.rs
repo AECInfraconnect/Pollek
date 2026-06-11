@@ -158,7 +158,7 @@ fn s3_freshness_partition_to_strict_deny() {
         evaluate_state(100, Some(200), Some(90), &cfg),
         EnforcementState::Active { .. }
     ));
-    // expired within grace -> still enforcing (LKG)
+    // SPDX-License-Identifier: Apache-2.0 -> still enforcing (LKG)
     assert!(matches!(
         evaluate_state(205, Some(200), Some(150), &cfg),
         EnforcementState::GracePeriod { .. }

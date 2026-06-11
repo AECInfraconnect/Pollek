@@ -5,7 +5,10 @@
   "properties": {
     "tenant_id": { "type": "string" },
     "device_id": { "type": "string" },
-    "api_url": { "type": "string", "format": "uri" },
+    "api_url": {
+      "type": "string",
+      "description": "Base URL of the Control Plane API"
+    },
     "join_token": { "type": "string" }
   },
   "required": ["api_url"]

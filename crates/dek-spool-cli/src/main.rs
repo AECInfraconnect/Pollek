@@ -3,7 +3,6 @@ use dek_secure_spool::{
     os::DefaultOsKeyStore,
     segment::{SegmentWriter, TelemetryEvent},
 };
-use std::path::PathBuf;
 use uuid::Uuid;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
