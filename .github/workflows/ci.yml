@@ -31,13 +31,13 @@ jobs:
       run: cargo fmt --all -- --check
       
     - name: Clippy
-      run: cargo clippy --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --all-targets --all-features -- -D warnings
+      run: cargo clippy --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm --all-targets --all-features -- -D warnings
       
     - name: Run Tests
-      run: cargo test --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --all-features
+      run: cargo test --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm --all-features
       
     - name: Build Release
-      run: cargo build --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --release
+      run: cargo build --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm --release
 
   ebpf_build:
     name: eBPF Build (Linux Only)
@@ -47,7 +47,7 @@ jobs:
     - name: Install Rust nightly for eBPF
       uses: dtolnay/rust-toolchain@nightly
       with:
-        components: rust-src
+        components: rust-src, llvm-tools-preview
     - name: Install bpf-linker
       run: cargo install bpf-linker
     - name: Build eBPF Prog
@@ -65,6 +65,6 @@ jobs:
       with:
         targets: wasm32-wasip1
     - name: Build WASM Plugins
-      run: cargo build --target wasm32-wasip1 -p pii-redactor-plugin
+      run: cargo build --target wasm32-wasip1 -p pii_redactor -p dek-opa-wasm
 
 

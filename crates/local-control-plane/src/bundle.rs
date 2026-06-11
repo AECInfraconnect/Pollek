@@ -101,7 +101,8 @@ pub async fn build_signed_bundle(
         },
     };
 
-    let signed_bytes = serde_json::to_vec(&manifest).unwrap();
+    let signed_bytes = serde_json::to_vec(&manifest)
+        .unwrap_or_else(|e| panic!("JSON serialization failed: {}", e));
     let sig_b64 = _signer.sign_b64(&signed_bytes);
 
     let envelope = serde_json::json!({
@@ -230,7 +231,8 @@ async fn get_artifact(
     State(st): State<AppState>,
 ) -> ApiResult<(StatusCode, Vec<u8>)> {
     if sha == "network_guardrails.json" {
-        let signed_bytes = serde_json::to_vec(&serde_json::json!([])).unwrap();
+        let signed_bytes = serde_json::to_vec(&serde_json::json!([]))
+            .unwrap_or_else(|e| panic!("JSON serialization failed: {}", e));
         let sig_b64 = st.signer.sign_b64(&signed_bytes);
         let signed_payload = serde_json::json!({
             "signed": [],
@@ -241,7 +243,11 @@ async fn get_artifact(
                 "public_key_fingerprint": st.signer.public_key_b64(),
             }]
         });
-        return Ok((StatusCode::OK, serde_json::to_vec(&signed_payload).unwrap()));
+        return Ok((
+            StatusCode::OK,
+            serde_json::to_vec(&signed_payload)
+                .unwrap_or_else(|e| panic!("JSON serialization failed: {}", e)),
+        ));
     }
 
     let path = format!("artifacts/{sha}");
