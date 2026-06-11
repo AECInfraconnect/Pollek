@@ -210,7 +210,8 @@ async fn acceptance_matrix_a_to_k() -> Result<()> {
     });
     let mut last_status = 0;
     let mut last_allow = false;
-    for _ in 0..60 { // wait up to 30s
+    for _ in 0..60 {
+        // wait up to 30s
         if let Ok((st, allow, _)) = authorize(&pep, &allow_req).await {
             last_status = st;
             last_allow = allow;
@@ -221,15 +222,24 @@ async fn acceptance_matrix_a_to_k() -> Result<()> {
         sleep(Duration::from_millis(500)).await;
     }
     assert_eq!(last_status, 200, "A: PEP should return 200 OK");
-    assert!(last_allow, "A: PEP decision must be allow after enroll+sync");
-
-    // audit trail received policy.sync.success
-    let audits = fetch_audits().await?;
-    let txt = audits.to_string();
     assert!(
-        txt.contains("policy.sync") || txt.contains("bundle"),
-        "A: sync audit present"
+        last_allow,
+        "A: PEP decision must be allow after enroll+sync"
     );
+
+    // audit trail received policy.sync.success (poll since spooler flushes async)
+    let mut audit_found = false;
+    for _ in 0..20 {
+        if let Ok(audits) = fetch_audits().await {
+            let txt = audits.to_string();
+            if txt.contains("policy.sync") || txt.contains("bundle") {
+                audit_found = true;
+                break;
+            }
+        }
+        sleep(Duration::from_millis(500)).await;
+    }
+    assert!(audit_found, "A: sync audit present");
 
     // ---- B: Unsigned/forged push -> reject + critical audit ----
     let _ = pep
