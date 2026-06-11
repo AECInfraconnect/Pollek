@@ -28,19 +28,27 @@ impl Keystore for KernelKeystore {
         let key_desc = format!("pollen_dek_{}", alias);
 
         // Try Kernel Keyring first
-        match Key::add(&key_desc, data, KeyRingIdentifier::User, None) {
-            Ok(_) => {
-                // Remove fallback file if it exists, to ensure keyring takes precedence
-                let path = self.store_dir.join(alias);
-                if path.exists() {
-                    let _ = fs::remove_file(&path);
+        match KeyRing::from_special_id(KeyRingIdentifier::User, false) {
+            Ok(keyring) => match keyring.add_key(&key_desc, data) {
+                Ok(_) => {
+                    // Remove fallback file if it exists, to ensure keyring takes precedence
+                    let path = self.store_dir.join(alias);
+                    if path.exists() {
+                        let _ = fs::remove_file(&path);
+                    }
+                    return Ok(());
                 }
-                return Ok(());
-            }
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to store key '{}' in Linux Keyring: {}. Falling back to 0600 file.",
+                        alias,
+                        e
+                    );
+                }
+            },
             Err(e) => {
                 tracing::warn!(
-                    "Failed to store key '{}' in Linux Keyring: {}. Falling back to 0600 file.",
-                    alias,
+                    "Failed to access User Keyring: {}. Falling back to 0600 file.",
                     e
                 );
             }
