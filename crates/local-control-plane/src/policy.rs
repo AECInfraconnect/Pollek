@@ -107,10 +107,19 @@ async fn delete_policy(
 }
 
 async fn publish_policy(
-    Path((tenant, _policy_id)): Path<(String, String)>,
+    Path((tenant, policy_id)): Path<(String, String)>,
     State(st): State<AppState>,
-    Json(draft): Json<PolicyDraft>,
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
+    let item = st
+        .policy_store
+        .get_policy(&tenant, &policy_id)
+        .await
+        .map_err(ApiError::Internal)?;
+        
+    let mut draft = match item {
+        Some(d) => d,
+        None => return Err(ApiError::NotFound(policy_id)),
+    };
     let build_number = st
         .build_number
         .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -180,6 +189,12 @@ async fn publish_policy(
 
     st.policy_store
         .upsert_policy_raw(&tenant, "bundle:latest", &built.envelope)
+        .await
+        .map_err(ApiError::Internal)?;
+
+    draft.meta.status = "published".to_string();
+    st.policy_store
+        .upsert_policy(draft)
         .await
         .map_err(ApiError::Internal)?;
 
