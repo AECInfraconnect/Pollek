@@ -192,11 +192,13 @@ async fn test_offline_mode_resilience() -> Result<()> {
     anyhow::ensure!(r.status().is_success(), "publish: expected 2xx");
 
     let trust_key = fetch_local_trust_key(&c).await?;
-    let cfg = std::env::temp_dir().join(format!("dek-cfg-off-{}", std::process::id()));
-    let data = std::env::temp_dir().join(format!("dek-data-off-{}", std::process::id()));
+    let cfg = std::env::temp_dir().join(format!("dek-cfg-e2e-{}", std::process::id()));
+    let data = std::env::temp_dir().join(format!("dek-data-e2e-{}", std::process::id()));
+    let logs = std::env::temp_dir().join(format!("dek-logs-e2e-{}", std::process::id()));
 
     std::fs::create_dir_all(&cfg)?;
     std::fs::create_dir_all(&data)?;
+    std::fs::create_dir_all(&logs)?;
 
     let st = Command::new(bin("dek-cli"))
         .args([
@@ -224,6 +226,7 @@ async fn test_offline_mode_resilience() -> Result<()> {
         Command::new(bin("dek-core"))
             .env("DEK_CONFIG_DIR", &cfg)
             .env("DEK_DATA_DIR", &data)
+            .env("DEK_LOG_DIR", &logs)
             .env("DEK_API_PORT", "43895") // Use port 43895
             .env("DEK_BUNDLE_SYNC_INTERVAL", "2")
             .env_remove("DEK_PINNED_KEY_OVERRIDE")

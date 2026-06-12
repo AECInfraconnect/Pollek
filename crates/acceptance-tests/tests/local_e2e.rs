@@ -237,9 +237,11 @@ async fn local_e2e_author_publish_enforce_log() -> Result<()> {
     let trust_key = fetch_local_trust_key(&c).await?;
     let cfg = std::env::temp_dir().join(format!("dek-cfg-e2e-{}", std::process::id()));
     let data = std::env::temp_dir().join(format!("dek-data-e2e-{}", std::process::id()));
+    let logs = std::env::temp_dir().join(format!("dek-logs-e2e-{}", std::process::id()));
 
     std::fs::create_dir_all(&cfg)?;
     std::fs::create_dir_all(&data)?;
+    std::fs::create_dir_all(&logs)?;
 
     // profile -> local (writes bootstrap.json: cloud_url=LCP, tenant_id=local, trust=local key)
     let st = Command::new(bin("dek-cli"))
@@ -283,6 +285,7 @@ CCqGSM49BAMCA0kAMEYCIQC5famYrlcNXrTyLT10TBc6SsRQkTFt5nHNErx9dOFo\n\
         Command::new(bin("dek-core"))
             .env("DEK_CONFIG_DIR", &cfg)
             .env("DEK_DATA_DIR", &data)
+            .env("DEK_LOG_DIR", &logs)
             .env("DEK_BUNDLE_SYNC_INTERVAL", "2")
             .env_remove("DEK_PINNED_KEY_OVERRIDE")
             .stdout(Stdio::inherit())

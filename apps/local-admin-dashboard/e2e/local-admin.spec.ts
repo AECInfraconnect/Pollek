@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('create and publish policy from dashboard', async ({ page }) => {
   await page.goto('http://127.0.0.1:3000');
 
-  await page.getByRole('link', { name: /policies/i }).click();
+  await page.getByRole('link', { name: /policy enforcer/i }).click();
   await page.getByRole('button', { name: /new policy/i }).click();
   
   await page.getByLabel(/name/i).fill('E2E Deny Critical');

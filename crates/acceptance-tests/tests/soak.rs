@@ -94,10 +94,12 @@ async fn setup_mock_cloud() -> Result<Proc> {
 }
 
 async fn enroll_and_start_core() -> Result<Proc> {
-    let tmp_config = workspace_dir().join("target").join("tmp_config_soak");
-    let tmp_data = workspace_dir().join("target").join("tmp_data_soak");
-    let _ = std::fs::remove_dir_all(&tmp_config);
-    let _ = std::fs::remove_dir_all(&tmp_data);
+    let tmp_config = std::env::temp_dir().join(format!("dek-cfg-soak-{}", std::process::id()));
+    let tmp_data = std::env::temp_dir().join(format!("dek-data-soak-{}", std::process::id()));
+    let tmp_logs = std::env::temp_dir().join(format!("dek-logs-soak-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp_config)?;
+    std::fs::create_dir_all(&tmp_data)?;
+    std::fs::create_dir_all(&tmp_logs)?;
     std::fs::create_dir_all(&tmp_config).unwrap();
     std::fs::create_dir_all(&tmp_data).unwrap();
 
@@ -114,6 +116,7 @@ async fn enroll_and_start_core() -> Result<Proc> {
     let core = Command::new(bin("dek-core"))
         .env("DEK_CONFIG_DIR", &tmp_config)
         .env("DEK_DATA_DIR", &tmp_data)
+        .env("DEK_LOG_DIR", &tmp_logs)
         .env("DEK_BUNDLE_SYNC_INTERVAL", "2")
         .spawn()
         .context("spawn dek-core")?;
