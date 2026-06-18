@@ -5,10 +5,12 @@ on:
     branches: [ main ]
     paths:
       - 'apps/local-admin-dashboard/**'
+      - 'contracts/generated/typescript/**'
       - '.github/workflows/dashboard-ci.yml'
   pull_request:
     paths:
       - 'apps/local-admin-dashboard/**'
+      - 'contracts/generated/typescript/**'
       - '.github/workflows/dashboard-ci.yml'
 
 jobs:

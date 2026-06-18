@@ -11,6 +11,7 @@ mod ipc_client;
 mod ipc_server;
 mod kernel_guard;
 mod keystore_migration;
+pub mod capabilities;
 
 mod network_loop;
 mod probation;

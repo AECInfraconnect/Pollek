@@ -12,6 +12,7 @@ description = "Pollen DEK Supervisor and Agent"
 dek-config = { path = "../dek-config" }
 
 dek-bundle-sync = { path = "../dek-bundle-sync" }
+dek-bundle-format = { path = "../dek-bundle-format" }
 dek-policy-syncer = { path = "../dek-policy-syncer" }
 
 

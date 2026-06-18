@@ -13,6 +13,7 @@
 //! Guardrails honored: no local authoring/compile/dry-run; fallback is LKG
 //! read-only; never fail-open; no panics on network input.
 
+pub mod activation;
 pub mod audit;
 pub mod gate;
 pub mod keys;
@@ -76,6 +77,7 @@ pub struct PolicySyncer {
     keys_url: String,
     push_url: String,
     api_token: Option<String>,
+    runtime_capabilities: dek_bundle_format::OsModulesConfig,
 }
 
 impl PolicySyncer {
@@ -89,6 +91,7 @@ impl PolicySyncer {
         cloud_url: String,
         pinned_b64: String,
         api_token: Option<String>,
+        runtime_capabilities: dek_bundle_format::OsModulesConfig,
     ) -> Arc<Self> {
         tracing::info!(
             "DEBUG SYNCR: PolicySyncer::new called with pinned_b64: {}",
@@ -126,6 +129,7 @@ impl PolicySyncer {
             keys_url,
             push_url,
             api_token,
+            runtime_capabilities,
         })
     }
 
@@ -160,6 +164,17 @@ impl PolicySyncer {
         match self.bundle_agent.run_pipeline().await {
             Ok((_dek_config, manifest_path)) => {
                 let version = derive_version(&manifest_path);
+
+                // Phase 3: Validate OS capabilities before activating
+                if let Ok(manifest_bytes) = std::fs::read(&manifest_path) {
+                    if let Ok(bundle) = serde_json::from_slice::<dek_bundle_format::PollenPolicyBundle>(&manifest_bytes) {
+                        if let Err(e) = crate::activation::validate_os_capabilities(&bundle, &self.runtime_capabilities) {
+                            warn!("[PolicySyncer] capability validation failed: {}", e);
+                            self.recompute_state();
+                            return SyncOutcome::Failed { reason: e.to_string() };
+                        }
+                    }
+                }
 
                 // (Phase 3) digest + key id จาก verify ล่าสุด
                 // For demonstration, read the raw signed payload to compute digest. In reality, BundleSyncAgent should return this.

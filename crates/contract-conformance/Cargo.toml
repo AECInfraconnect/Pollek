@@ -1,0 +1,13 @@
+[package]
+name = "contract-conformance"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+reqwest.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+axum = "0.7"
+jsonschema = "0.18"

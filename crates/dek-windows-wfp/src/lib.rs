@@ -11,6 +11,10 @@ use tracing::{info, warn};
 // In a real Windows environment, this would call Windows Filtering Platform (WFP) APIs.
 // For now, we stub it to allow cross-compilation tests and development without Windows APIs failing.
 
+pub fn probe_available() -> bool {
+    false // Kept as stub for now
+}
+
 #[derive(Debug, Default)]
 pub struct WfpFilterManager {
     is_active: bool,

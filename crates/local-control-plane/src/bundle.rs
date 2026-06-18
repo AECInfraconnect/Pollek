@@ -119,7 +119,7 @@ pub async fn build_signed_bundle(
     let sig_b64 = _signer.sign_b64(&signed_bytes);
 
     let envelope = serde_json::json!({
-        "schema_version": "bundle.signed-envelope.v1",
+        "schema_version": "bundle-envelope.v1",
         "manifest": manifest,
         "signatures": [{
             "signature_id": format!("sig-{}", bundle_version),
@@ -234,13 +234,34 @@ async fn get_latest_bundle(
     State(st): State<AppState>,
     body: Option<Json<serde_json::Value>>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let _ = body;
+    let current_generation = body
+        .as_ref()
+        .and_then(|b| b.get("current_generation"))
+        .and_then(|v| v.as_i64())
+        .unwrap_or(-1);
+
     match st
         .policy_store
         .get_policy_raw(&tenant, "bundle:latest")
         .await
     {
-        Ok(Some(val)) => Ok(Json(serde_json::json!({"envelope": val}))),
+        Ok(Some(val)) => {
+            let generation = st.build_number.load(std::sync::atomic::Ordering::SeqCst) as i64;
+            if current_generation == generation {
+                return Ok(Json(serde_json::json!({
+                    "schema_version": "bundle-fetch-response.v1",
+                    "status": "not_modified",
+                    "generation": generation
+                })));
+            }
+
+            Ok(Json(serde_json::json!({
+                "schema_version": "bundle-fetch-response.v1",
+                "status": "bundle_ready",
+                "generation": generation,
+                "envelope": val
+            })))
+        }
         Ok(None) => Err(ApiError::NotFound("bundle".into())),
         Err(e) => Err(ApiError::Internal(e)),
     }

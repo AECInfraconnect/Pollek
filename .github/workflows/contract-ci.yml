@@ -30,10 +30,7 @@ jobs:
           cache-dependency-path: contracts/package-lock.json
 
       - run: npm ci
-      - run: npm run build
-      - run: npm run lint:openapi
-      - run: npm run lint:asyncapi
-      - run: npm run validate:schemas
+      - run: npm test
       - run: npm run check:generated
 
   breaking-change-gate:

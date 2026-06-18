@@ -89,10 +89,15 @@ async fn handle(
     payload: TelemetryPayload,
     kind: &'static str,
 ) -> impl IntoResponse {
+    let count = payload.events.len();
     match ingest(&state, payload.events, kind) {
         Ok(n) => (
             StatusCode::OK,
-            Json(serde_json::json!({ "status": "ingested", "kind": kind, "count": n })),
+            Json(serde_json::json!({
+                "schema_version": "telemetry-ingest-response.v1",
+                "accepted": n as i32,
+                "rejected": (count - n) as i32
+            })),
         ),
         Err(e) => (
             StatusCode::BAD_REQUEST,

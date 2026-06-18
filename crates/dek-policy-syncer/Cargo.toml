@@ -12,6 +12,7 @@ edition = "2021"
 
 [dependencies]
 dek-bundle-sync = { path = "../dek-bundle-sync" }
+dek-bundle-format = { path = "../dek-bundle-format" }
 dek-config = { path = "../dek-config" }
 dek-telemetry = { path = "../dek-telemetry" }
 dek-domain-schema = { path = "../dek-domain-schema" }

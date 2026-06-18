@@ -88,6 +88,7 @@ async fn store_events(
     tenant: &str,
     events: Vec<serde_json::Value>,
 ) -> (StatusCode, Json<serde_json::Value>) {
+    let count = events.len();
     let mut stored = 0usize;
     for ev in events {
         if has_unredacted_secret(&ev) {
@@ -126,7 +127,11 @@ async fn store_events(
     }
     (
         StatusCode::OK,
-        Json(json!({ "status": "ok", "processed": stored })),
+        Json(json!({
+            "schema_version": "telemetry-ingest-response.v1",
+            "accepted": stored as i32,
+            "rejected": (count - stored) as i32
+        })),
     )
 }
 

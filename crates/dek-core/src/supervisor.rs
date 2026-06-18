@@ -241,6 +241,8 @@ impl Supervisor {
         let (health_tx, health_rx) =
             tokio::sync::watch::channel(crate::svid_renewal_failclosed::IdentityHealth::Healthy);
 
+        let runtime_caps = crate::capabilities::collect_runtime_capabilities();
+
         let syncer = PolicySyncer::new(
             self.bundle_agent.clone(),
             Some(self.telemetry_sink.clone()),
@@ -250,6 +252,7 @@ impl Supervisor {
             self.cloud_url.clone(),
             self.pinned_key.clone(),
             self.bootstrap.local_api_token.clone(),
+            runtime_caps,
         );
 
         let snapshot_ref = reload_coordinator.activation.snapshot.clone();

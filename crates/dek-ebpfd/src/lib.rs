@@ -16,6 +16,17 @@
 use serde::Serialize;
 use std::net::IpAddr;
 
+pub fn probe_available() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        true
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
+    }
+}
+
 pub mod dns_cache;
 pub mod map_updater;
 
@@ -40,7 +51,7 @@ pub struct ResolvedRecord {
 pub const MIN_TTL_FLOOR_SECS: u32 = 30;
 
 #[cfg(target_os = "linux")]
-pub use linux::{start_ebpfd_supervisor, EbpfHandle};
+pub use linux::{start_ebpfd_supervisor, EbpfHandle, BPFFS_PATH, set_runtime_default_action};
 
 #[cfg(target_os = "linux")]
 mod linux {
@@ -73,6 +84,16 @@ mod linux {
             // `_bpf` drops here -> aya detaches cgroup programs + closes maps.
             info!("eBPFD: detached programs and released maps (clean teardown).");
         }
+    }
+
+    pub fn set_runtime_default_action(action: u32) -> Result<()> {
+        use aya::maps::{Array, MapData};
+        let pin_path = format!("{}/RUNTIME_MODE", BPFFS_PATH);
+        let map_data = MapData::from_pin(&pin_path).context("load pinned RUNTIME_MODE")?;
+        let mut map: Array<_, u32> = Array::try_from(map_data)?;
+        map.set(0, action, 0).context("set RUNTIME_MODE action")?;
+        info!("eBPFD: set_runtime_default_action to {}", action);
+        Ok(())
     }
 
     /// Load + attach the eBPF programs and start the DNS reader. Returns a handle

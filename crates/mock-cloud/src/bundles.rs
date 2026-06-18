@@ -115,12 +115,14 @@ fn sign_bundle(manifest: &BundleManifest) -> serde_json::Value {
     let signature = signing_key.sign(payload_string.as_bytes());
 
     json!({
-        "schema_version": "bundle.signed-envelope.v1",
-        "bundle_id": manifest.bundle_id.clone(),
-        "version": manifest.bundle_version.clone(),
-        "signature": base64::prelude::BASE64_STANDARD.encode(signature.to_bytes()),
-        "public_key": base64::prelude::BASE64_STANDARD.encode(public_key.as_bytes()),
-        "payload": manifest
+        "schema_version": "bundle-envelope.v1",
+        "manifest": manifest,
+        "signatures": [{
+            "signature_id": format!("sig-{}", manifest.bundle_version),
+            "signature_type": "ed25519",
+            "payload": base64::prelude::BASE64_STANDARD.encode(signature.to_bytes()),
+            "public_key_fingerprint": base64::prelude::BASE64_STANDARD.encode(public_key.as_bytes()),
+        }]
     })
 }
 
@@ -129,12 +131,34 @@ async fn get_latest_bundle(
     State(state): State<AppState>,
     body: Option<Json<serde_json::Value>>,
 ) -> impl IntoResponse {
-    let _ = body; // ignoring the device's current manifest
+    let current_generation = body
+        .as_ref()
+        .and_then(|b| b.get("current_generation"))
+        .and_then(|v| v.as_i64())
+        .unwrap_or(-1);
+
     let revision = state.revision.load(std::sync::atomic::Ordering::Relaxed) as u64;
+
+    if current_generation == revision as i64 {
+        return (
+            StatusCode::OK,
+            Json(json!({
+                "schema_version": "bundle-fetch-response.v1",
+                "status": "not_modified",
+                "generation": revision
+            })),
+        );
+    }
+
     let manifest = generate_bundle(&tenant_id, revision, false);
     (
         StatusCode::OK,
-        Json(json!({"envelope": sign_bundle(&manifest)})),
+        Json(json!({
+            "schema_version": "bundle-fetch-response.v1",
+            "status": "bundle_ready",
+            "generation": revision,
+            "envelope": sign_bundle(&manifest)
+        })),
     )
 }
 
