@@ -33,6 +33,7 @@ impl LocalControlPlaneHarness {
             identity: ControlPlaneIdentity::local_default(),
             registry_store: store.clone(),
             policy_store: store.clone(),
+            connector_store: store.clone(),
             telemetry_store: store,
             signer,
             build_number: Arc::new(AtomicU64::new(1)),
