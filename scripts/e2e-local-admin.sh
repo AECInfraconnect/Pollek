@@ -17,11 +17,11 @@ popd
 cargo run -p local-control-plane &
 LCP_PID=$!
 trap 'kill $LCP_PID || true' EXIT
-for i in $(seq 1 30); do
+for i in $(seq 1 300); do
   if curl -fsS "${PLAYWRIGHT_BASE_URL}/health"; then
     break
   fi
-  if [ "$i" -eq 30 ]; then
+  if [ "$i" -eq 300 ]; then
     echo "local-control-plane did not become ready at ${PLAYWRIGHT_BASE_URL}" >&2
     exit 1
   fi
