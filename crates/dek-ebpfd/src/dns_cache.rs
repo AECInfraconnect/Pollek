@@ -38,7 +38,8 @@ pub fn update_dns_ip_cache_v4(
 ) -> Result<()> {
     let pin_path = format!("{}/DNS_IP_CACHE_V4", crate::linux::BPFFS_PATH);
     let map_data = MapData::from_pin(&pin_path).context("load pinned DNS_IP_CACHE_V4")?;
-    let mut map: HashMap<_, DekIp4Key, DekDnsCacheValue> = HashMap::try_from(aya::maps::Map::HashMap(map_data))?;
+    let mut map: HashMap<_, DekIp4Key, DekDnsCacheValue> =
+        HashMap::try_from(aya::maps::Map::HashMap(map_data))?;
 
     let now = now_ns();
     let key = DekIp4Key {
@@ -68,7 +69,8 @@ pub fn update_dns_ip_cache_v4(
 pub fn cleanup_expired_dns_cache_v4(scan_limit: usize) -> Result<usize> {
     let pin_path = format!("{}/DNS_IP_CACHE_V4", crate::linux::BPFFS_PATH);
     let map_data = MapData::from_pin(&pin_path).context("load pinned DNS_IP_CACHE_V4")?;
-    let mut map: HashMap<_, DekIp4Key, DekDnsCacheValue> = HashMap::try_from(aya::maps::Map::HashMap(map_data))?;
+    let mut map: HashMap<_, DekIp4Key, DekDnsCacheValue> =
+        HashMap::try_from(aya::maps::Map::HashMap(map_data))?;
 
     let now = now_ns();
     let mut deleted = 0usize;
