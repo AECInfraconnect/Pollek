@@ -81,9 +81,7 @@ impl CloudTelemetrySink {
         device_id: String,
     ) -> Result<Arc<Self>> {
         let reqwest_client = mtls.build_client(client_key_override)?;
-        let client = Arc::new(tokio::sync::RwLock::new(
-            reqwest_client.clone(),
-        ));
+        let client = Arc::new(tokio::sync::RwLock::new(reqwest_client.clone()));
         let spooler = Arc::new(Spooler::new(db_path)?);
         let redactor = Arc::new(Redactor::new());
 
