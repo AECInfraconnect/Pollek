@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { installMockApi } from './mock-api';
 
 test('load contract discovery in settings', async ({ page }) => {
-  await page.goto('http://127.0.0.1:3000');
+  await installMockApi(page);
+  await page.goto('/');
   
   // Navigate to Settings
   await page.getByRole('link', { name: /settings/i }).click();

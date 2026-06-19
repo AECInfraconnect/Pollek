@@ -38,7 +38,12 @@ pub fn build_engine(cfg: &WasmHostConfig) -> Result<Engine> {
 
     if cfg.enable_wasmtime_cache {
         // Uses default cache config. For production, load an explicit cache config path.
-        config.cache_config_load_default()?;
+        if let Err(err) = config.cache_config_load_default() {
+            tracing::warn!(
+                error = %err,
+                "failed to load Wasmtime cache config; continuing without the cache"
+            );
+        }
     }
 
     Engine::new(&config)

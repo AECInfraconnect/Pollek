@@ -8,6 +8,7 @@ use anyhow::Result;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
+    routing::{get, post},
     Json, Router,
 };
 use dek_bundle_format::{
@@ -146,23 +147,23 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route(
             "/v1/tenants/:tenant/devices/:device/bundles/latest",
-            axum::routing::post(get_latest_bundle),
+            post(get_latest_bundle),
         )
         .route(
             "/v1/tenants/:tenant/devices/:device/bundles/manifest",
-            axum::routing::post(get_manifest),
+            get(get_manifest).post(get_manifest),
         )
         .route(
             "/v1/tenants/:tenant/devices/:device/bundles/artifacts/:sha",
-            axum::routing::get(get_artifact),
+            get(get_artifact),
         )
         .route(
             "/v1/tenants/:tenant/devices/:device/trusted-keys",
-            axum::routing::get(get_trusted_keys),
+            get(get_trusted_keys),
         )
         .route(
             "/v1/tenants/:tenant/devices/:device/config",
-            axum::routing::get(get_mock_config),
+            get(get_mock_config),
         )
 }
 
