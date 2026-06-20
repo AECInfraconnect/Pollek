@@ -10,6 +10,10 @@ pub trait RegistryStore: Send + Sync {
     async fn list_agents(&self, tenant_id: &str) -> Result<Vec<AiAgent>>;
     async fn delete_agent(&self, tenant_id: &str, agent_id: &str) -> Result<bool>;
 
+    async fn upsert_raw(&self, tenant_id: &str, object_type: &str, object_id: &str, data: &serde_json::Value) -> Result<()>;
+    async fn get_raw(&self, tenant_id: &str, object_type: &str, object_id: &str) -> Result<Option<serde_json::Value>>;
+    async fn list_raw(&self, tenant_id: &str, object_type: &str) -> Result<Vec<serde_json::Value>>;
+
     async fn upsert_blackbox_ai(&self, provider: BlackboxAiProvider) -> Result<BlackboxAiProvider>;
     async fn get_blackbox_ai(
         &self,
@@ -232,6 +236,66 @@ impl RegistryStore for SqliteStore {
 
     async fn get_agent(&self, tenant_id: &str, agent_id: &str) -> Result<Option<AiAgent>> {
         self.get_object(tenant_id, "agent", agent_id).await
+    }
+
+    async fn upsert_raw(&self, tenant_id: &str, object_type: &str, object_id: &str, data: &serde_json::Value) -> Result<()> {
+        let json_data = serde_json::to_string(data)?;
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query(
+            r#"
+            INSERT INTO registry_objects (tenant_id, object_type, object_id, status, source, data_json, created_at, updated_at)
+            VALUES (?1, ?2, ?3, 'raw', 'raw', ?4, ?5, ?5)
+            ON CONFLICT(tenant_id, object_type, object_id) DO UPDATE SET
+                data_json=excluded.data_json,
+                updated_at=excluded.updated_at
+            "#,
+        )
+        .bind(tenant_id)
+        .bind(object_type)
+        .bind(object_id)
+        .bind(&json_data)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn get_raw(&self, tenant_id: &str, object_type: &str, object_id: &str) -> Result<Option<serde_json::Value>> {
+        let row = sqlx::query(
+            "SELECT data_json FROM registry_objects WHERE tenant_id = ?1 AND object_type = ?2 AND object_id = ?3",
+        )
+        .bind(tenant_id)
+        .bind(object_type)
+        .bind(object_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if let Some(r) = row {
+            let json_str: String = r.try_get("data_json")?;
+            let data: serde_json::Value = serde_json::from_str(&json_str)?;
+            Ok(Some(data))
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn list_raw(&self, tenant_id: &str, object_type: &str) -> Result<Vec<serde_json::Value>> {
+        let rows = sqlx::query(
+            "SELECT data_json FROM registry_objects WHERE tenant_id = ?1 AND object_type = ?2",
+        )
+        .bind(tenant_id)
+        .bind(object_type)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut out = Vec::new();
+        for r in rows {
+            let json_str: String = r.try_get("data_json")?;
+            if let Ok(data) = serde_json::from_str(&json_str) {
+                out.push(data);
+            }
+        }
+        Ok(out)
     }
 
     async fn list_agents(&self, tenant_id: &str) -> Result<Vec<AiAgent>> {

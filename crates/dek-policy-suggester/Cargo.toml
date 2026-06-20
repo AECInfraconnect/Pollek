@@ -1,0 +1,24 @@
+[package]
+license = "Apache-2.0"
+name = "dek-policy-suggester"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+chrono.workspace = true
+uuid = { version = "1", features = ["v4", "serde"] }
+sha2 = "0.10"
+hex = "0.4"
+dek-control-plane-api = { path = "../dek-control-plane-api" }
+dek-domain-schema = { path = "../dek-domain-schema" }
+dek-agent-discovery = { path = "../dek-agent-discovery" }
+dek-agent-observer = { path = "../dek-agent-observer" }
+
+[lints]
+workspace = true

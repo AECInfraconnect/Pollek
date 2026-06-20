@@ -37,6 +37,10 @@ dek-cedar = { path = "../dek-cedar" }
 dek-policy-runtime = { path = "../dek-policy-runtime" }
 reqwest = { workspace = true, features = ["json"] }
 dek-config = { version = "0.1.0", path = "../dek-config" }
+dek-agent-discovery = { path = "../dek-agent-discovery" }
+dek-policy-suggester = { path = "../dek-policy-suggester" }
+dek-agent-observer = { path = "../dek-agent-observer" }
+uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 tempfile = "3.27.0"

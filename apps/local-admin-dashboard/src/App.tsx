@@ -14,6 +14,10 @@ import { Relationships } from "./pages/Relationships";
 import { BlackboxAI } from "./pages/BlackboxAI";
 import { Settings } from "./pages/Settings";
 import { Alerts } from "./pages/Alerts";
+import { AutoDiscovery } from "./pages/AutoDiscovery";
+import { ShadowAI } from "./pages/ShadowAI";
+import { PolicySuggestions } from "./pages/PolicySuggestions";
+import { CostLedger } from "./pages/CostLedger";
 
 function App() {
   return (
@@ -34,6 +38,10 @@ function App() {
           <Route path="audit" element={<DecisionLogs />} />
           <Route path="alerts" element={<Alerts />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="discovery" element={<AutoDiscovery />} />
+          <Route path="shadow-ai" element={<ShadowAI />} />
+          <Route path="policy-suggestions" element={<PolicySuggestions />} />
+          <Route path="cost-ledger" element={<CostLedger />} />
         </Route>
       </Routes>
     </Router>
