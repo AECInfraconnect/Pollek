@@ -24,10 +24,11 @@ dek-spire-node = { path = "../dek-spire-node" }
 dek-keystore = { path = "../dek-keystore" }
 webbrowser = "1.2.1"
 reqwest.workspace = true
+rcgen = "0.13"
 
 [dev-dependencies]
 axum = "0.7"
-rcgen = { version = "0.11", features = ["pem", "x509-parser"] }
+rcgen = { version = "0.13", features = ["pem", "x509-parser"] }
 serde_json = { workspace = true }
 x509-parser = "0.16"
 serde = { workspace = true, features = ["derive"] }

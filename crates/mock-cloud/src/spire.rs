@@ -295,22 +295,25 @@ async fn renew_csr(
 }
 
 fn sign_csr(csr_pem: &str, spiffe_id: &str) -> Result<(String, String)> {
-    use rcgen::{Certificate, CertificateParams, CertificateSigningRequest, KeyPair, SanType};
+    use rcgen::{CertificateParams, CertificateSigningRequestParams, KeyPair, SanType};
 
     let ca_key_pem = std::fs::read_to_string("certs/root_ca.key").context("read root_ca.key")?;
     let ca_cert_pem = std::fs::read_to_string("certs/root_ca.crt").context("read root_ca.crt")?;
 
     let ca_key = KeyPair::from_pem(&ca_key_pem).context("parse CA key")?;
-    let ca_params =
-        CertificateParams::from_ca_cert_pem(&ca_cert_pem, ca_key).context("CA params")?;
-    let ca = Certificate::from_params(ca_params).context("CA cert")?;
+    let ca_params = CertificateParams::from_ca_cert_pem(&ca_cert_pem).context("CA params")?;
+    let ca = ca_params.self_signed(&ca_key).context("CA cert")?;
 
-    let mut csr = CertificateSigningRequest::from_pem(csr_pem).context("parse CSR")?;
+    let mut csr = CertificateSigningRequestParams::from_pem(csr_pem).context("parse CSR")?;
     csr.params
         .subject_alt_names
-        .push(SanType::URI(spiffe_id.to_string()));
+        .push(SanType::URI(spiffe_id.try_into().unwrap()));
 
-    let cert_pem = csr.serialize_pem_with_signer(&ca).context("sign CSR")?;
+    let cert_pem = csr
+        .params
+        .signed_by(&csr.public_key, &ca, &ca_key)
+        .context("sign CSR")?
+        .pem();
 
     Ok((cert_pem, ca_cert_pem))
 }

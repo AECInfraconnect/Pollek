@@ -208,22 +208,26 @@ async fn attest_csr(State(m): State<Mock>, Json(req): Json<Attest>) -> (StatusCo
 // ------------------------------- test crypto -------------------------------
 
 fn make_test_ca() -> (String, String) {
-    use rcgen::{Certificate, CertificateParams, IsCa, KeyUsagePurpose};
-    let mut params = CertificateParams::new(vec!["Pollen Test Root CA".to_string()]);
+    use rcgen::{CertificateParams, IsCa, KeyPair, KeyUsagePurpose};
+    let mut params = CertificateParams::new(vec!["Pollen Test Root CA".to_string()]).unwrap();
     params.is_ca = IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
     params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
-    let ca = Certificate::from_params(params).unwrap();
-    (ca.serialize_pem().unwrap(), ca.serialize_private_key_pem())
+    let key_pair = KeyPair::generate().unwrap();
+    let ca = params.self_signed(&key_pair).unwrap();
+    (ca.pem(), key_pair.serialize_pem())
 }
 
 fn sign_csr(ca_cert_pem: &str, ca_key_pem: &str, csr_pem: &str, spiffe_id: &str) -> String {
-    use rcgen::{Certificate, CertificateParams, CertificateSigningRequest, KeyPair, SanType};
+    use rcgen::{CertificateParams, CertificateSigningRequestParams, KeyPair, SanType};
     let ca_key = KeyPair::from_pem(ca_key_pem).unwrap();
-    let ca_params = CertificateParams::from_ca_cert_pem(ca_cert_pem, ca_key).unwrap();
-    let ca = Certificate::from_params(ca_params).unwrap();
-    let mut csr = CertificateSigningRequest::from_pem(csr_pem).unwrap();
+    let ca_params = CertificateParams::from_ca_cert_pem(ca_cert_pem).unwrap();
+    let ca = ca_params.self_signed(&ca_key).unwrap();
+    let mut csr = CertificateSigningRequestParams::from_pem(csr_pem).unwrap();
     csr.params
         .subject_alt_names
-        .push(SanType::URI(spiffe_id.to_string()));
-    csr.serialize_pem_with_signer(&ca).unwrap()
+        .push(SanType::URI(spiffe_id.try_into().unwrap()));
+    csr.params
+        .signed_by(&csr.public_key, &ca, &ca_key)
+        .unwrap()
+        .pem()
 }

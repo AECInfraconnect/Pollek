@@ -222,10 +222,10 @@ mod tests {
     #[test]
     fn renewal_schedules_at_half_life_and_floors() {
         let dir = tempfile::tempdir().unwrap();
-        let ca = make_ca();
+        let (ca, ca_key) = make_ca();
 
         // long-lived (~1000s) -> sleep ~400s (1000 - 600)
-        let long = sign_leaf(&ca, "device-x", time_offset(1000));
+        let long = sign_leaf(&ca, &ca_key, "device-x", time_offset(1000));
         let p_long = dir.path().join("long.crt");
         std::fs::write(&p_long, &long).unwrap();
         let (d, _) = seconds_until_renewal(p_long.to_str().unwrap()).unwrap();
@@ -236,7 +236,7 @@ mod tests {
         );
 
         // near-expired -> floored at MIN_SLEEP (60s)
-        let short = sign_leaf(&ca, "device-x", time_offset(2));
+        let short = sign_leaf(&ca, &ca_key, "device-x", time_offset(2));
         let p_short = dir.path().join("short.crt");
         std::fs::write(&p_short, &short).unwrap();
         let (d2, _) = seconds_until_renewal(p_short.to_str().unwrap()).unwrap();
@@ -247,16 +247,16 @@ mod tests {
     #[tokio::test]
     async fn renewal_swaps_cert_on_disk() {
         let dir = tempfile::tempdir().unwrap();
-        let ca = make_ca();
+        let (ca, ca_key) = make_ca();
 
         // 1) initial identity on disk: a plain client cert (NO spiffe SAN), short-lived.
         let cert_path = dir.path().join("client.crt");
         let key_path = dir.path().join("client.key");
         let ca_path = dir.path().join("root_ca.crt");
-        let (init_cert, init_key) = make_client(&ca, "device-renew-1");
+        let (init_cert, init_key) = make_client(&ca, &ca_key, "device-renew-1");
         std::fs::write(&cert_path, &init_cert).unwrap();
         std::fs::write(&key_path, &init_key).unwrap();
-        std::fs::write(&ca_path, ca.serialize_pem().unwrap()).unwrap();
+        std::fs::write(&ca_path, ca.pem()).unwrap();
         let before = std::fs::read_to_string(&cert_path).unwrap();
         assert!(
             !before.contains("spiffe"),
@@ -264,8 +264,8 @@ mod tests {
         );
 
         // 2) spawn mock renew endpoint that signs the CSR (short-lived, spiffe SAN).
-        let ca_pem = ca.serialize_pem().unwrap();
-        let ca_key_pem = ca.serialize_private_key_pem();
+        let ca_pem = ca.pem();
+        let ca_key_pem = ca_key.serialize_pem();
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
         let state = MockState {
@@ -345,45 +345,43 @@ mod tests {
         }))
     }
 
-    // ---------- rcgen 0.11 test crypto ----------
-    use rcgen::Certificate;
+    // ---------- rcgen 0.13 test crypto ----------
     static CA_LOCK: Mutex<()> = Mutex::new(());
 
     fn time_offset(secs: i64) -> time::OffsetDateTime {
         time::OffsetDateTime::now_utc() + time::Duration::seconds(secs)
     }
 
-    fn make_ca() -> Certificate {
+    fn make_ca() -> (rcgen::Certificate, rcgen::KeyPair) {
         let _g = CA_LOCK.lock().unwrap();
         use rcgen::{BasicConstraints, CertificateParams, IsCa, KeyUsagePurpose};
-        let mut p = CertificateParams::new(vec!["Pollen Test Root CA".to_string()]);
+        let mut p = CertificateParams::new(vec!["Pollen Test Root CA".to_string()]).unwrap();
         p.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
         p.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
-        p.alg = &rcgen::PKCS_ECDSA_P256_SHA256;
-        p.key_pair = Some(rcgen::KeyPair::generate(&rcgen::PKCS_ECDSA_P256_SHA256).unwrap());
-        Certificate::from_params(p).unwrap()
+        let key_pair = rcgen::KeyPair::generate().unwrap();
+        let cert = p.self_signed(&key_pair).unwrap();
+        (cert, key_pair)
     }
 
-    fn make_client(ca: &Certificate, cn: &str) -> (String, String) {
+    fn make_client(ca: &rcgen::Certificate, ca_key: &rcgen::KeyPair, cn: &str) -> (String, String) {
         use rcgen::CertificateParams;
-        let mut p = CertificateParams::new(vec![cn.to_string()]);
-        p.alg = &rcgen::PKCS_ECDSA_P256_SHA256;
-        p.key_pair = Some(rcgen::KeyPair::generate(&rcgen::PKCS_ECDSA_P256_SHA256).unwrap());
-        let c = Certificate::from_params(p).unwrap();
-        (
-            c.serialize_pem_with_signer(ca).unwrap(),
-            c.serialize_private_key_pem(),
-        )
+        let p = CertificateParams::new(vec![cn.to_string()]).unwrap();
+        let key_pair = rcgen::KeyPair::generate().unwrap();
+        let cert = p.signed_by(&key_pair, ca, ca_key).unwrap();
+        (cert.pem(), key_pair.serialize_pem())
     }
 
-    fn sign_leaf(ca: &Certificate, cn: &str, not_after: time::OffsetDateTime) -> String {
+    fn sign_leaf(
+        ca: &rcgen::Certificate,
+        ca_key: &rcgen::KeyPair,
+        cn: &str,
+        not_after: time::OffsetDateTime,
+    ) -> String {
         use rcgen::CertificateParams;
-        let mut p = CertificateParams::new(vec![cn.to_string()]);
+        let mut p = CertificateParams::new(vec![cn.to_string()]).unwrap();
         p.not_after = not_after;
-        p.alg = &rcgen::PKCS_ECDSA_P256_SHA256;
-        p.key_pair = Some(rcgen::KeyPair::generate(&rcgen::PKCS_ECDSA_P256_SHA256).unwrap());
-        let c = Certificate::from_params(p).unwrap();
-        c.serialize_pem_with_signer(ca).unwrap()
+        let key_pair = rcgen::KeyPair::generate().unwrap();
+        p.signed_by(&key_pair, ca, ca_key).unwrap().pem()
     }
 
     fn sign_csr(
@@ -393,16 +391,18 @@ mod tests {
         spiffe: &str,
         ttl_secs: i64,
     ) -> String {
-        use rcgen::{CertificateParams, CertificateSigningRequest, KeyPair, SanType};
+        use rcgen::{CertificateParams, CertificateSigningRequestParams, KeyPair, SanType};
         let ca_key = KeyPair::from_pem(ca_key_pem).unwrap();
-        let ca =
-            Certificate::from_params(CertificateParams::from_ca_cert_pem(ca_pem, ca_key).unwrap())
-                .unwrap();
-        let mut csr = CertificateSigningRequest::from_pem(csr_pem).unwrap();
+        let ca_params = CertificateParams::from_ca_cert_pem(ca_pem).unwrap();
+        let ca = ca_params.self_signed(&ca_key).unwrap();
+        let mut csr = CertificateSigningRequestParams::from_pem(csr_pem).unwrap();
         csr.params
             .subject_alt_names
-            .push(SanType::URI(spiffe.to_string()));
+            .push(SanType::URI(spiffe.try_into().unwrap()));
         csr.params.not_after = time_offset(ttl_secs);
-        csr.serialize_pem_with_signer(&ca).unwrap()
+        csr.params
+            .signed_by(&csr.public_key, &ca, &ca_key)
+            .unwrap()
+            .pem()
     }
 }
