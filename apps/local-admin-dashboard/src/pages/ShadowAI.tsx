@@ -1,6 +1,17 @@
-import { ShieldAlert } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ShieldAlert, AlertTriangle } from "lucide-react";
+import { RegistryApi } from "../services/api";
 
 export function ShadowAI() {
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    RegistryApi.listDiscoveryCandidates()
+      .then(setCandidates)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -18,11 +29,35 @@ export function ShadowAI() {
 
       <div className="glass rounded-xl p-6">
         <h3 className="font-semibold mb-4">Unregistered Activity</h3>
-        <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-muted">
-          <p className="text-sm text-muted-foreground">
-            No shadow AI activity detected.
-          </p>
-        </div>
+        {loading ? (
+          <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-muted">
+            <p className="text-sm text-muted-foreground">Loading shadow candidates...</p>
+          </div>
+        ) : candidates.length === 0 ? (
+          <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-muted">
+            <p className="text-sm text-muted-foreground">
+              No shadow AI activity detected.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {candidates.map((c, idx) => (
+              <div key={idx} className="border rounded-lg p-4 bg-destructive/5 hover:bg-destructive/10 transition-colors">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <h4 className="font-medium text-lg">Candidate: {c.candidate_id}</h4>
+                  </div>
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  First seen: {new Date(c.first_seen).toLocaleString()} <br/>
+                  Last seen: {new Date(c.last_seen).toLocaleString()} <br/>
+                  {c.heuristics_matched && `Heuristics matched: ${c.heuristics_matched.join(', ')}`}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

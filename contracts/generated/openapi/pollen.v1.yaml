@@ -11,6 +11,9 @@ tags:
   - name: Discovery
   - name: Bundles
   - name: Telemetry
+  - name: Registry
+  - name: Observation
+  - name: PolicySuggestions
 paths:
   /.well-known/pollen-contract:
     get:
@@ -64,6 +67,164 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TelemetryBatchRequest'
+  /v1/tenants/{tenant_id}/agent-discovery/candidates:
+    get:
+      operationId: DiscoveryApi_listCandidates
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Discovery
+  /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/block:
+    post:
+      operationId: DiscoveryApi_blockCandidate
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: candidate_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Discovery
+  /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/ignore:
+    post:
+      operationId: DiscoveryApi_ignoreCandidate
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: candidate_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Discovery
+  /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/observe-only:
+    post:
+      operationId: DiscoveryApi_observeCandidate
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: candidate_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Discovery
+  /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/register:
+    post:
+      operationId: DiscoveryApi_registerCandidate
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: candidate_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Discovery
+  /v1/tenants/{tenant_id}/agent-discovery/scan:
+    post:
+      operationId: DiscoveryApi_scan
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Discovery
   /v1/tenants/{tenant_id}/devices/{device_id}/bundles/latest:
     post:
       operationId: BundleApi_fetchLatest
@@ -105,6 +266,428 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BundleFetchRequest'
+  /v1/tenants/{tenant_id}/observations/agents/{agent_id}:
+    get:
+      operationId: ObservationApi_getAgentObservations
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Observation
+  /v1/tenants/{tenant_id}/observations/costs:
+    get:
+      operationId: ObservationApi_getCosts
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Observation
+  /v1/tenants/{tenant_id}/observations/coverage:
+    get:
+      operationId: ObservationApi_getCoverage
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Observation
+  /v1/tenants/{tenant_id}/observations/events:
+    post:
+      operationId: ObservationApi_ingestEvents
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Observation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {}
+  /v1/tenants/{tenant_id}/observations/resources/{resource_id}:
+    get:
+      operationId: ObservationApi_getResourceObservations
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Observation
+  /v1/tenants/{tenant_id}/observations/tools/{tool_id}:
+    get:
+      operationId: ObservationApi_getToolObservations
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: tool_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Observation
+  /v1/tenants/{tenant_id}/policy-suggestions:
+    get:
+      operationId: PolicySuggestionsApi_listSuggestions
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicySuggestions
+  /v1/tenants/{tenant_id}/policy-suggestions/generate:
+    post:
+      operationId: PolicySuggestionsApi_generate
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicySuggestions
+  /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}:
+    get:
+      operationId: PolicySuggestionsApi_getSuggestion
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: suggestion_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicySuggestions
+  /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/create-draft:
+    post:
+      operationId: PolicySuggestionsApi_createDraft
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: suggestion_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicySuggestions
+  /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/dismiss:
+    post:
+      operationId: PolicySuggestionsApi_dismiss
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: suggestion_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicySuggestions
+  /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/simulate:
+    post:
+      operationId: PolicySuggestionsApi_simulate
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: suggestion_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicySuggestions
+  /v1/tenants/{tenant_id}/registry/resources:
+    get:
+      operationId: ResourcesApi_listResources
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceListResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Registry
+    post:
+      operationId: ResourcesApi_createResource
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Registry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Resource'
+  /v1/tenants/{tenant_id}/registry/tools:
+    get:
+      operationId: ToolsApi_listTools
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolListResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Registry
+    post:
+      operationId: ToolsApi_createTool
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tool'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Registry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tool'
 components:
   parameters:
     PollenHeaders.contractVersion:
@@ -191,6 +774,111 @@ components:
           type: array
           items:
             type: string
+    MissingControl:
+      type: object
+      required:
+        - control_type
+        - reason
+        - recommended_policy_type
+        - recommended_pep_type
+      properties:
+        control_type:
+          type: string
+        reason:
+          type: string
+        recommended_policy_type:
+          type: string
+        recommended_pep_type:
+          type: string
+    ObjectMeta:
+      type: object
+      required:
+        - schema_version
+        - tenant_id
+        - workspace_id
+        - environment_id
+        - created_at
+        - updated_at
+        - created_by
+        - updated_by
+        - source
+        - status
+        - tags
+      properties:
+        schema_version:
+          type: string
+        tenant_id:
+          type: string
+        workspace_id:
+          type: string
+        environment_id:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        created_by:
+          type: string
+        updated_by:
+          type: string
+        source:
+          type: string
+        status:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    PepBinding:
+      type: object
+      required:
+        - pep_type
+        - deployment_status
+        - rule_ids
+        - capabilities
+        - limitations
+      properties:
+        pep_type:
+          type: string
+        deployment_status:
+          type: string
+        rule_ids:
+          type: array
+          items:
+            type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        limitations:
+          type: array
+          items:
+            type: string
+    PolicyCoverageSummary:
+      type: object
+      required:
+        - status
+        - policy_ids
+        - missing_controls
+        - confidence
+      properties:
+        status:
+          type: string
+        policy_ids:
+          type: array
+          items:
+            type: string
+        missing_controls:
+          type: array
+          items:
+            $ref: '#/components/schemas/MissingControl'
+        last_simulated_at:
+          type: string
+        last_enforced_at:
+          type: string
+        confidence:
+          type: number
+          format: float
     PollenError:
       type: object
       required:
@@ -202,6 +890,120 @@ components:
         message:
           type: string
         trace_id:
+          type: string
+    Resource:
+      type: object
+      required:
+        - meta
+        - resource_id
+        - resource_type
+        - name
+        - uri
+        - classification
+        - attributes
+        - data_boundary
+        - data_tags
+        - pii_types
+        - secret_types
+        - allowed_actions
+        - observed_actions
+        - observed_by_agent_ids
+        - reachable_via_tool_ids
+        - policy_coverage
+        - pep_bindings
+        - access_count_24h
+        - violation_count_24h
+        - cost_relevant
+      properties:
+        meta:
+          $ref: '#/components/schemas/ObjectMeta'
+        resource_id:
+          type: string
+        resource_type:
+          type: string
+        name:
+          type: string
+        uri:
+          type: string
+        classification:
+          type: string
+        owner_entity_id:
+          type: string
+        attributes:
+          type: object
+          unevaluatedProperties: {}
+        data_boundary:
+          type: string
+        data_tags:
+          type: array
+          items:
+            type: string
+        pii_types:
+          type: array
+          items:
+            type: string
+        secret_types:
+          type: array
+          items:
+            type: string
+        allowed_actions:
+          type: array
+          items:
+            type: string
+        observed_actions:
+          type: array
+          items:
+            type: string
+        observed_by_agent_ids:
+          type: array
+          items:
+            type: string
+        reachable_via_tool_ids:
+          type: array
+          items:
+            type: string
+        policy_coverage:
+          $ref: '#/components/schemas/PolicyCoverageSummary'
+        pep_bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/PepBinding'
+        first_seen_at:
+          type: string
+        last_seen_at:
+          type: string
+        access_count_24h:
+          type: integer
+          format: int64
+        violation_count_24h:
+          type: integer
+          format: int64
+        cost_relevant:
+          type: boolean
+    ResourceListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Resource'
+    SchemaFingerprint:
+      type: object
+      required:
+        - input_schema_hash
+        - drift_status
+      properties:
+        input_schema_hash:
+          type: string
+        output_schema_hash:
+          type: string
+        descriptor_hash:
+          type: string
+        previous_descriptor_hash:
+          type: string
+        drift_status:
           type: string
     TelemetryBatchRequest:
       type: object
@@ -245,6 +1047,97 @@ components:
         retry_after_seconds:
           type: integer
           format: int32
+    Tool:
+      type: object
+      required:
+        - meta
+        - tool_id
+        - name
+        - input_schema
+        - side_effect_level
+        - data_access_level
+        - risk_level
+        - category
+        - source
+        - declared_by_agent_ids
+        - observed_by_agent_ids
+        - reachable_resource_ids
+        - required_entitlements
+        - schema_fingerprint
+        - policy_coverage
+        - pep_bindings
+        - observation_count_24h
+        - deny_count_24h
+        - allow_count_24h
+      properties:
+        meta:
+          $ref: '#/components/schemas/ObjectMeta'
+        tool_id:
+          type: string
+        mcp_server_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        input_schema: {}
+        output_schema: {}
+        side_effect_level:
+          type: string
+        data_access_level:
+          type: string
+        risk_level:
+          type: string
+        category:
+          type: string
+        source:
+          type: string
+        declared_by_agent_ids:
+          type: array
+          items:
+            type: string
+        observed_by_agent_ids:
+          type: array
+          items:
+            type: string
+        reachable_resource_ids:
+          type: array
+          items:
+            type: string
+        required_entitlements:
+          type: array
+          items:
+            type: string
+        schema_fingerprint:
+          $ref: '#/components/schemas/SchemaFingerprint'
+        policy_coverage:
+          $ref: '#/components/schemas/PolicyCoverageSummary'
+        pep_bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/PepBinding'
+        last_seen_at:
+          type: string
+        first_seen_at:
+          type: string
+        observation_count_24h:
+          type: integer
+          format: int64
+        deny_count_24h:
+          type: integer
+          format: int64
+        allow_count_24h:
+          type: integer
+          format: int64
+    ToolListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tool'
 servers:
   - url: http://127.0.0.1:17891
     description: Local Control Plane / Mock Cloud

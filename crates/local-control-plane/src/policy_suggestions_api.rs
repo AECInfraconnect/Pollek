@@ -66,7 +66,7 @@ async fn generate(
         }
     }
 
-    let suggestions = dek_policy_suggester::generate_suggestions(&tenant, &candidates, &events)
+    let suggestions = dek_policy_suggester::api::generate_suggestions(&tenant, &candidates, &events)
         .map_err(|_| ApiError::Internal(anyhow::anyhow!("failed generation")))?;
 
     for s in &suggestions {

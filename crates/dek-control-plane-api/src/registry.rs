@@ -1,4 +1,4 @@
-﻿use schemars::JsonSchema;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -135,6 +135,20 @@ pub struct Tool {
     pub side_effect_level: SideEffectLevel,
     pub data_access_level: DataAccessLevel,
     pub risk_level: RiskLevel,
+    pub category: ToolCategory,
+    pub source: ToolSource,
+    pub declared_by_agent_ids: Vec<String>,
+    pub observed_by_agent_ids: Vec<String>,
+    pub reachable_resource_ids: Vec<String>,
+    pub required_entitlements: Vec<String>,
+    pub schema_fingerprint: SchemaFingerprint,
+    pub policy_coverage: PolicyCoverageSummary,
+    pub pep_bindings: Vec<PepBinding>,
+    pub last_seen_at: Option<String>,
+    pub first_seen_at: Option<String>,
+    pub observation_count_24h: u64,
+    pub deny_count_24h: u64,
+    pub allow_count_24h: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -175,6 +189,21 @@ pub struct Resource {
     pub classification: DataClassification,
     pub owner_entity_id: Option<String>,
     pub attributes: HashMap<String, serde_json::Value>,
+    pub data_boundary: ResourceDataBoundary,
+    pub data_tags: Vec<String>,
+    pub pii_types: Vec<String>,
+    pub secret_types: Vec<String>,
+    pub allowed_actions: Vec<ResourceAction>,
+    pub observed_actions: Vec<ResourceAction>,
+    pub observed_by_agent_ids: Vec<String>,
+    pub reachable_via_tool_ids: Vec<String>,
+    pub policy_coverage: PolicyCoverageSummary,
+    pub pep_bindings: Vec<PepBinding>,
+    pub first_seen_at: Option<String>,
+    pub last_seen_at: Option<String>,
+    pub access_count_24h: u64,
+    pub violation_count_24h: u64,
+    pub cost_relevant: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -289,4 +318,140 @@ pub struct BlackboxAiProvider {
     pub auth_ref: Option<String>,
     pub risk_level: RiskLevel,
     pub labels: HashMap<String, String>,
+}
+
+// New Enums and Structs from Deep Research Implementation Plan
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolCategory {
+    Mcp,
+    Cli,
+    Browser,
+    Database,
+    FileSystem,
+    Network,
+    SecretManager,
+    CodeExecution,
+    BusinessApi,
+    LocalModel,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolSource {
+    Registry,
+    McpDiscovery,
+    ProcessDiscovery,
+    ConfigDiscovery,
+    NetworkObservation,
+    Manual,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct SchemaFingerprint {
+    pub input_schema_hash: String,
+    pub output_schema_hash: Option<String>,
+    pub descriptor_hash: Option<String>,
+    pub previous_descriptor_hash: Option<String>,
+    pub drift_status: DriftStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum DriftStatus {
+    Stable,
+    New,
+    Changed,
+    Suspicious,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ResourceDataBoundary {
+    LocalOnly,
+    PrivateNetwork,
+    TenantCloud,
+    ExternalCloud,
+    PublicInternet,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ResourceAction {
+    Read,
+    Write,
+    Delete,
+    Execute,
+    Connect,
+    Query,
+    Publish,
+    Subscribe,
+    Upload,
+    Download,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct PolicyCoverageSummary {
+    pub status: CoverageStatus,
+    pub policy_ids: Vec<String>,
+    pub missing_controls: Vec<MissingControl>,
+    pub last_simulated_at: Option<String>,
+    pub last_enforced_at: Option<String>,
+    pub confidence: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum CoverageStatus {
+    Uncovered,
+    ObserveOnly,
+    Partial,
+    Enforced,
+    Broken,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct MissingControl {
+    pub control_type: String,
+    pub reason: String,
+    pub recommended_policy_type: String,
+    pub recommended_pep_type: PepType,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct PepBinding {
+    pub pep_type: PepType,
+    pub deployment_status: DeploymentStatus,
+    pub rule_ids: Vec<String>,
+    pub capabilities: Vec<String>,
+    pub limitations: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PepType {
+    McpProxy,
+    StdioWrapper,
+    HttpGateway,
+    Envoy,
+    Istio,
+    EmbeddedSdk,
+    LinuxEbpf,
+    WindowsWfp,
+    MacosNeFilter,
+    BrowserExtension,
+    FileSystemWatcher,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum DeploymentStatus {
+    NotAvailable,
+    Available,
+    ObserveOnly,
+    Enforcing,
+    Failed,
 }

@@ -171,7 +171,22 @@ async fn publish_policy(
         .list_agents(&tenant)
         .await
         .unwrap_or_default();
-    let registry_snap = serde_json::json!({ "agents": agents });
+    let tools = st.registry_store.list_tools(&tenant).await.unwrap_or_default();
+    let resources = st.registry_store.list_resources(&tenant).await.unwrap_or_default();
+    let mcp_servers = st.registry_store.list_mcp_servers(&tenant).await.unwrap_or_default();
+    let entities = st.registry_store.list_entities(&tenant).await.unwrap_or_default();
+    let relationships = st.registry_store.list_relationships(&tenant).await.unwrap_or_default();
+    let blackbox_ai_providers = st.registry_store.list_blackbox_ai(&tenant).await.unwrap_or_default();
+
+    let registry_snap = serde_json::json!({ 
+        "agents": agents,
+        "tools": tools,
+        "resources": resources,
+        "mcp_servers": mcp_servers,
+        "entities": entities,
+        "relationships": relationships,
+        "blackbox_ai_providers": blackbox_ai_providers
+    });
 
     let built = crate::bundle::build_signed_bundle(
         &st.signer,

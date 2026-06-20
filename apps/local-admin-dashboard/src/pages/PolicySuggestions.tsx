@@ -1,16 +1,29 @@
-import { useState } from "react";
-import { Lightbulb, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Lightbulb, RefreshCw, AlertTriangle, ShieldCheck } from "lucide-react";
+import { PolicySuggestionApi } from "../services/api";
 
 export function PolicySuggestions() {
   const [loading, setLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+
+  const fetchSuggestions = async () => {
+    try {
+      const data = await PolicySuggestionApi.list();
+      setSuggestions(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchSuggestions();
+  }, []);
 
   const generateSuggestions = async () => {
     setLoading(true);
     try {
-      await fetch("http://127.0.0.1:3000/v1/tenants/local/policy-suggestions/generate", {
-        method: "POST"
-      });
-      alert("Suggestions generated! Refreshing list...");
+      await PolicySuggestionApi.generate();
+      await fetchSuggestions();
     } catch (e) {
       console.error(e);
     } finally {
@@ -39,11 +52,40 @@ export function PolicySuggestions() {
 
       <div className="glass rounded-xl p-6">
         <h3 className="font-semibold mb-4">Suggested Policies</h3>
-        <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-muted">
-          <p className="text-sm text-muted-foreground">
-            No suggestions generated yet. Click "Generate Suggestions" to run the engine.
-          </p>
-        </div>
+        {suggestions.length === 0 ? (
+          <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-muted">
+            <p className="text-sm text-muted-foreground">
+              No suggestions generated yet. Click "Generate Suggestions" to run the engine.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {suggestions.map((s, idx) => (
+              <div key={idx} className="border rounded-lg p-4 bg-muted/20 hover:bg-muted/40 transition-colors">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    {s.severity === 'high' || s.severity === 'critical' ? (
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                    ) : (
+                      <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                    )}
+                    <h4 className="font-medium text-lg">{s.title}</h4>
+                  </div>
+                  <span className={`px-2 py-1 text-xs rounded-full ${s.severity === 'high' ? 'bg-destructive/10 text-destructive' : 'bg-amber-500/10 text-amber-500'}`}>
+                    {s.severity} severity
+                  </span>
+                </div>
+                <p className="text-muted-foreground text-sm mb-4">{s.summary}</p>
+                
+                {s.artifacts && s.artifacts.length > 0 && (
+                  <div className="mt-4 bg-background p-4 rounded-md border text-xs font-mono overflow-x-auto whitespace-pre">
+                    {s.artifacts[0].content}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

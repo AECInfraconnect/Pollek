@@ -65,12 +65,12 @@ export class ControlPlaneClient {
 
   // Registry
   async listAgents(): Promise<AiAgent[]> { return this.fetchApi('/registry/agents'); }
-  async listMcpServers(): Promise<McpServer[]> { return this.fetchApi('/registry/mcp_servers'); }
+  async listMcpServers(): Promise<McpServer[]> { return this.fetchApi('/registry/mcp-servers'); }
   async listTools(): Promise<Tool[]> { return this.fetchApi('/registry/tools'); }
   async listResources(): Promise<Resource[]> { return this.fetchApi('/registry/resources'); }
   async listEntities(): Promise<Entity[]> { return this.fetchApi('/registry/entities'); }
   async listRelationships(): Promise<Relationship[]> { return this.fetchApi('/registry/relationships'); }
-  async listBlackboxAiProviders(): Promise<BlackboxAiProvider[]> { return this.fetchApi('/registry/blackbox_ai_providers'); }
+  async listBlackboxAiProviders(): Promise<BlackboxAiProvider[]> { return this.fetchApi('/registry/blackbox-ai'); }
   
   // Policies
   async listPolicies(): Promise<PolicyDraft[]> { return this.fetchApi('/policies'); }
@@ -119,6 +119,22 @@ export class ControlPlaneClient {
     const data = await this.fetchApi('/telemetry/decision-logs');
     return data.decisions ?? data;
   }
+
+  // Shadow AI & Discovery
+  async listDiscoveryCandidates(): Promise<any[]> {
+    return this.fetchApi('/registry/discovery-candidates').catch(() => []); // Mock fallback if endpoint not exist
+  }
+
+  // Policy Suggestions
+  async listPolicySuggestions(): Promise<any[]> {
+    const data = await this.fetchApi('/policy-suggestions');
+    return data.suggestions ?? [];
+  }
+  
+  async generatePolicySuggestions(): Promise<any> {
+    return this.fetchApi('/policy-suggestions/generate', { method: 'POST' });
+  }
+
 }
 
 // Store the active profile in localStorage to persist across reloads
@@ -146,6 +162,12 @@ export const RegistryApi = {
   listEntities: () => defaultClient.listEntities(),
   listRelationships: () => defaultClient.listRelationships(),
   listBlackboxAiProviders: () => defaultClient.listBlackboxAiProviders(),
+  listDiscoveryCandidates: () => defaultClient.listDiscoveryCandidates(),
+};
+
+export const PolicySuggestionApi = {
+  list: () => defaultClient.listPolicySuggestions(),
+  generate: () => defaultClient.generatePolicySuggestions(),
 };
 
 export const PolicyApi = {
