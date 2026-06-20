@@ -1,9 +1,9 @@
 use anyhow::Result;
+use dek_agent_observer::model::{AgentObservationEvent, CostLedgerEntry};
 use dek_control_plane_api::registry::*;
+use dek_policy_suggester::model::PolicySuggestion;
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
-use dek_agent_observer::model::{AgentObservationEvent, CostLedgerEntry};
-use dek_policy_suggester::model::PolicySuggestion;
 
 #[async_trait::async_trait]
 pub trait RegistryStore: Send + Sync {

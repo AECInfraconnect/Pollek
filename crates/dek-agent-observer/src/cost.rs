@@ -24,17 +24,18 @@ pub fn calculate_cost(
     let tokens = event.token_usage.as_ref()?;
     let model = tokens.model.as_deref().unwrap_or("unknown");
 
-    let price = catalog
-        .providers
-        .get(provider)
-        .and_then(|m| m.get(model))?;
+    let price = catalog.providers.get(provider).and_then(|m| m.get(model))?;
 
     let input_cost = (tokens.input_tokens.unwrap_or(0) as f64 / 1_000_000.0) * price.input_per_1m;
-    let output_cost = (tokens.output_tokens.unwrap_or(0) as f64 / 1_000_000.0) * price.output_per_1m;
+    let output_cost =
+        (tokens.output_tokens.unwrap_or(0) as f64 / 1_000_000.0) * price.output_per_1m;
 
     Some(CostLedgerEntry {
         event_id: event.event_id.clone(),
-        agent_id: event.agent_id.clone().unwrap_or_else(|| "unknown".to_string()),
+        agent_id: event
+            .agent_id
+            .clone()
+            .unwrap_or_else(|| "unknown".to_string()),
         provider: provider.to_string(),
         model: Some(model.to_string()),
         input_tokens: tokens.input_tokens.unwrap_or(0),
