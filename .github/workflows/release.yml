@@ -10,7 +10,7 @@ on:
       version:
         description: "Version tag"
         required: true
-        default: "v1.0.0-beta.6"
+        default: "v1.0.0-beta.10"
 
 permissions:
   contents: write
@@ -22,7 +22,25 @@ env:
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}
 
 jobs:
+  preflight:
+    name: Preflight Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ env.RELEASE_REF }}
+      - name: Verify Tag Matches Cargo.toml
+        run: |
+          CARGO_VERSION=$(grep '^version = ' Cargo.toml | head -n 1 | awk -F'"' '{print $2}')
+          TAG_VERSION=${RELEASE_TAG#v}
+          if [ "$CARGO_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match Cargo.toml workspace version ($CARGO_VERSION)"
+            exit 1
+          fi
+
   build:
+    needs: preflight
     name: Build Binaries (Auditable)
     runs-on: ${{ matrix.os }}
     strategy:
@@ -197,13 +215,13 @@ jobs:
       - run: cargo binstall -y cargo-cyclonedx
 
       - name: Generate CycloneDX SBOM
-        run: cargo cyclonedx --format json
+        run: cargo cyclonedx --format json --all-features -o pollen-dek.cdx.json
 
       - name: Upload SBOM
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pollen-dek-sboms
-          path: '**/*.cdx.json'
+          path: 'pollen-dek.cdx.json'
 
   release:
     name: Publish Release
@@ -256,6 +274,12 @@ jobs:
         uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
         with:
           subject-path: 'release_artifacts/*'
+
+      - name: Attest SBOM
+        uses: actions/attest-sbom@5122b253c73d544ca1c5f71dd022f470df08b461 # v2.1.0
+        with:
+          subject-path: 'release_artifacts/*.tar.gz'
+          sbom-path: 'release_artifacts/pollen-dek.cdx.json'
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
