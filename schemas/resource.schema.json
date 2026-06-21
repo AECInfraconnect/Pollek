@@ -3,54 +3,40 @@
   "title": "Resource",
   "type": "object",
   "required": [
-    "allowed_actions",
     "classification",
-    "data_categories",
-    "labels",
+    "data_tags",
     "name",
-    "owner_entity_id",
-    "region",
+    "owner_principal_id",
     "resource_id",
     "resource_type",
+    "risk_level",
     "schema_version",
     "tenant_id",
     "uri"
   ],
   "properties": {
-    "allowed_actions": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
     "classification": {
       "type": "string"
     },
-    "data_categories": {
+    "data_tags": {
       "type": "array",
       "items": {
-        "type": "string"
-      }
-    },
-    "labels": {
-      "type": "object",
-      "additionalProperties": {
         "type": "string"
       }
     },
     "name": {
       "type": "string"
     },
-    "owner_entity_id": {
-      "type": "string"
-    },
-    "region": {
+    "owner_principal_id": {
       "type": "string"
     },
     "resource_id": {
       "type": "string"
     },
     "resource_type": {
+      "type": "string"
+    },
+    "risk_level": {
       "type": "string"
     },
     "schema_version": {

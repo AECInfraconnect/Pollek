@@ -1,20 +1,19 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Agent",
+  "title": "AiAgent",
   "type": "object",
   "required": [
     "agent_id",
     "agent_type",
+    "allowed_mcp_servers",
     "capabilities",
-    "device_id",
-    "labels",
     "name",
-    "owner_user_id",
+    "owner_principal_id",
     "risk_level",
     "runtime",
     "schema_version",
-    "spiffe_id",
     "status",
+    "tags",
     "tenant_id"
   ],
   "properties": {
@@ -24,25 +23,22 @@
     "agent_type": {
       "type": "string"
     },
+    "allowed_mcp_servers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "capabilities": {
       "type": "array",
       "items": {
         "type": "string"
       }
     },
-    "device_id": {
-      "type": "string"
-    },
-    "labels": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "string"
-      }
-    },
     "name": {
       "type": "string"
     },
-    "owner_user_id": {
+    "owner_principal_id": {
       "type": "string"
     },
     "risk_level": {
@@ -54,11 +50,14 @@
     "schema_version": {
       "type": "string"
     },
-    "spiffe_id": {
-      "type": "string"
-    },
     "status": {
       "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
     "tenant_id": {
       "type": "string"
@@ -68,23 +67,15 @@
     "Runtime": {
       "type": "object",
       "required": [
-        "binary_hash",
-        "os",
-        "process_name",
-        "sandbox",
+        "runtime_name",
+        "vendor",
         "version"
       ],
       "properties": {
-        "binary_hash": {
+        "runtime_name": {
           "type": "string"
         },
-        "os": {
-          "type": "string"
-        },
-        "process_name": {
-          "type": "string"
-        },
-        "sandbox": {
+        "vendor": {
           "type": "string"
         },
         "version": {

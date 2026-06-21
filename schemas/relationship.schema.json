@@ -1,34 +1,35 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "TelemetryEnvelope",
+  "title": "Relationship",
   "type": "object",
   "required": [
-    "device_id",
-    "event_id",
-    "event_type",
-    "payload",
+    "conditions",
+    "object",
+    "relation",
     "schema_version",
-    "tenant_id",
-    "timestamp"
+    "subject",
+    "tenant_id"
   ],
   "properties": {
-    "device_id": {
+    "conditions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "object": {
       "type": "string"
     },
-    "event_id": {
+    "relation": {
       "type": "string"
     },
-    "event_type": {
-      "type": "string"
-    },
-    "payload": true,
     "schema_version": {
       "type": "string"
     },
-    "tenant_id": {
+    "subject": {
       "type": "string"
     },
-    "timestamp": {
+    "tenant_id": {
       "type": "string"
     }
   }

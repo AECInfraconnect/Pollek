@@ -1,0 +1,19 @@
+{
+  "schema_version": "pollen.mcp-server.v1",
+  "server_id": "mcp-fs-1",
+  "tenant_id": "tenant-acme-prod",
+  "name": "Local Filesystem MCP",
+  "endpoint": "stdio://",
+  "transport": "stdio",
+  "tools": [
+    {
+      "tool_id": "tool-read-file",
+      "name": "read_file",
+      "category": "fs_read",
+      "risk_level": "low",
+      "input_schema_hash": "sha256-abc1234",
+      "output_schema_hash": "sha256-def5678"
+    }
+  ],
+  "status": "active"
+}

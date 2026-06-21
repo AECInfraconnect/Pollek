@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Policy",
+  "type": "object",
+  "required": [
+    "conditions",
+    "effect",
+    "match",
+    "name",
+    "obligations",
+    "policy_id",
+    "policy_type",
+    "priority",
+    "schema_version",
+    "status",
+    "target_pdp",
+    "target_pep_types",
+    "tenant_id",
+    "version"
+  ],
+  "properties": {
+    "conditions": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "effect": {
+      "type": "string"
+    },
+    "match": {
+      "$ref": "#/definitions/PolicyMatch"
+    },
+    "name": {
+      "type": "string"
+    },
+    "obligations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "policy_type": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "integer",
+      "format": "int32"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "target_pdp": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "target_pep_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "PolicyMatch": {
+      "type": "object",
+      "properties": {
+        "agent_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resource_classification": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tool_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

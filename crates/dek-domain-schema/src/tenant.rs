@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 pub enum TrustDomainStrategy {
     Shared,
     Dedicated,
+    Federated,
+    CustomerManaged,
     Custom(String),
 }
 
@@ -15,8 +17,10 @@ pub struct Tenant {
     pub tenant_id: String,
     pub tenant_type: String,
     pub display_name: String,
-    pub trust_domain_strategy: TrustDomainStrategy,
     pub data_region: String,
+    pub trust_domain_strategy: TrustDomainStrategy,
+    pub trust_domain: String,
     pub policy_mode: String,
+    pub default_fail_mode: String,
     pub created_at: String,
 }

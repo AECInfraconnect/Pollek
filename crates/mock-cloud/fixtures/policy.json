@@ -1,0 +1,22 @@
+{
+  "schema_version": "pollen.policy.v1",
+  "policy_id": "pol-fs-read-only",
+  "tenant_id": "tenant-acme-prod",
+  "name": "Allow Read Only to Source Code",
+  "policy_type": "authorization",
+  "target_pdp": ["pdp-local"],
+  "target_pep_types": ["mcp", "ebpf"],
+  "status": "active",
+  "priority": 100,
+  "effect": "permit",
+  "match": {
+    "agent_id": "agent-copilot-1",
+    "tool_name": "read_file",
+    "resource_classification": "confidential"
+  },
+  "conditions": {
+    "is_within_hours": true
+  },
+  "obligations": ["log_access"],
+  "version": "1.0.0"
+}

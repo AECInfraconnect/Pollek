@@ -1,0 +1,11 @@
+{
+  "schema_version": "pollen.tool.v1",
+  "tool_id": "tool-read-file",
+  "tenant_id": "tenant-acme-prod",
+  "mcp_server_id": "mcp-fs-1",
+  "name": "read_file",
+  "category": "fs_read",
+  "risk_level": "low",
+  "input_schema_hash": "sha256-abc1234",
+  "output_schema_hash": "sha256-def5678"
+}

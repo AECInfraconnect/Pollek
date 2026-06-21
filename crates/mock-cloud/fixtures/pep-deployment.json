@@ -1,0 +1,11 @@
+{
+  "schema_version": "pollen.pep-deployment.v1",
+  "pep_deployment_id": "pep-mcp-1",
+  "tenant_id": "tenant-acme-prod",
+  "device_id": "device-dek-001",
+  "pep_type": "mcp",
+  "mode": "enforce",
+  "fail_mode": "closed",
+  "capabilities": ["intercept_tools", "redact_output"],
+  "status": "healthy"
+}

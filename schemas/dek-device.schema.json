@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DekDevice",
+  "type": "object",
+  "required": [
+    "dek_version",
+    "device_id",
+    "enforcement_ceiling",
+    "hostname",
+    "last_seen_at",
+    "os",
+    "pep_capabilities",
+    "schema_version",
+    "spiffe_id",
+    "status",
+    "tenant_id",
+    "user_id"
+  ],
+  "properties": {
+    "dek_version": {
+      "type": "string"
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "enforcement_ceiling": {
+      "type": "string"
+    },
+    "hostname": {
+      "type": "string"
+    },
+    "last_seen_at": {
+      "type": "string"
+    },
+    "os": {
+      "type": "string"
+    },
+    "pep_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "spiffe_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tool",
+  "type": "object",
+  "required": [
+    "category",
+    "input_schema_hash",
+    "mcp_server_id",
+    "name",
+    "output_schema_hash",
+    "risk_level",
+    "schema_version",
+    "tenant_id",
+    "tool_id"
+  ],
+  "properties": {
+    "category": {
+      "type": "string"
+    },
+    "input_schema_hash": {
+      "type": "string"
+    },
+    "mcp_server_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "output_schema_hash": {
+      "type": "string"
+    },
+    "risk_level": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "tool_id": {
+      "type": "string"
+    }
+  }
+}

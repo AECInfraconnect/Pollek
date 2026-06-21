@@ -1,0 +1,14 @@
+{
+  "schema_version": "pollen.dek-device.v1",
+  "device_id": "device-dek-001",
+  "tenant_id": "tenant-acme-prod",
+  "user_id": "alice@acme.com",
+  "hostname": "alice-macbook",
+  "os": "macos",
+  "dek_version": "1.2.0",
+  "spiffe_id": "spiffe://tenant-acme.pollen.local/device/device-dek-001",
+  "pep_capabilities": ["process", "network", "file", "mcp"],
+  "enforcement_ceiling": "high",
+  "status": "active",
+  "last_seen_at": "2026-04-01T12:00:00Z"
+}

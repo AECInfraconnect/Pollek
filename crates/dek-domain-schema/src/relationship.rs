@@ -1,20 +1,13 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct Ref {
-    pub r#type: String, // 'type' is reserved in Rust
-    pub id: String,
-}
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Relationship {
     pub schema_version: String,
     pub tenant_id: String,
-    pub subject: Ref,
+    pub subject: String,
     pub relation: String,
-    pub object: Ref,
-    pub source: String,
-    pub valid_from: String,
-    pub valid_until: Option<String>,
+    pub object: String,
+    pub conditions: HashMap<String, String>,
 }

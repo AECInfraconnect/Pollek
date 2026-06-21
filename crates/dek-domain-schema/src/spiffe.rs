@@ -63,6 +63,7 @@ impl SpiffeBuilder {
                 trust_domain: domain.clone(),
                 path: format!("/agent/{}", agent_id),
             },
+            TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => todo!(),
         }
     }
 
@@ -80,6 +81,7 @@ impl SpiffeBuilder {
                 trust_domain: domain.clone(),
                 path: format!("/device/{}", device_id),
             },
+            TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => todo!(),
         }
     }
 }
@@ -114,5 +116,6 @@ pub fn validate_tenant_isolation(
             }
             Ok(())
         }
+        TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => todo!(),
     }
 }

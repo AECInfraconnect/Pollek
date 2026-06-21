@@ -1,29 +1,25 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Runtime {
-    pub os: String,
-    pub process_name: String,
-    pub binary_hash: String,
+    pub vendor: String,
+    pub runtime_name: String,
     pub version: String,
-    pub sandbox: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct Agent {
+pub struct AiAgent {
     pub schema_version: String,
-    pub tenant_id: String,
     pub agent_id: String,
-    pub agent_type: String,
+    pub tenant_id: String,
     pub name: String,
-    pub owner_user_id: String,
-    pub device_id: String,
-    pub spiffe_id: String,
-    pub runtime: Runtime,
-    pub capabilities: Vec<String>,
+    pub agent_type: String,
+    pub owner_principal_id: String,
     pub risk_level: String,
+    pub capabilities: Vec<String>,
+    pub runtime: Runtime,
+    pub allowed_mcp_servers: Vec<String>,
+    pub tags: Vec<String>,
     pub status: String,
-    pub labels: HashMap<String, String>,
 }

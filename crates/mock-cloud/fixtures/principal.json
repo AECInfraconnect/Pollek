@@ -1,0 +1,15 @@
+{
+  "schema_version": "pollen.principal.v1",
+  "principal_id": "alice@acme.com",
+  "tenant_id": "tenant-acme-prod",
+  "type": "user",
+  "display_name": "Alice Smith",
+  "roles": ["admin", "developer"],
+  "groups": ["engineering"],
+  "attributes": {
+    "department": "engineering",
+    "clearance": "high"
+  },
+  "identity_provider": "entra-id",
+  "external_subject": "sub-12345"
+}

@@ -2,15 +2,14 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct Resource {
+pub struct Tool {
     pub schema_version: String,
-    pub resource_id: String,
+    pub tool_id: String,
     pub tenant_id: String,
-    pub resource_type: String,
+    pub mcp_server_id: String,
     pub name: String,
-    pub uri: String,
-    pub classification: String,
-    pub data_tags: Vec<String>,
-    pub owner_principal_id: String,
+    pub category: String,
     pub risk_level: String,
+    pub input_schema_hash: String,
+    pub output_schema_hash: String,
 }

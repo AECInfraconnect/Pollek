@@ -1,0 +1,8 @@
+{
+  "schema_version": "pollen.relationship.v1",
+  "tenant_id": "tenant-acme-prod",
+  "subject": "alice@acme.com",
+  "relation": "owner",
+  "object": "res-source-code",
+  "conditions": {}
+}

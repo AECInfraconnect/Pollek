@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PepDeployment",
+  "type": "object",
+  "required": [
+    "capabilities",
+    "device_id",
+    "fail_mode",
+    "mode",
+    "pep_deployment_id",
+    "pep_type",
+    "schema_version",
+    "status",
+    "tenant_id"
+  ],
+  "properties": {
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "fail_mode": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "pep_deployment_id": {
+      "type": "string"
+    },
+    "pep_type": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    }
+  }
+}

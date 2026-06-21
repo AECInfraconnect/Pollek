@@ -1,0 +1,12 @@
+{
+  "schema_version": "pollen.resource.v1",
+  "resource_id": "res-source-code",
+  "tenant_id": "tenant-acme-prod",
+  "resource_type": "directory",
+  "name": "Source Code Repo",
+  "uri": "file:///C:/src/acme-corp",
+  "classification": "confidential",
+  "data_tags": ["pii_free", "ip"],
+  "owner_principal_id": "alice@acme.com",
+  "risk_level": "medium"
+}

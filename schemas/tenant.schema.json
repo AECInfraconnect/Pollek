@@ -5,11 +5,13 @@
   "required": [
     "created_at",
     "data_region",
+    "default_fail_mode",
     "display_name",
     "policy_mode",
     "schema_version",
     "tenant_id",
     "tenant_type",
+    "trust_domain",
     "trust_domain_strategy"
   ],
   "properties": {
@@ -17,6 +19,9 @@
       "type": "string"
     },
     "data_region": {
+      "type": "string"
+    },
+    "default_fail_mode": {
       "type": "string"
     },
     "display_name": {
@@ -34,6 +39,9 @@
     "tenant_type": {
       "type": "string"
     },
+    "trust_domain": {
+      "type": "string"
+    },
     "trust_domain_strategy": {
       "$ref": "#/definitions/TrustDomainStrategy"
     }
@@ -45,7 +53,9 @@
           "type": "string",
           "enum": [
             "shared",
-            "dedicated"
+            "dedicated",
+            "federated",
+            "customer_managed"
           ]
         },
         {

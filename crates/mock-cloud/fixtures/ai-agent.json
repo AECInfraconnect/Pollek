@@ -1,0 +1,18 @@
+{
+  "schema_version": "pollen.ai-agent.v1",
+  "agent_id": "agent-copilot-1",
+  "tenant_id": "tenant-acme-prod",
+  "name": "GitHub Copilot Local",
+  "agent_type": "coding_assistant",
+  "owner_principal_id": "alice@acme.com",
+  "risk_level": "medium",
+  "capabilities": ["code_generation", "mcp_tool_execution"],
+  "runtime": {
+    "vendor": "github",
+    "runtime_name": "copilot-agent",
+    "version": "1.0.5"
+  },
+  "allowed_mcp_servers": ["mcp-fs-1", "mcp-git-1"],
+  "tags": ["prod", "developer-tool"],
+  "status": "active"
+}
