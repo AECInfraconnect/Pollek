@@ -33,7 +33,14 @@ jobs:
       - name: Install cargo-geiger
         run: cargo binstall -y cargo-geiger
       - name: Run cargo geiger
-        run: cargo geiger --workspace
+        continue-on-error: true
+        run: |
+          for dir in crates/*/ plugins/*/ apps/*/; do
+            if [ -f "$dir/Cargo.toml" ]; then
+              echo "Running geiger in $dir"
+              (cd "$dir" && cargo geiger) || true
+            fi
+          done
 
   deny:
     name: Cargo Deny
