@@ -36,8 +36,6 @@ notify = "8.2.0"
 base64 = "0.22"
 uuid = { version = "1.8", features = ["v4"] }
 chrono = "0.4"
-
-
 metrics-exporter-prometheus = { version = "0.13", default-features = false, features = ["http-listener"] }
 
 dek-router-builder = { path = "../dek-router-builder" }

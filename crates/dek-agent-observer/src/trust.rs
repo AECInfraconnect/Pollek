@@ -12,7 +12,7 @@ pub struct AgentBaseline {
 #[derive(Debug, Clone)]
 pub struct TrustScore {
     pub agent_id: String,
-    pub score: f64,        // 0.0 (rogue) .. 1.0 (trusted)
+    pub score: f64, // 0.0 (rogue) .. 1.0 (trusted)
     pub reasons: Vec<String>,
 }
 
@@ -42,7 +42,11 @@ impl AgentBaseline {
                 reasons.push(format!("High deny rate: {:.0}%", deny_rate * 100.0));
             }
         }
-        TrustScore { agent_id: agent_id.to_string(), score: score.max(0.0), reasons }
+        TrustScore {
+            agent_id: agent_id.to_string(),
+            score: score.max(0.0),
+            reasons,
+        }
     }
 }
 

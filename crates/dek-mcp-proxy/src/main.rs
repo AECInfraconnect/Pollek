@@ -564,6 +564,20 @@ async fn handle_mcp_request(
     policy_input["params"] = tool_params.clone();
     policy_input["tool"] = serde_json::json!(normalized.tool_name.clone().unwrap_or_default());
 
+    // Phase 5: Content Guard (Prompt Injection / PII Leakage)
+    let scan_target = tool_params.to_string();
+    let guard_input = content_guard::GuardInput { text: scan_target };
+    let guard_result = content_guard::scan(&guard_input);
+    if guard_result.injection_detected && guard_result.recommended == "deny" {
+        metrics::counter!("dek_proxy_requests_total", "decision" => "deny", "reason" => "content_guard").increment(1);
+        tracing::error!("Content Guard detected malicious content or prompt injection");
+        let body = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": payload.get("id").unwrap_or(&serde_json::Value::Null),
+            "error": { "code": -32000, "message": "Access Denied: Malicious content detected" }
+        });
+        return (axum::http::StatusCode::FORBIDDEN, axum::Json(body)).into_response();
+    }
     let decision_req = dek_decision::DecisionRequestV1 {
         decision_id: uuid::Uuid::new_v4().to_string(),
         request_id: uuid::Uuid::new_v4().to_string(),
