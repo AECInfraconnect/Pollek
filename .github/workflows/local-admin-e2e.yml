@@ -21,10 +21,10 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Rust clippy
-        run: cargo clippy --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm --all-targets -- -D warnings
+        run: cargo clippy --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin --all-targets -- -D warnings
 
       - name: Rust tests
-        run: cargo test --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm
+        run: cargo test --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin
 
       - name: Build dashboard
         working-directory: apps/local-admin-dashboard

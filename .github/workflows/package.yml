@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-deb
-      - run: cargo build --release --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm
+      - run: cargo build --release --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin
       - run: cargo deb -p dek-core
       - uses: actions/upload-artifact@v4
         with:
@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-wix
-      - run: cargo build --release --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm
+      - run: cargo build --release --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin
       - run: cargo wix --no-build -p dek-core -i packaging/windows/pollen-dek.wxs
       - uses: actions/upload-artifact@v4
         with:
@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build --release --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm
+      - run: cargo build --release --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin
       - name: Build macOS PKG
         run: |
           mkdir -p target/pkg/root/usr/local/bin

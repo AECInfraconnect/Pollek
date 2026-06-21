@@ -1,0 +1,50 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.3",
+  "version": 1,
+  "serialNumber": "urn:uuid:c81c9656-be2e-49dc-b7be-a8df5602e68d",
+  "metadata": {
+    "timestamp": "2026-06-11T05:27:15.720119300Z",
+    "tools": [
+      {
+        "vendor": "CycloneDX",
+        "name": "cargo-cyclonedx",
+        "version": "0.5.9"
+      }
+    ],
+    "component": {
+      "type": "library",
+      "bom-ref": "path+file:///C:/Users/DELL/OneDrive/Antigravity/Pollen%20DEK/pollen-dek/crates/dek-ebpf-common#0.1.0",
+      "name": "dek-ebpf-common",
+      "version": "0.1.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/dek-ebpf-common@0.1.0?download_url=file://.",
+      "components": [
+        {
+          "type": "library",
+          "bom-ref": "path+file:///C:/Users/DELL/OneDrive/Antigravity/Pollen%20DEK/pollen-dek/crates/dek-ebpf-common#0.1.0 bin-target-0",
+          "name": "dek_ebpf_common",
+          "version": "0.1.0",
+          "purl": "pkg:cargo/dek-ebpf-common@0.1.0?download_url=file://.#src/lib.rs"
+        }
+      ]
+    },
+    "properties": [
+      {
+        "name": "cdx:rustc:sbom:target:triple",
+        "value": "x86_64-pc-windows-msvc"
+      }
+    ]
+  },
+  "components": [],
+  "dependencies": [
+    {
+      "ref": "path+file:///C:/Users/DELL/OneDrive/Antigravity/Pollen%20DEK/pollen-dek/crates/dek-ebpf-common#0.1.0"
+    }
+  ]
+}

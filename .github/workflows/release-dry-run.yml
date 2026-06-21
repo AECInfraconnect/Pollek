@@ -13,7 +13,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Build all artifacts
-        run: cargo build --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm --release
+        run: cargo build --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin --release
       - name: Compress binaries
         run: |
           mkdir -p dist

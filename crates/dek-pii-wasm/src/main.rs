@@ -62,8 +62,10 @@ fn main() {
     }
 
     if let Ok(mut json) = serde_json::from_str::<Value>(&input) {
-        let email_re = Regex::new(r"(?i)[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}").unwrap();
-        let ssn_re = Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").unwrap();
+        let email_re = Regex::new(r"(?i)[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}")
+            .unwrap_or_else(|e| panic!("Invalid regex: {}", e));
+        let ssn_re =
+            Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").unwrap_or_else(|e| panic!("Invalid regex: {}", e));
 
         redact_value(&mut json, &email_re, &ssn_re);
 

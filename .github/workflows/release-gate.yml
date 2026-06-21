@@ -24,10 +24,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Clippy (Enforce unwrap/expect gate)
-        run: cargo clippy --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm -- -D warnings -D clippy::unwrap_used -D clippy::expect_used
+        run: cargo clippy --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin -- -D warnings -D clippy::unwrap_used -D clippy::expect_used
 
       - name: Unit and Contract Tests
-        run: cargo test --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm
+        run: cargo test --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin
 
       - name: Local control-plane e2e
         run: cargo test -p acceptance-tests --test local_e2e -- --ignored --nocapture --test-threads=1
@@ -50,7 +50,7 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
 
       - name: Build Binaries (Acceptance Matrix A-J)
-        run: cargo build --release --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm
+        run: cargo build --release --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin
 
   build-artifacts:
     name: Build & Package Release Artifacts
@@ -104,11 +104,11 @@ jobs:
               cargo deb -p dek-core -o dist/pollen-dek-${{ matrix.target }}.deb
             fi
           elif [ "${{ matrix.ext }}" == "msi" ]; then
-            cargo build --release --target ${{ matrix.target }} --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm
+            cargo build --release --target ${{ matrix.target }} --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin
             candle.exe packaging/windows/pollen-dek.wxs -out target/pollen-dek.wixobj
             light.exe -ext WixUIExtension target/pollen-dek.wixobj -o dist/pollen-dek-${{ matrix.target }}.msi
           elif [ "${{ matrix.ext }}" == "pkg" ]; then
-            cargo build --release --target ${{ matrix.target }} --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii_redactor --exclude dek-opa-wasm
+            cargo build --release --target ${{ matrix.target }} --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin
             mkdir -p target/pkg_root/usr/local/bin
             mkdir -p target/pkg_root/Library/LaunchDaemons
             cp target/${{ matrix.target }}/release/dek-core target/pkg_root/usr/local/bin/
