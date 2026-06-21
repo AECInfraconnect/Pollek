@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { switchProfile, defaultClient, ContractDiscoveryResponse, ConnectorApi } from "../services/api";
+import { switchProfile, defaultClient, ConnectorApi } from "../services/api";
+import type { ContractDiscoveryResponse } from "../services/api";
 
 export function Settings() {
   const [profile, setProfile] = useState<'local' | 'mock-cloud'>('local');
