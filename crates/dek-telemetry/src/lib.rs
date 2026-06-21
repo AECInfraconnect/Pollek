@@ -213,7 +213,7 @@ impl CloudTelemetrySink {
 
                 let sink_token = self.api_token.clone();
 
-                let res = Retry::spawn(strategy, || async {
+                let res = Retry::start(strategy, || async {
                     let c = bg_client.clone();
                     let mut req = c.post(&url).json(&payload);
                     if let Some(t) = &sink_token {
