@@ -1,0 +1,20 @@
+[package]
+name = "dek-ext-authz"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tonic = "0.12"
+tokio = { version = "1.0", features = ["full"] }
+prost = "0.13"
+serde_json = "1.0"
+dek-policy-router = { path = "../dek-policy-router" }
+dek-policy-runtime = { path = "../dek-policy-runtime" }
+dek-config = { path = "../dek-config" }
+dek-router-builder = { path = "../dek-router-builder" }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[build-dependencies]
+tonic-build = "0.12"
+protoc-bin-vendored = "3.0.0"
