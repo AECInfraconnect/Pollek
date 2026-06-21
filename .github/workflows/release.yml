@@ -10,12 +10,16 @@ on:
       version:
         description: "Version tag"
         required: true
-        default: "v1.0.0-beta.1"
+        default: "v1.0.0-beta.6"
 
 permissions:
   contents: write
   id-token: write # Required for cosign keyless (OIDC) signing and GitHub Attestations
   attestations: write
+
+env:
+  RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref }}
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}
 
 jobs:
   build:
@@ -46,6 +50,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_REF }}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -154,6 +160,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_REF }}
 
       - name: Install Rust Nightly
         uses: dtolnay/rust-toolchain@nightly
@@ -182,6 +190,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_REF }}
 
       - name: Install cargo-cyclonedx
         uses: cargo-bins/cargo-binstall@main
@@ -203,6 +213,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_REF }}
 
       - name: Download Artifacts
         uses: actions/download-artifact@v4
@@ -251,7 +263,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
           files: |
             release_artifacts/*
           generate_release_notes: true

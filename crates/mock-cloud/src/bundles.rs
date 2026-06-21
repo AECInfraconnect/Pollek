@@ -24,7 +24,7 @@ pub fn router() -> Router<AppState> {
         )
         .route(
             "/v1/tenants/:tenant_id/devices/:device_id/bundles/manifest",
-            post(get_manifest),
+            get(get_manifest).post(get_manifest),
         )
         .route(
             "/v1/devices/:device_id/desired-state",

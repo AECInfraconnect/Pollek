@@ -4,6 +4,15 @@ All notable changes to Pollen DEK are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); the project uses semantic-ish
 versioning with pre-release tags (e.g. `1.0.0-beta.1`).
 
+## [1.0.0-beta.6] -- 2026-06
+
+### Fixed
+
+- Made Local Control Plane and mock-cloud bundle manifest endpoints accept the GET method used by bundle syncers and local E2E tests.
+- Made Wasmtime cache initialization non-fatal when the host default cache configuration is unavailable or invalid.
+- Stabilized Local Admin Dashboard Playwright tests on Windows and CI by starting Vite explicitly for frontend-only E2E and using a real external server only when requested.
+- Updated local-admin E2E scripts to avoid port 3000 conflicts, wait for health readiness, and publish against the configured dashboard base URL.
+
 ## [1.0.0-beta.5] — 2026-06
 
 Pollen DEK beta 5 brings major stability and edge functionality improvements.
@@ -88,4 +97,6 @@ control plane (exercised via `mock-cloud` until Pollen Cloud is GA).
 - See [ARCHITECTURE.md](ARCHITECTURE.md) and the security model for the full
   capability matrix.
 
+[1.0.0-beta.6]: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/releases/tag/v1.0.0-beta.6
+[1.0.0-beta.5]: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/releases/tag/v1.0.0-beta.5
 [1.0.0-beta.1]: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/releases/tag/v1.0.0-beta.1
