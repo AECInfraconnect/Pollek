@@ -267,111 +267,144 @@ model ResourceListResponse {
 @tag("Registry")
 @route("/v1/tenants/{tenant_id}/registry/tools")
 interface ToolsApi {
-  @get listTools(@path tenant_id: string): ToolListResponse | PollenError;
-  @post createTool(@path tenant_id: string, @body body: Tool): Tool | PollenError;
+  @doc("List tools")
+  @get listTools(@path tenant_id: string, ...PollenHeaders): ToolListResponse | PollenError;
+
+  @doc("Create a tool")
+  @post createTool(@path tenant_id: string, ...PollenHeaders, @body body: Tool): Tool | PollenError;
 }
 
 @tag("Registry")
 @route("/v1/tenants/{tenant_id}/registry/resources")
 interface ResourcesApi {
-  @get listResources(@path tenant_id: string): ResourceListResponse | PollenError;
-  @post createResource(@path tenant_id: string, @body body: Resource): Resource | PollenError;
+  @doc("List resources")
+  @get listResources(@path tenant_id: string, ...PollenHeaders): ResourceListResponse | PollenError;
+
+  @doc("Create a resource")
+  @post createResource(@path tenant_id: string, ...PollenHeaders, @body body: Resource): Resource | PollenError;
 }
 
 @tag("Observation")
 @route("/v1/tenants/{tenant_id}/observations")
 interface ObservationApi {
+  @doc("Ingest observation events")
   @route("events")
-  @post ingestEvents(@path tenant_id: string, @body body: AgentObservationEvent[]): void | PollenError;
+  @post ingestEvents(@path tenant_id: string, ...PollenHeaders, @body body: AgentObservationEvent[]): void | PollenError;
 
+  @doc("Get observations for an agent")
   @route("agents/{agent_id}")
-  @get getAgentObservations(@path tenant_id: string, @path agent_id: string): AgentObservationEventListResponse | PollenError;
+  @get getAgentObservations(@path tenant_id: string, @path agent_id: string, ...PollenHeaders): AgentObservationEventListResponse | PollenError;
 
+  @doc("Get observations for a tool")
   @route("tools/{tool_id}")
-  @get getToolObservations(@path tenant_id: string, @path tool_id: string): AgentObservationEventListResponse | PollenError;
+  @get getToolObservations(@path tenant_id: string, @path tool_id: string, ...PollenHeaders): AgentObservationEventListResponse | PollenError;
 
+  @doc("Get observations for a resource")
   @route("resources/{resource_id}")
-  @get getResourceObservations(@path tenant_id: string, @path resource_id: string): AgentObservationEventListResponse | PollenError;
+  @get getResourceObservations(@path tenant_id: string, @path resource_id: string, ...PollenHeaders): AgentObservationEventListResponse | PollenError;
 
+  @doc("Get cost summary")
   @route("costs")
-  @get getCosts(@path tenant_id: string): CostSummaryResponse | PollenError;
+  @get getCosts(@path tenant_id: string, ...PollenHeaders): CostSummaryResponse | PollenError;
 
+  @doc("Get policy coverage summary")
   @route("coverage")
-  @get getCoverage(@path tenant_id: string): PolicyCoverageSummary | PollenError;
+  @get getCoverage(@path tenant_id: string, ...PollenHeaders): PolicyCoverageSummary | PollenError;
 
+  @doc("Get trust score for an agent")
   @route("trust/{agent_id}")
-  @get getAgentTrustScore(@path tenant_id: string, @path agent_id: string): AgentTrustScore | PollenError;
+  @get getAgentTrustScore(@path tenant_id: string, @path agent_id: string, ...PollenHeaders): AgentTrustScore | PollenError;
 }
 
 @tag("Discovery")
 @route("/v1/tenants/{tenant_id}/agent-discovery")
 interface DiscoveryApi {
+  @doc("Start a discovery scan")
   @route("scan")
-  @post scan(@path tenant_id: string): void | PollenError;
+  @post scan(@path tenant_id: string, ...PollenHeaders): void | PollenError;
 
+  @doc("List discovery candidates")
   @route("candidates")
-  @get listCandidates(@path tenant_id: string): DiscoveryCandidateListResponse | PollenError;
+  @get listCandidates(@path tenant_id: string, ...PollenHeaders): DiscoveryCandidateListResponse | PollenError;
 
+  @doc("Register a candidate")
   @route("candidates/{candidate_id}/register")
-  @post registerCandidate(@path tenant_id: string, @path candidate_id: string): void | PollenError;
+  @post registerCandidate(@path tenant_id: string, @path candidate_id: string, ...PollenHeaders): void | PollenError;
 
+  @doc("Ignore a candidate")
   @route("candidates/{candidate_id}/ignore")
-  @post ignoreCandidate(@path tenant_id: string, @path candidate_id: string): void | PollenError;
+  @post ignoreCandidate(@path tenant_id: string, @path candidate_id: string, ...PollenHeaders): void | PollenError;
 
+  @doc("Observe a candidate only")
   @route("candidates/{candidate_id}/observe-only")
-  @post observeCandidate(@path tenant_id: string, @path candidate_id: string): void | PollenError;
+  @post observeCandidate(@path tenant_id: string, @path candidate_id: string, ...PollenHeaders): void | PollenError;
 
+  @doc("Block a candidate")
   @route("candidates/{candidate_id}/block")
-  @post blockCandidate(@path tenant_id: string, @path candidate_id: string): void | PollenError;
+  @post blockCandidate(@path tenant_id: string, @path candidate_id: string, ...PollenHeaders): void | PollenError;
 }
 
 @tag("PolicySuggestions")
 @route("/v1/tenants/{tenant_id}/policy-suggestions")
 interface PolicySuggestionsApi {
+  @doc("Generate policy suggestions")
   @route("generate")
-  @post generate(@path tenant_id: string): void | PollenError;
+  @post generate(@path tenant_id: string, ...PollenHeaders): void | PollenError;
 
-  @get listSuggestions(@path tenant_id: string): PolicySuggestionListResponse | PollenError;
+  @doc("List policy suggestions")
+  @get listSuggestions(@path tenant_id: string, ...PollenHeaders): PolicySuggestionListResponse | PollenError;
 
+  @doc("Get a specific policy suggestion")
   @route("{suggestion_id}")
-  @get getSuggestion(@path tenant_id: string, @path suggestion_id: string): PolicySuggestion | PollenError;
+  @get getSuggestion(@path tenant_id: string, @path suggestion_id: string, ...PollenHeaders): PolicySuggestion | PollenError;
 
+  @doc("Create a draft from a suggestion")
   @route("{suggestion_id}/create-draft")
-  @post createDraft(@path tenant_id: string, @path suggestion_id: string): void | PollenError;
+  @post createDraft(@path tenant_id: string, @path suggestion_id: string, ...PollenHeaders): void | PollenError;
 
+  @doc("Dismiss a policy suggestion")
   @route("{suggestion_id}/dismiss")
-  @post dismiss(@path tenant_id: string, @path suggestion_id: string): void | PollenError;
+  @post dismiss(@path tenant_id: string, @path suggestion_id: string, ...PollenHeaders): void | PollenError;
 
+  @doc("Simulate a policy suggestion")
   @route("{suggestion_id}/simulate")
-  @post simulate(@path tenant_id: string, @path suggestion_id: string): void | PollenError;
+  @post simulate(@path tenant_id: string, @path suggestion_id: string, ...PollenHeaders): void | PollenError;
 
+  @doc("Approve a policy suggestion")
   @route("{suggestion_id}/approve")
-  @post approve(@path tenant_id: string, @path suggestion_id: string): void | PollenError;
+  @post approve(@path tenant_id: string, @path suggestion_id: string, ...PollenHeaders): void | PollenError;
 }
 
 @tag("PolicyPresets")
 @route("/v1/tenants/{tenant_id}/policy-presets")
 interface PolicyPresetsApi {
-  @get listPresets(@path tenant_id: string): unknown | PollenError;
+  @doc("List policy presets")
+  @get listPresets(@path tenant_id: string, ...PollenHeaders): unknown | PollenError;
 
+  @doc("Get a specific policy preset")
   @route("{preset_id}")
-  @get getPreset(@path tenant_id: string, @path preset_id: string): unknown | PollenError;
+  @get getPreset(@path tenant_id: string, @path preset_id: string, ...PollenHeaders): unknown | PollenError;
 
+  @doc("Preview a policy preset")
   @route("{preset_id}/preview")
-  @post previewPreset(@path tenant_id: string, @path preset_id: string, @body body: unknown): unknown | PollenError;
+  @post previewPreset(@path tenant_id: string, @path preset_id: string, ...PollenHeaders, @body body: unknown): unknown | PollenError;
 
+  @doc("Create a draft from a preset")
   @route("{preset_id}/create-draft")
-  @post createDraft(@path tenant_id: string, @path preset_id: string, @body body: unknown): unknown | PollenError;
+  @post createDraft(@path tenant_id: string, @path preset_id: string, ...PollenHeaders, @body body: unknown): unknown | PollenError;
 
+  @doc("Simulate a policy preset")
   @route("{preset_id}/simulate")
-  @post simulatePreset(@path tenant_id: string, @path preset_id: string, @body body: unknown): unknown | PollenError;
+  @post simulatePreset(@path tenant_id: string, @path preset_id: string, ...PollenHeaders, @body body: unknown): unknown | PollenError;
 }
 
 @tag("PepCapabilities")
 @route("/v1/tenants/{tenant_id}/pep-capabilities")
 interface PepCapabilitiesApi {
-  @get listCapabilities(@path tenant_id: string): unknown | PollenError;
+  @doc("List PEP capabilities")
+  @get listCapabilities(@path tenant_id: string, ...PollenHeaders): unknown | PollenError;
 
+  @doc("Check PEP capabilities")
   @route("check")
-  @post checkCapabilities(@path tenant_id: string, @body body: unknown): unknown | PollenError;
+  @post checkCapabilities(@path tenant_id: string, ...PollenHeaders, @body body: unknown): unknown | PollenError;
 }

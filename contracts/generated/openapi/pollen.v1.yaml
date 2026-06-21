@@ -17,6 +17,7 @@ tags:
   - name: PolicyPresets
   - name: PepCapabilities
   - name: A2A Mediator
+  - name: PDPConfig
 paths:
   /.well-known/pollen-contract:
     get:
@@ -102,12 +103,16 @@ paths:
   /v1/tenants/{tenant_id}/agent-discovery/candidates:
     get:
       operationId: DiscoveryApi_listCandidates
+      description: List discovery candidates
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -126,6 +131,7 @@ paths:
   /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/block:
     post:
       operationId: DiscoveryApi_blockCandidate
+      description: Block a candidate
       parameters:
         - name: tenant_id
           in: path
@@ -137,6 +143,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -151,6 +160,7 @@ paths:
   /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/ignore:
     post:
       operationId: DiscoveryApi_ignoreCandidate
+      description: Ignore a candidate
       parameters:
         - name: tenant_id
           in: path
@@ -162,6 +172,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -176,6 +189,7 @@ paths:
   /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/observe-only:
     post:
       operationId: DiscoveryApi_observeCandidate
+      description: Observe a candidate only
       parameters:
         - name: tenant_id
           in: path
@@ -187,6 +201,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -201,6 +218,7 @@ paths:
   /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/register:
     post:
       operationId: DiscoveryApi_registerCandidate
+      description: Register a candidate
       parameters:
         - name: tenant_id
           in: path
@@ -212,6 +230,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -226,12 +247,16 @@ paths:
   /v1/tenants/{tenant_id}/agent-discovery/scan:
     post:
       operationId: DiscoveryApi_scan
+      description: Start a discovery scan
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -287,6 +312,7 @@ paths:
   /v1/tenants/{tenant_id}/observations/agents/{agent_id}:
     get:
       operationId: ObservationApi_getAgentObservations
+      description: Get observations for an agent
       parameters:
         - name: tenant_id
           in: path
@@ -298,6 +324,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -316,12 +345,16 @@ paths:
   /v1/tenants/{tenant_id}/observations/costs:
     get:
       operationId: ObservationApi_getCosts
+      description: Get cost summary
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -340,12 +373,16 @@ paths:
   /v1/tenants/{tenant_id}/observations/coverage:
     get:
       operationId: ObservationApi_getCoverage
+      description: Get policy coverage summary
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -364,12 +401,16 @@ paths:
   /v1/tenants/{tenant_id}/observations/events:
     post:
       operationId: ObservationApi_ingestEvents
+      description: Ingest observation events
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -392,6 +433,7 @@ paths:
   /v1/tenants/{tenant_id}/observations/resources/{resource_id}:
     get:
       operationId: ObservationApi_getResourceObservations
+      description: Get observations for a resource
       parameters:
         - name: tenant_id
           in: path
@@ -403,6 +445,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -421,6 +466,7 @@ paths:
   /v1/tenants/{tenant_id}/observations/tools/{tool_id}:
     get:
       operationId: ObservationApi_getToolObservations
+      description: Get observations for a tool
       parameters:
         - name: tenant_id
           in: path
@@ -432,6 +478,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -450,6 +499,7 @@ paths:
   /v1/tenants/{tenant_id}/observations/trust/{agent_id}:
     get:
       operationId: ObservationApi_getAgentTrustScore
+      description: Get trust score for an agent
       parameters:
         - name: tenant_id
           in: path
@@ -461,6 +511,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -476,15 +529,406 @@ paths:
                 $ref: '#/components/schemas/PollenError'
       tags:
         - Observation
-  /v1/tenants/{tenant_id}/pep-capabilities:
+  /v1/tenants/{tenant_id}/pdp/routes:
     get:
-      operationId: PepCapabilitiesApi_listCapabilities
+      operationId: PdpRoutingApi_listRoutes
+      description: List all PDP route rules
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PdpRouteRuleListResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+  /v1/tenants/{tenant_id}/pdp/routes/simulate:
+    post:
+      operationId: PdpRoutingApi_simulateRoute
+      description: Simulate a routing decision
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationResult'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+  /v1/tenants/{tenant_id}/pdp/routes/{route_id}:
+    get:
+      operationId: PdpRoutingApi_getRoute
+      description: Get a specific PDP route rule
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: route_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PdpRouteRule'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+    put:
+      operationId: PdpRoutingApi_upsertRoute
+      description: Create or update a PDP route rule
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: route_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PdpRouteRule'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PdpRouteRule'
+    delete:
+      operationId: PdpRoutingApi_deleteRoute
+      description: Delete a PDP route rule
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: route_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+  /v1/tenants/{tenant_id}/pdp/runtimes:
+    get:
+      operationId: PdpRuntimeApi_listRuntimes
+      description: List all PDP runtimes
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PdpRuntimeListResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+  /v1/tenants/{tenant_id}/pdp/runtimes/{runtime_id}:
+    get:
+      operationId: PdpRuntimeApi_getRuntime
+      description: Get a specific PDP runtime
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: runtime_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PdpRuntime'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+    put:
+      operationId: PdpRuntimeApi_upsertRuntime
+      description: Create or update a PDP runtime
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: runtime_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PdpRuntime'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PdpRuntime'
+    delete:
+      operationId: PdpRuntimeApi_deleteRuntime
+      description: Delete a PDP runtime
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: runtime_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+  /v1/tenants/{tenant_id}/pdp/runtimes/{runtime_id}/clear-cache:
+    post:
+      operationId: PdpRuntimeApi_clearCache
+      description: Clear cache for a PDP runtime
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: runtime_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+  /v1/tenants/{tenant_id}/pdp/runtimes/{runtime_id}/probe:
+    post:
+      operationId: PdpRuntimeApi_probeRuntime
+      description: Probe a PDP runtime for health and capability
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: runtime_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PdpProbeResult'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {}
+  /v1/tenants/{tenant_id}/pdp/runtimes/{runtime_id}/validate:
+    post:
+      operationId: PdpRuntimeApi_validateRuntime
+      description: Validate a PDP runtime configuration
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: runtime_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PDPConfig
+  /v1/tenants/{tenant_id}/pep-capabilities:
+    get:
+      operationId: PepCapabilitiesApi_listCapabilities
+      description: List PEP capabilities
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -502,12 +946,16 @@ paths:
   /v1/tenants/{tenant_id}/pep-capabilities/check:
     post:
       operationId: PepCapabilitiesApi_checkCapabilities
+      description: Check PEP capabilities
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -530,12 +978,16 @@ paths:
   /v1/tenants/{tenant_id}/policy-presets:
     get:
       operationId: PolicyPresetsApi_listPresets
+      description: List policy presets
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -553,6 +1005,7 @@ paths:
   /v1/tenants/{tenant_id}/policy-presets/{preset_id}:
     get:
       operationId: PolicyPresetsApi_getPreset
+      description: Get a specific policy preset
       parameters:
         - name: tenant_id
           in: path
@@ -564,6 +1017,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -581,6 +1037,7 @@ paths:
   /v1/tenants/{tenant_id}/policy-presets/{preset_id}/create-draft:
     post:
       operationId: PolicyPresetsApi_createDraft
+      description: Create a draft from a preset
       parameters:
         - name: tenant_id
           in: path
@@ -592,6 +1049,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -614,6 +1074,7 @@ paths:
   /v1/tenants/{tenant_id}/policy-presets/{preset_id}/preview:
     post:
       operationId: PolicyPresetsApi_previewPreset
+      description: Preview a policy preset
       parameters:
         - name: tenant_id
           in: path
@@ -625,6 +1086,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -647,6 +1111,7 @@ paths:
   /v1/tenants/{tenant_id}/policy-presets/{preset_id}/simulate:
     post:
       operationId: PolicyPresetsApi_simulatePreset
+      description: Simulate a policy preset
       parameters:
         - name: tenant_id
           in: path
@@ -658,6 +1123,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -680,12 +1148,16 @@ paths:
   /v1/tenants/{tenant_id}/policy-suggestions:
     get:
       operationId: PolicySuggestionsApi_listSuggestions
+      description: List policy suggestions
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -704,12 +1176,16 @@ paths:
   /v1/tenants/{tenant_id}/policy-suggestions/generate:
     post:
       operationId: PolicySuggestionsApi_generate
+      description: Generate policy suggestions
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -724,6 +1200,7 @@ paths:
   /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}:
     get:
       operationId: PolicySuggestionsApi_getSuggestion
+      description: Get a specific policy suggestion
       parameters:
         - name: tenant_id
           in: path
@@ -735,6 +1212,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -753,6 +1233,7 @@ paths:
   /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/approve:
     post:
       operationId: PolicySuggestionsApi_approve
+      description: Approve a policy suggestion
       parameters:
         - name: tenant_id
           in: path
@@ -764,6 +1245,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -778,6 +1262,7 @@ paths:
   /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/create-draft:
     post:
       operationId: PolicySuggestionsApi_createDraft
+      description: Create a draft from a suggestion
       parameters:
         - name: tenant_id
           in: path
@@ -789,6 +1274,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -803,6 +1291,7 @@ paths:
   /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/dismiss:
     post:
       operationId: PolicySuggestionsApi_dismiss
+      description: Dismiss a policy suggestion
       parameters:
         - name: tenant_id
           in: path
@@ -814,6 +1303,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -828,6 +1320,7 @@ paths:
   /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/simulate:
     post:
       operationId: PolicySuggestionsApi_simulate
+      description: Simulate a policy suggestion
       parameters:
         - name: tenant_id
           in: path
@@ -839,6 +1332,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -853,12 +1349,16 @@ paths:
   /v1/tenants/{tenant_id}/registry/resources:
     get:
       operationId: ResourcesApi_listResources
+      description: List resources
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -876,12 +1376,16 @@ paths:
         - Registry
     post:
       operationId: ResourcesApi_createResource
+      description: Create a resource
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -906,12 +1410,16 @@ paths:
   /v1/tenants/{tenant_id}/registry/tools:
     get:
       operationId: ToolsApi_listTools
+      description: List tools
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -929,12 +1437,16 @@ paths:
         - Registry
     post:
       operationId: ToolsApi_createTool
+      description: Create a tool
       parameters:
         - name: tenant_id
           in: path
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1352,6 +1864,213 @@ components:
           type: array
           items:
             type: string
+    PdpFailureBehavior:
+      type: string
+      enum:
+        - deny
+        - fallback
+        - last_known_good
+        - allow
+        - not_applicable
+    PdpKind:
+      type: string
+      enum:
+        - policy_router
+        - cedar_local
+        - opa_wasm
+        - wasm_plugin
+        - opa_server
+        - openfga_server
+        - cedar_http
+        - custom_http
+        - custom_grpc
+        - pollen_cloud_pdp
+    PdpProbeResult:
+      type: object
+      required:
+        - ok
+        - effect
+        - reason
+        - latency_ms
+        - decision_id
+        - details
+      properties:
+        ok:
+          type: boolean
+        effect:
+          type: string
+        reason:
+          type: string
+        latency_ms:
+          type: integer
+          format: int64
+        decision_id:
+          type: string
+        details: {}
+    PdpRouteMode:
+      type: string
+      enum:
+        - local_only
+        - local_primary_remote_fallback
+        - remote_primary_local_fallback
+        - cloud_primary_local_fallback
+        - shadow_remote
+        - mirror_audit_only
+        - strict_remote
+    PdpRouteRule:
+      type: object
+      required:
+        - id
+        - name
+        - enabled
+        - priority
+        - match_cond
+        - mode
+        - primary_pdp_id
+        - fallback_pdp_ids
+        - shadow_pdp_ids
+        - merge_strategy
+        - failure_behavior
+        - timeout_ms
+        - max_retries
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        enabled:
+          type: boolean
+        priority:
+          type: integer
+          format: int32
+        description:
+          type: string
+        match_cond:
+          $ref: '#/components/schemas/RouteMatch'
+        mode:
+          $ref: '#/components/schemas/PdpRouteMode'
+        primary_pdp_id:
+          type: string
+        fallback_pdp_ids:
+          type: array
+          items:
+            type: string
+        shadow_pdp_ids:
+          type: array
+          items:
+            type: string
+        required_pdp_ids:
+          type: array
+          items:
+            type: string
+        merge_strategy:
+          type: string
+        failure_behavior:
+          $ref: '#/components/schemas/PdpFailureBehavior'
+        timeout_ms:
+          type: integer
+          format: int32
+        max_retries:
+          type: integer
+          format: int32
+        circuit_breaker_threshold:
+          type: integer
+          format: int32
+        cooldown_secs:
+          type: integer
+          format: int32
+        last_known_good_ttl_secs:
+          type: integer
+          format: int32
+    PdpRouteRuleListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PdpRouteRule'
+    PdpRuntime:
+      type: object
+      required:
+        - id
+        - name
+        - category
+        - kind
+        - mode
+        - system_managed
+        - enabled
+        - status
+        - capabilities
+        - config_source
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          $ref: '#/components/schemas/PdpRuntimeCategory'
+        kind:
+          $ref: '#/components/schemas/PdpKind'
+        mode:
+          type: string
+        system_managed:
+          type: boolean
+        enabled:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/PdpRuntimeStatus'
+        capabilities:
+          type: array
+          items:
+            type: string
+        endpoint:
+          type: string
+        auth_ref:
+          type: string
+        config_source:
+          type: string
+        active_bundle_id:
+          type: string
+        active_bundle_hash:
+          type: string
+        last_activated_at:
+          type: string
+        last_probe:
+          $ref: '#/components/schemas/PdpProbeResult'
+        health: {}
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    PdpRuntimeCategory:
+      type: string
+      enum:
+        - local_engine
+        - remote_connector
+        - pollen_cloud
+    PdpRuntimeListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PdpRuntime'
+    PdpRuntimeStatus:
+      type: string
+      enum:
+        - installed
+        - not_configured
+        - loading
+        - ready
+        - degraded
+        - error
+        - disabled
     PepBinding:
       type: object
       required:
@@ -1583,6 +2302,37 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Resource'
+    RouteMatch:
+      type: object
+      properties:
+        agent_ids:
+          type: array
+          items:
+            type: string
+        tool_categories:
+          type: array
+          items:
+            type: string
+        resource_types:
+          type: array
+          items:
+            type: string
+        protocols:
+          type: array
+          items:
+            type: string
+        sensitivities:
+          type: array
+          items:
+            type: string
+        environments:
+          type: array
+          items:
+            type: string
+        risk_tiers:
+          type: array
+          items:
+            type: string
     SandboxConfig:
       type: object
       required:
@@ -1619,6 +2369,34 @@ components:
           type: string
         drift_status:
           type: string
+    SimulationRequest:
+      type: object
+      required:
+        - action
+        - resource
+        - principal
+        - context
+      properties:
+        action:
+          type: string
+        resource:
+          type: string
+        principal:
+          type: string
+        context: {}
+        target_pep:
+          type: string
+    SimulationResult:
+      type: object
+      properties:
+        passed:
+          type: boolean
+        decision:
+          type: string
+        logs:
+          type: array
+          items:
+            type: string
     SuggestedPolicyLanguage:
       type: string
       enum:
