@@ -9,11 +9,11 @@ use dek_enforcement_api::NetworkEnforcer;
 use tracing::{info, warn};
 
 #[cfg(windows)]
+use windows::Win32::Foundation::HANDLE;
+#[cfg(windows)]
 use windows::Win32::NetworkManagement::WindowsFilteringPlatform::{
     FwpmEngineClose0, FwpmEngineOpen0, FWPM_SESSION0,
 };
-#[cfg(windows)]
-use windows::Win32::Foundation::HANDLE;
 
 pub fn probe_available() -> bool {
     #[cfg(windows)]
@@ -74,11 +74,13 @@ impl NetworkEnforcer for WfpFilterManager {
     fn stop(&mut self) -> Result<()> {
         info!("Stopping Windows Filtering Platform (WFP) provider");
         self.is_active = false;
-        
+
         #[cfg(windows)]
         {
             if let Some(h) = self.engine_handle.take() {
-                unsafe { FwpmEngineClose0(h); }
+                unsafe {
+                    FwpmEngineClose0(h);
+                }
             }
         }
         Ok(())

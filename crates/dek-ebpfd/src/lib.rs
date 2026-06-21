@@ -51,7 +51,7 @@ pub struct ResolvedRecord {
 pub const MIN_TTL_FLOOR_SECS: u32 = 30;
 
 #[cfg(target_os = "linux")]
-pub use linux::{start_ebpfd_supervisor, EbpfHandle, BPFFS_PATH, set_runtime_default_action};
+pub use linux::{set_runtime_default_action, start_ebpfd_supervisor, EbpfHandle, BPFFS_PATH};
 
 #[cfg(target_os = "linux")]
 mod linux {

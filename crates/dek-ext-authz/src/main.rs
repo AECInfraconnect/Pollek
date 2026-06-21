@@ -281,7 +281,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None,
         &telemetry_db.to_string_lossy(),
         None,
-        bootstrap.tenant_id.clone().unwrap_or_else(|| "default".into()),
+        bootstrap
+            .tenant_id
+            .clone()
+            .unwrap_or_else(|| "default".into()),
         bootstrap.device_id.clone(),
     )
     .ok();

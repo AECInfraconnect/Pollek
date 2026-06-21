@@ -22,7 +22,7 @@ impl SecureFallback {
     pub fn new(tenant_id: String, device_id: String) -> Result<Self> {
         let key_dir = dek_config::paths::get_data_dir();
         std::fs::create_dir_all(&key_dir)?;
-        
+
         #[cfg(windows)]
         let store = DefaultOsKeyStore::new(key_dir.join("secure_spool.key"));
         #[cfg(target_os = "linux")]
@@ -32,7 +32,7 @@ impl SecureFallback {
 
         let key_mgr = SpoolKeyManager::new(store);
         let key = key_mgr.active_aead_key()?;
-        
+
         let spool_dir = key_dir.join("secure_spool");
         std::fs::create_dir_all(&spool_dir)?;
 
@@ -47,7 +47,8 @@ impl SecureFallback {
     pub fn append_batch(&self, events: Vec<serde_json::Value>) -> Result<()> {
         let segment_id = Uuid::new_v4().to_string();
         let path = self.dir.join(format!("{}.pds", segment_id));
-        let mut writer = SegmentWriter::create(&path, &self.tenant_id, &self.device_id, &segment_id)?;
+        let mut writer =
+            SegmentWriter::create(&path, &self.tenant_id, &self.device_id, &segment_id)?;
 
         for body in events {
             let ev = TelemetryEvent {
@@ -75,7 +76,10 @@ impl SecureFallback {
             tokio::time::sleep(std::time::Duration::from_secs(300)).await;
 
             let mut files = match std::fs::read_dir(&self.dir) {
-                Ok(rd) => rd.filter_map(Result::ok).map(|d| d.path()).collect::<Vec<_>>(),
+                Ok(rd) => rd
+                    .filter_map(Result::ok)
+                    .map(|d| d.path())
+                    .collect::<Vec<_>>(),
                 Err(_) => continue,
             };
 
@@ -97,7 +101,11 @@ impl SecureFallback {
                 let records = match dek_secure_spool::segment::read_encrypted_records(&path) {
                     Ok(r) => r,
                     Err(e) => {
-                        tracing::error!("[SecureFallback] Corrupted frame in {:?}: {}; quarantining", path, e);
+                        tracing::error!(
+                            "[SecureFallback] Corrupted frame in {:?}: {}; quarantining",
+                            path,
+                            e
+                        );
                         let mut quarantine_path = path.clone();
                         quarantine_path.set_extension("pds.quarantine");
                         let _ = std::fs::rename(&path, &quarantine_path);
@@ -154,7 +162,10 @@ impl SecureFallback {
                         let _ = std::fs::remove_file(&path);
                     }
                     Ok(res) => {
-                        tracing::warn!("[SecureFallback] Cloud returned {} for fallback, will retry later", res.status());
+                        tracing::warn!(
+                            "[SecureFallback] Cloud returned {} for fallback, will retry later",
+                            res.status()
+                        );
                     }
                     Err(e) => {
                         tracing::warn!("[SecureFallback] Network error during replay: {}", e);

@@ -8,7 +8,7 @@ use std::path::Path;
 fn main() {
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("dek-ebpf-prog");
-    
+
     // Always create a dummy file to satisfy include_bytes_aligned! on all platforms
     // and in case the eBPF build fails (e.g. missing bpf-linker)
     let _ = File::create(&dest_path);
@@ -26,7 +26,10 @@ fn main() {
             let _ = std::fs::copy(&dek_ebpf_object, &dest_path);
             return;
         } else if profile == "release" {
-            panic!("DEK_EBPF_OBJECT was set but file not found: {:?}", dek_ebpf_object);
+            panic!(
+                "DEK_EBPF_OBJECT was set but file not found: {:?}",
+                dek_ebpf_object
+            );
         }
     }
 
@@ -38,22 +41,32 @@ fn main() {
     } else {
         // Find the compiled eBPF object and copy it to OUT_DIR/dek-ebpf-prog
         // `aya_build` uses the same profile as the host build (release or debug)
-        let src = env::var_os("CARGO_MANIFEST_DIR").map(|dir| {
-            Path::new(&dir).join(format!("../../target/bpfel-unknown-none/{}/dek-ebpf-prog", profile))
-        }).unwrap_or_else(|| Path::new("").to_path_buf());
-        
+        let src = env::var_os("CARGO_MANIFEST_DIR")
+            .map(|dir| {
+                Path::new(&dir).join(format!(
+                    "../../target/bpfel-unknown-none/{}/dek-ebpf-prog",
+                    profile
+                ))
+            })
+            .unwrap_or_else(|| Path::new("").to_path_buf());
+
         if src.exists() {
             let _ = std::fs::copy(&src, &dest_path);
         } else {
             // fallback
-            let fallback = env::var_os("CARGO_MANIFEST_DIR").map(|dir| {
-                Path::new(&dir).join("../../target/bpfel-unknown-none/release/dek-ebpf-prog")
-            }).unwrap();
-            
+            let fallback = env::var_os("CARGO_MANIFEST_DIR")
+                .map(|dir| {
+                    Path::new(&dir).join("../../target/bpfel-unknown-none/release/dek-ebpf-prog")
+                })
+                .unwrap();
+
             if fallback.exists() {
                 let _ = std::fs::copy(&fallback, &dest_path);
             } else if profile == "release" {
-                panic!("eBPF build succeeded but target object not found at {:?}", src);
+                panic!(
+                    "eBPF build succeeded but target object not found at {:?}",
+                    src
+                );
             }
         }
     }

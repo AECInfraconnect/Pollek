@@ -58,7 +58,7 @@ jobs:
     - name: Install bpf-linker
       run: cargo binstall -y bpf-linker
     - name: Build eBPF Prog
-      run: cargo +nightly build --manifest-path crates/dek-ebpf-prog/Cargo.toml --target bpfel-unknown-none -Z build-std=core --release
+      run: cargo +nightly-2024-05-20 build --manifest-path crates/dek-ebpf-prog/Cargo.toml --target bpfel-unknown-none -Z build-std=core --release
     - name: Build eBPF Daemon
       run: cargo build --manifest-path crates/dek-ebpfd/Cargo.toml --release
 

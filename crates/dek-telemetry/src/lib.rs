@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
+pub mod fallback_spool;
 pub mod redactor;
 pub mod routing;
 pub mod spooler;
-pub mod fallback_spool;
 
 use anyhow::Result;
 use dek_config::MtlsConfig;
@@ -116,11 +116,14 @@ impl CloudTelemetrySink {
         let fb_sink = sink.clone();
         let fallback_url = endpoint_url.to_string();
         tokio::spawn(async move {
-            fb_sink.fallback.start_replay(
-                fallback_url,
-                fb_sink.client.clone(),
-                fb_sink.api_token.clone()
-            ).await;
+            fb_sink
+                .fallback
+                .start_replay(
+                    fallback_url,
+                    fb_sink.client.clone(),
+                    fb_sink.api_token.clone(),
+                )
+                .await;
         });
 
         Ok(sink)

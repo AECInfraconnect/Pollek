@@ -1,7 +1,10 @@
 #[cfg(target_os = "linux")]
 use anyhow::{Context, Result};
 #[cfg(target_os = "linux")]
-use aya::{maps::{HashMap, MapData}, Ebpf};
+use aya::{
+    maps::{HashMap, MapData},
+    Ebpf,
+};
 #[cfg(target_os = "linux")]
 use byteorder::{ByteOrder, NetworkEndian};
 #[cfg(target_os = "linux")]

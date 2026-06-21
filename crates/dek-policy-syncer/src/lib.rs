@@ -167,11 +167,19 @@ impl PolicySyncer {
 
                 // Phase 3: Validate OS capabilities before activating
                 if let Ok(manifest_bytes) = std::fs::read(&manifest_path) {
-                    if let Ok(bundle) = serde_json::from_slice::<dek_bundle_format::PollenPolicyBundle>(&manifest_bytes) {
-                        if let Err(e) = crate::activation::validate_os_capabilities(&bundle, &self.runtime_capabilities) {
+                    if let Ok(bundle) = serde_json::from_slice::<
+                        dek_bundle_format::PollenPolicyBundle,
+                    >(&manifest_bytes)
+                    {
+                        if let Err(e) = crate::activation::validate_os_capabilities(
+                            &bundle,
+                            &self.runtime_capabilities,
+                        ) {
                             warn!("[PolicySyncer] capability validation failed: {}", e);
                             self.recompute_state();
-                            return SyncOutcome::Failed { reason: e.to_string() };
+                            return SyncOutcome::Failed {
+                                reason: e.to_string(),
+                            };
                         }
                     }
                 }
