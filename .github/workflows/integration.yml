@@ -29,7 +29,7 @@ jobs:
     - name: Run Acceptance Tests (JUnit & JSON)
       # We use nextest for junit. It ignores #[ignore] by default unless requested, wait!
       # We want to run the ignored test matrix_a_to_h
-      run: cargo nextest run -p acceptance-tests --run-ignored ignored-only --profile ci
+      run: cargo nextest run -p acceptance-tests --test matrix_a_to_k --run-ignored ignored-only --profile ci
       
     - name: Local control-plane e2e
       run: cargo test -p acceptance-tests --test local_e2e -- --ignored --nocapture --test-threads=1
