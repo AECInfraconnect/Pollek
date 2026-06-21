@@ -19,3 +19,6 @@ opentelemetry-otlp = { version = "0.26", features = ["http-proto", "reqwest-clie
 rusqlite = { version = "0.32", features = ["bundled"] }
 regex = "1.11"
 chrono = "0.4"
+
+[lints]
+workspace = true

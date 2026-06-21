@@ -23,19 +23,17 @@ fn main() {
     let backup_exe = target_exe.with_extension("exe.bak");
 
     // Remove old backup if it exists
-    if backup_exe.exists() {
-        if let Err(e) = fs::remove_file(&backup_exe) {
+    if backup_exe.exists()
+        && let Err(e) = fs::remove_file(&backup_exe) {
             eprintln!("Failed to remove old backup: {e}");
         }
-    }
 
     // Rename current running executable to backup
-    if target_exe.exists() {
-        if let Err(e) = fs::rename(&target_exe, &backup_exe) {
+    if target_exe.exists()
+        && let Err(e) = fs::rename(&target_exe, &backup_exe) {
             eprintln!("Failed to rename active executable: {e}");
             std::process::exit(1);
         }
-    }
 
     // Rename the new downloaded executable to the target name
     if let Err(e) = fs::rename(&new_exe, &target_exe) {

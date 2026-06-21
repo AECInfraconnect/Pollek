@@ -1,7 +1,7 @@
 pub mod redactor;
 pub mod spooler;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use dek_config::MtlsConfig;
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::RwLock;
 use tokio_retry::strategy::ExponentialBackoff;
 use tokio_retry::Retry;
 use tracing::{error, info, warn};

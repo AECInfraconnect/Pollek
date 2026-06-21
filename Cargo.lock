@@ -1389,6 +1389,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "dek-errors"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "dek-ext-authz"
 version = "0.1.0"
 dependencies = [

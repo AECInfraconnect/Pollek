@@ -42,11 +42,10 @@ pub fn spawn_bundle_sync_task(
                                 } else {
                                     // Enforce Enterprise Profiles
                                     use dek_config::{EnterpriseProfile, ActivationMode};
-                                    if new_config.enterprise_profile == EnterpriseProfile::Enterprise || new_config.enterprise_profile == EnterpriseProfile::Regulated {
-                                        if new_config.activation_mode != ActivationMode::Full {
+                                    if (new_config.enterprise_profile == EnterpriseProfile::Enterprise || new_config.enterprise_profile == EnterpriseProfile::Regulated)
+                                        && new_config.activation_mode != ActivationMode::Full {
                                             warn!("Enterprise Profile enforces 'Full' activation mode. Overriding '{}'", format!("{:?}", new_config.activation_mode));
                                         }
-                                    }
                                 }
 
                                 if let Some(update) = new_config.update_config {

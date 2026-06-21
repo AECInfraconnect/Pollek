@@ -97,13 +97,11 @@ pub async fn run_update(
             {
                 // Trigger an asynchronous service restart by spawning a detached powershell script
                 // We use Start-Process to decouple from the dying process tree
-                let script = format!(
-                    "Start-Sleep -Seconds 2; Restart-Service -Name PollenDEK -Force"
-                );
+                let script = "Start-Sleep -Seconds 2; Restart-Service -Name PollenDEK -Force".to_string();
                 // Use absolute path to prevent PATH hijacking
                 let powershell_path = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
                 let _ = std::process::Command::new(powershell_path)
-                    .args(&["-Command", &script])
+                    .args(["-Command", &script])
                     .spawn();
             }
             #[cfg(unix)]
@@ -121,7 +119,7 @@ pub async fn run_update(
             error!("Self-replace failed: {}", e);
             let _ = fs::remove_file(&temp_path);
             let _ = fs::remove_file(&backup_path); // Cleanup backup on failure
-            return Err(e.into());
+            Err(e.into())
         }
     }
 }

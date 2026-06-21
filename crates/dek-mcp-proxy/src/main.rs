@@ -274,7 +274,7 @@ async fn main() -> Result<()> {
 }
 
 async fn handle_forward_proxy(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     req: axum::extract::Request,
 ) -> Response {
     use axum::http::Method;
@@ -514,7 +514,7 @@ async fn handle_filter_request(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<Value>,
 ) -> Response {
-    let snapshot = state.snapshot.load();
+    let _snapshot = state.snapshot.load();
     // In a real scenario, this would apply request-side obligations (e.g. inject headers)
     (StatusCode::OK, Json(json!({"status": "filtered", "payload": payload}))).into_response()
 }
@@ -523,7 +523,7 @@ async fn handle_filter_response(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<Value>,
 ) -> Response {
-    let snapshot = state.snapshot.load();
+    let _snapshot = state.snapshot.load();
     // Apply redaction plugin
     if let Ok(redacted) = state.plugin_host.invoke("pii-redactor", payload.clone()) {
         (StatusCode::OK, Json(redacted)).into_response()

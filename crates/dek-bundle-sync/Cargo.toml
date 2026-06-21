@@ -17,3 +17,6 @@ base64 = "0.22.1"
 rand = "0.10.1"
 serde_jcs = "0.2.0"
 jsonschema = "0.46.5"
+
+[lints]
+workspace = true

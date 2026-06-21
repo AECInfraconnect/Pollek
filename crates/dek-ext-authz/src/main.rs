@@ -138,14 +138,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut router = PolicyRouter::new();
     let bundle_path_buf = dek_config::paths::get_active_bundle_path();
     let staged_path = std::path::Path::new(&bundle_path_buf);
-    if staged_path.exists() {
-        if let Ok(content) = std::fs::read_to_string(staged_path) {
-            if let Ok(payload) = serde_json::from_str::<Value>(&content) {
+    if staged_path.exists()
+        && let Ok(content) = std::fs::read_to_string(staged_path)
+            && let Ok(payload) = serde_json::from_str::<Value>(&content) {
                 info!("Loading dynamic policy evaluator configuration from active_bundle.json");
                 dek_router_builder::load_router_config(&mut router, &payload);
             }
-        }
-    }
 
     let addr = "[::1]:50051".parse()?;
     let service = ExtAuthzService {

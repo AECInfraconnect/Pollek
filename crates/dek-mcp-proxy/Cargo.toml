@@ -31,3 +31,6 @@ dek-router-builder = { path = "../dek-router-builder" }
 jsonwebtoken = "9.3.1"
 hyper = "1.0"
 hyper-util = { version = "0.1", features = ["tokio"] }
+
+[lints]
+workspace = true

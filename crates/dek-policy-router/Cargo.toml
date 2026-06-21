@@ -16,3 +16,6 @@ opentelemetry = { version = "0.26", features = ["metrics"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }
+
+[lints]
+workspace = true

@@ -11,3 +11,6 @@ anyhow.workspace = true
 tracing.workspace = true
 async-trait = "0.1.89"
 cedar-policy = "4.11.0"
+
+[lints]
+workspace = true

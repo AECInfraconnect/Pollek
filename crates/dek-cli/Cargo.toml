@@ -29,3 +29,6 @@ serde_json = { workspace = true }
 x509-parser = "0.16"
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full", "rt-multi-thread"] }
+
+[lints]
+workspace = true

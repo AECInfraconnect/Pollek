@@ -24,3 +24,6 @@ arc-swap = "1.6"
 dek-router-builder = { path = "../dek-router-builder" }
 dek-telemetry = { path = "../dek-telemetry" }
 chrono = "0.4"
+
+[lints]
+workspace = true

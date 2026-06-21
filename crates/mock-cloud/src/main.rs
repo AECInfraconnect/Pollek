@@ -560,10 +560,10 @@ fn load_certs(path: &str) -> Result<Vec<CertificateDer<'static>>> {
 fn load_private_key(path: &str) -> Result<PrivateKeyDer<'static>> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
-    Ok(private_key(&mut reader)?.context("No private key found")?)
+    private_key(&mut reader)?.context("No private key found")
 }
 
-async fn ingest_telemetry(Path((_tenant_id, device_id)): Path<(String, String)>, State(state): State<AppState>, Json(payload): Json<Value>) -> Json<Value> {
+async fn ingest_telemetry(Path((_tenant_id, device_id)): Path<(String, String)>, State(_state): State<AppState>, Json(payload): Json<Value>) -> Json<Value> {
     info!("CLOUD RECEIVED TELEMETRY from {}: {}", device_id, payload);
     Json(json!({ "status": "ingested" }))
 }
