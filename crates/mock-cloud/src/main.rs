@@ -136,6 +136,7 @@ CwIDAQAB\n-----END PUBLIC KEY-----\n".to_string();
             "/v1/tenants/:tenant_id/devices/:device_id/config",
             get(get_config),
         )
+        .route("/v1/push", get(handle_push_stream))
         // Order matters for middleware. Chaos middleware should wrap the v1 endpoints.
         // And telemetry / threats routes are merged before the layer so they are wrapped, BUT
         // the middleware internally explicitly filters to only act on `/v1/` routes.
@@ -463,4 +464,20 @@ async fn get_config(
             }
         })),
     )
+}
+
+async fn handle_push_stream() -> impl IntoResponse {
+    use axum::response::sse::{Event, Sse};
+    use futures_util::stream;
+    use std::convert::Infallible;
+    use std::time::Duration;
+    
+    let stream = stream::unfold(0, |count| async move {
+        tokio::time::sleep(Duration::from_secs(30)).await;
+        // Mock push event every 30 seconds
+        let event = Event::default().data(format!("{{\"event\": \"bundle_ready\", \"version\": \"push-{}\"}}", count));
+        Some((Ok::<_, Infallible>(event), count + 1))
+    });
+
+    Sse::new(stream).keep_alive(axum::response::sse::KeepAlive::new().interval(Duration::from_secs(15)))
 }

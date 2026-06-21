@@ -20,19 +20,18 @@ use dek_policy_runtime::{PolicyDecision, PolicyError, PolicyResult, PolicyRuntim
 use moka::future::Cache;
 use reqwest::Client;
 use serde_json::json;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tracing::{debug, warn};
 
-/// How long an allow/deny verdict for a tuple stays cached.
-const DECISION_TTL: Duration = Duration::from_secs(15);
+/// Maximum cached entries
 const CACHE_CAPACITY: u64 = 10_000;
 
 pub struct OpenFgaAdapter {
     endpoint: String,
     store_id: String,
     client: Client,
-    /// (user|relation|object) -> allow
-    cache: Cache<String, bool>,
+    /// (user|relation|object) -> (allow, timestamp)
+    cache: Cache<String, (bool, Instant)>,
 }
 
 impl OpenFgaAdapter {
@@ -44,7 +43,6 @@ impl OpenFgaAdapter {
         };
         let cache = Cache::builder()
             .max_capacity(CACHE_CAPACITY)
-            .time_to_live(DECISION_TTL)
             .build();
         Ok(Self {
             endpoint: endpoint.to_string(),
@@ -83,17 +81,35 @@ impl PolicyRuntime for OpenFgaAdapter {
             .and_then(|v| v.as_str())
             .unwrap_or("unknown");
 
+        let risk_tier = input
+            .get("risk_tier")
+            .and_then(|v| v.as_str())
+            .unwrap_or("low");
+
+        // Dynamic TTL based on risk_tier
+        let ttl_secs = match risk_tier {
+            "high" | "critical" => 1, // very short cache for high risk
+            "medium" => 30,
+            _ => 300, // low risk
+        };
+        let ttl = Duration::from_secs(ttl_secs);
+
         let cache_key = format!("{principal}|{action}|{resource}");
 
-        // 1) Cache hit -> no network round-trip.
-        if let Some(allow) = self.cache.get(&cache_key).await {
-            debug!(%principal, %action, %resource, allow, "openfga cache hit");
-            let reason = if allow {
-                "OpenFGA (cached) allowed"
+        // 1) Cache hit -> check TTL -> no network round-trip.
+        if let Some((allow, ts)) = self.cache.get(&cache_key).await {
+            if ts.elapsed() <= ttl {
+                debug!(%principal, %action, %resource, allow, "openfga cache hit");
+                let reason = if allow {
+                    "OpenFGA (cached) allowed"
+                } else {
+                    "OpenFGA (cached) denied"
+                };
+                return Ok(self.decision(allow, reason));
             } else {
-                "OpenFGA (cached) denied"
-            };
-            return Ok(self.decision(allow, reason));
+                // Expired
+                self.cache.remove(&cache_key).await;
+            }
         }
 
         // 2) Miss -> query OpenFGA.
@@ -109,7 +125,6 @@ impl PolicyRuntime for OpenFgaAdapter {
             .json(&payload)
             .send()
             .await
-            // Connection/timeout => backend unavailable => typed error => router fails CLOSED
             .map_err(|e| PolicyError::Unavailable(format!("OpenFGA connect failed: {e}")))?;
 
         if !res.status().is_success() {
@@ -129,7 +144,7 @@ impl PolicyRuntime for OpenFgaAdapter {
             .unwrap_or(false);
 
         // 3) Cache the verdict (both allow and deny).
-        self.cache.insert(cache_key, allow).await;
+        self.cache.insert(cache_key, (allow, Instant::now())).await;
 
         let reason = if allow {
             "OpenFGA remote check allowed"

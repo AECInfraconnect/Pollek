@@ -279,6 +279,42 @@ impl BundleSyncAgent {
 
         Ok((dek_config, bundle_path))
     }
+
+    pub async fn fetch_network_guardrails(&self) -> Result<Vec<dek_domain_schema::CompiledNetworkRules>> {
+        let url = format!(
+            "{}/v1/tenants/{}/devices/{}/bundles/artifacts/network_guardrails.json",
+            self.cloud_url, self.tenant_id, self.device_id
+        );
+        let client = self.client.read().await.clone();
+        let res = client.get(&url).send().await?;
+        if !res.status().is_success() {
+            return Err(anyhow::anyhow!("Failed to fetch network_guardrails.json: HTTP {}", res.status()));
+        }
+
+        let body: serde_json::Value = res.json().await?;
+        
+        let signed_bytes = serde_json::to_vec(&body["signed"])
+            .context("serialize signed network guardrails")?;
+        
+        use crate::keys::{parse_signatures, VerifyOutcome};
+        let sigs = parse_signatures(body.get("signatures").unwrap_or(&serde_json::Value::Null));
+        
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+
+        let key_set = self.key_set.load();
+        match key_set.verify(now, &signed_bytes, &sigs) {
+            VerifyOutcome::Valid { .. } => {
+                // Signature verified, parse the rules
+                let rules: Vec<dek_domain_schema::CompiledNetworkRules> = serde_json::from_value(body["signed"].clone())
+                    .context("parse CompiledNetworkRules")?;
+                Ok(rules)
+            }
+            outcome => {
+                Err(anyhow::anyhow!("Signature verification failed for network_guardrails.json: {:?}", outcome))
+            }
+        }
+    }
 }
 
 #[cfg(test)]

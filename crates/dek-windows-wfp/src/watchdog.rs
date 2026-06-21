@@ -40,20 +40,20 @@ impl WfpWatchdog {
                     if let Err(rollback_err) = apply_fn(lkg) {
                         error!("Watchdog: CRITICAL FAILURE: Rollback to Last Known Good also failed: {}", rollback_err);
                         // Implement fail-closed high-risk here (e.g. block all network traffic)
-                        Self::trigger_fail_closed_mode();
+                        self.trigger_fail_closed_mode();
                     } else {
                         info!("Watchdog: Rollback successful.");
                     }
                 } else {
                     error!("Watchdog: No Last Known Good available. Triggering Fail-Closed.");
-                    Self::trigger_fail_closed_mode();
+                    self.trigger_fail_closed_mode();
                 }
                 Err(e)
             }
         }
     }
 
-    fn trigger_fail_closed_mode() {
+    pub fn trigger_fail_closed_mode(&self) {
         warn!("!!! TRIGGERING NETWORK FAIL-CLOSED MODE !!!");
         // In reality, this would install a hardcoded WFP block-all filter to prevent any data exfiltration.
     }

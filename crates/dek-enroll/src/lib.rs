@@ -311,7 +311,8 @@ impl EnrollClient {
                 let payload = serde_json::json!({
                     "os": os,
                     "arch": arch,
-                    "hostname": hostname
+                    "hostname": hostname,
+                    "capabilities": dek_domain_schema::EnforcementCapabilities::detect()
                 });
 
                 let resp = self

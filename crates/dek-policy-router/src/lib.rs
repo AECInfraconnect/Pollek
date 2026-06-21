@@ -14,6 +14,16 @@ pub enum EnforcementMode {
     BreakGlass, // Bypass evaluation for emergency, always allow
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum FailoverStrategy {
+    #[default]
+    Priority,
+    HealthBased,
+    RoundRobin,
+    LeastLatency,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Route {
     pub id: String,
@@ -22,6 +32,10 @@ pub struct Route {
     pub enforcement_mode: EnforcementMode,
     pub match_rule: EnterpriseMatchRule,
     pub pdp_required: Vec<String>,
+    #[serde(default)]
+    pub pdp_pool: Vec<String>,
+    #[serde(default)]
+    pub failover_strategy: FailoverStrategy,
     pub pdp_conditional: Vec<ConditionalPdp>,
 }
 
@@ -40,12 +54,47 @@ pub struct ConditionalPdp {
 }
 
 use dek_resilience::breaker::{CircuitBreaker, CircuitConfig, Admit};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+pub struct PdpStats {
+    pub ewma_latency: f64,
+    pub successes: u64,
+    pub failures: u64,
+}
+
+impl PdpStats {
+    pub fn new() -> Self {
+        Self {
+            ewma_latency: 0.0,
+            successes: 0,
+            failures: 0,
+        }
+    }
+    
+    pub fn record_latency(&mut self, latency: f64, alpha: f64) {
+        if self.ewma_latency == 0.0 {
+            self.ewma_latency = latency;
+        } else {
+            self.ewma_latency = alpha * latency + (1.0 - alpha) * self.ewma_latency;
+        }
+    }
+
+    pub fn health_score(&self) -> f64 {
+        let total = self.successes + self.failures;
+        if total == 0 {
+            return 1.0;
+        }
+        self.successes as f64 / total as f64
+    }
+}
 
 pub struct PolicyRouter {
     routes: Vec<Route>,
     evaluators: HashMap<String, Box<dyn PolicyRuntime>>,
     breakers: HashMap<String, Arc<CircuitBreaker>>,
+    stats: HashMap<String, Arc<Mutex<PdpStats>>>,
+    round_robin_counter: AtomicUsize,
     pdp_timeout_ms: u64,
     circuit_config: CircuitConfig,
 }
@@ -56,6 +105,8 @@ impl PolicyRouter {
             routes: vec![],
             evaluators: HashMap::new(),
             breakers: HashMap::new(),
+            stats: HashMap::new(),
+            round_robin_counter: AtomicUsize::new(0),
             pdp_timeout_ms: 200,
             circuit_config: CircuitConfig::default(),
         }
@@ -76,6 +127,7 @@ impl PolicyRouter {
             id.to_string(),
             Arc::new(CircuitBreaker::new(id, self.circuit_config.clone())),
         );
+        self.stats.insert(id.to_string(), Arc::new(Mutex::new(PdpStats::new())));
     }
 
     pub fn set_routes(&mut self, mut routes: Vec<Route>) {
@@ -86,6 +138,63 @@ impl PolicyRouter {
     pub async fn clear_caches(&self) {
         for evaluator in self.evaluators.values() {
             evaluator.clear_cache().await;
+        }
+    }
+
+    fn select_pdp_from_pool(&self, pool: &[String], strategy: &FailoverStrategy) -> Option<String> {
+        if pool.is_empty() {
+            return None;
+        }
+        let available: Vec<&String> = pool.iter()
+            .filter(|p| {
+                if let Some(b) = self.breakers.get(*p) {
+                    matches!(b.permitted(), Admit::Accept)
+                } else {
+                    false
+                }
+            }).collect();
+
+        if available.is_empty() {
+            return Some(pool[0].clone());
+        }
+
+        match strategy {
+            FailoverStrategy::Priority => Some(available[0].clone()),
+            FailoverStrategy::RoundRobin => {
+                let idx = self.round_robin_counter.fetch_add(1, Ordering::Relaxed);
+                Some(available[idx % available.len()].clone())
+            }
+            FailoverStrategy::HealthBased => {
+                let mut best = available[0];
+                let mut best_score = -1.0;
+                for p in &available {
+                    if let Some(stats) = self.stats.get(*p) {
+                        let score = stats.lock().unwrap().health_score();
+                        if score > best_score {
+                            best_score = score;
+                            best = p;
+                        }
+                    }
+                }
+                Some(best.clone())
+            }
+            FailoverStrategy::LeastLatency => {
+                let mut best = available[0];
+                let mut min_lat = f64::MAX;
+                for p in &available {
+                    if let Some(stats) = self.stats.get(*p) {
+                        let lat = stats.lock().unwrap().ewma_latency;
+                        if lat == 0.0 {
+                            return Some((*p).clone());
+                        }
+                        if lat < min_lat {
+                            min_lat = lat;
+                            best = p;
+                        }
+                    }
+                }
+                Some(best.clone())
+            }
         }
     }
 
@@ -204,6 +313,11 @@ impl PolicyRouter {
                 to_evaluate.push(cond.evaluator.clone());
             }
         }
+        if !route.pdp_pool.is_empty() {
+            if let Some(pdp) = self.select_pdp_from_pool(&route.pdp_pool, &route.failover_strategy) {
+                to_evaluate.push(pdp);
+            }
+        }
 
         for ev_id in to_evaluate {
             if let Some(evaluator) = self.evaluators.get(&ev_id) {
@@ -234,6 +348,11 @@ impl PolicyRouter {
                         
                         if let Some(ref b) = breaker {
                             b.on_success();
+                        }
+                        if let Some(stats) = self.stats.get(&ev_id) {
+                            let mut s = stats.lock().unwrap();
+                            s.successes += 1;
+                            s.record_latency(latency, 0.2);
                         }
 
                         // Combine obligations
@@ -266,6 +385,7 @@ impl PolicyRouter {
                         metrics::counter!("dek_pdp_unavailable_total", "evaluator" => ev_id.clone()).increment(1);
                         tracing::warn!("required PDP unavailable: {msg}; mode: {:?}", route.enforcement_mode);
                         if let Some(ref b) = breaker { b.on_failure(); }
+                        if let Some(stats) = self.stats.get(&ev_id) { stats.lock().unwrap().failures += 1; }
                         combined_decision.allow = false;
                         combined_decision.decision = "deny".into();
                         combined_decision.reason = format!("required PDP unavailable: {} (Mode: {:?})", msg, route.enforcement_mode);
@@ -275,6 +395,7 @@ impl PolicyRouter {
                         metrics::counter!("dek_pdp_error_total", "evaluator" => ev_id.clone()).increment(1);
                         tracing::warn!("PDP error: {e}; mode: {:?}", route.enforcement_mode);
                         if let Some(ref b) = breaker { b.on_failure(); }
+                        if let Some(stats) = self.stats.get(&ev_id) { stats.lock().unwrap().failures += 1; }
                         combined_decision.allow = false;
                         combined_decision.decision = "deny".into();
                         combined_decision.reason = format!("PDP error: {} (Mode: {:?})", e, route.enforcement_mode);
@@ -284,6 +405,7 @@ impl PolicyRouter {
                         metrics::counter!("dek_pdp_timeout_total", "evaluator" => ev_id.clone()).increment(1);
                         tracing::warn!("PDP timeout for evaluator: {}", ev_id);
                         if let Some(ref b) = breaker { b.on_failure(); }
+                        if let Some(stats) = self.stats.get(&ev_id) { stats.lock().unwrap().failures += 1; }
                         combined_decision.allow = false;
                         combined_decision.decision = "deny".into();
                         combined_decision.reason = format!("PDP timeout ({} ms) for {}", self.pdp_timeout_ms, ev_id);

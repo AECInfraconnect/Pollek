@@ -37,8 +37,12 @@ pub use state::{evaluate_state, EnforcementState, EnforcementStatus, FreshnessCo
 /// Outcome of one sync attempt.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SyncOutcome {
-    Updated { version: String },
+    Updated { 
+        version: String,
+        network_rules: Option<Vec<dek_domain_schema::CompiledNetworkRules>>,
+    },
     Failed { reason: String },
+    StateTransition(EnforcementState),
 }
 
 pub struct PolicySyncer {
@@ -55,6 +59,7 @@ pub struct PolicySyncer {
     bundle_version: ArcSwap<Option<String>>,
     audit: AuditTrail,
     keys_url: String,
+    push_url: String,
 }
 
 impl PolicySyncer {
@@ -72,6 +77,7 @@ impl PolicySyncer {
         bundle_agent.update_keys(set);
 
         let keys_url = format!("{}/v1/keys", cloud_url);
+        let push_url = format!("{}/v1/push", cloud_url);
 
         Arc::new(Self {
             bundle_agent,
@@ -87,6 +93,7 @@ impl PolicySyncer {
             bundle_version: ArcSwap::from_pointee(None),
             audit,
             keys_url,
+            push_url,
         })
     }
 
@@ -129,7 +136,20 @@ impl PolicySyncer {
                 self.bundle_version.store(Arc::new(Some(version.clone())));
                 self.recompute_state();
                 info!("[PolicySyncer] sync OK, version={}", version);
-                SyncOutcome::Updated { version }
+
+                // Phase 1: Fetch network guardrails
+                let network_rules = match self.bundle_agent.fetch_network_guardrails().await {
+                    Ok(rules) => {
+                        info!("[PolicySyncer] network guardrails fetched successfully ({} rules)", rules.len());
+                        Some(rules)
+                    }
+                    Err(e) => {
+                        warn!("[PolicySyncer] failed to fetch network guardrails: {}", e);
+                        None
+                    }
+                };
+
+                SyncOutcome::Updated { version, network_rules }
             }
             Err(e) => {
                 let reason = e.to_string();
@@ -154,7 +174,7 @@ impl PolicySyncer {
     /// Recompute EnforcementState from current freshness and publish it both
     /// in-process (ArcSwap) and cross-process (status file). Logs + emits on
     /// transition.
-    pub fn recompute_state(&self) {
+    pub fn recompute_state(&self) -> Option<EnforcementState> {
         let now = now_unix();
         let expires = match self.bundle_expires.load(Ordering::SeqCst) {
             -1 => None,
@@ -167,7 +187,8 @@ impl PolicySyncer {
         let next = evaluate_state(now, expires, last_sync, &self.cfg);
         let prev = self.enforcement.load_full();
 
-        if *prev != next {
+        let changed = *prev != next;
+        if changed {
             warn!(
                 "[PolicySyncer] enforcement state: {} -> {} ({})",
                 prev.label(),
@@ -181,9 +202,15 @@ impl PolicySyncer {
         self.enforcement.store(Arc::new(next.clone()));
 
         let version = self.bundle_version.load_full().as_ref().clone();
-        let status = EnforcementStatus { state: next, updated_unix: now, bundle_version: version };
+        let status = EnforcementStatus { state: next.clone(), updated_unix: now, bundle_version: version };
         if let Err(e) = state::write_status_atomic(&status) {
             error!("[PolicySyncer] failed to write enforcement status file: {}", e);
+        }
+
+        if changed {
+            Some(next)
+        } else {
+            None
         }
     }
 
@@ -196,6 +223,7 @@ impl PolicySyncer {
         self: Arc<Self>,
         poll_interval: Duration,
         cancel: CancellationToken,
+        sync_tx: Option<tokio::sync::mpsc::Sender<SyncOutcome>>,
     ) -> SyncerHandle {
         // Polling loop: pull+verify+activate.
         let s1 = self.clone();
@@ -205,7 +233,12 @@ impl PolicySyncer {
             loop {
                 tokio::select! {
                     _ = c1.cancelled() => break,
-                    _ = tick.tick() => { let _ = s1.sync_once().await; }
+                    _ = tick.tick() => { 
+                        let outcome = s1.sync_once().await; 
+                        if let Some(tx) = &sync_tx {
+                            let _ = tx.send(outcome).await;
+                        }
+                    }
                 }
             }
         });
@@ -214,17 +247,74 @@ impl PolicySyncer {
         // transitions happen even when the cloud is unreachable.
         let s2 = self.clone();
         let c2 = cancel.clone();
+        let sync_tx2 = sync_tx.clone();
         let watch = tokio::spawn(async move {
             let mut tick = tokio::time::interval(Duration::from_secs(5));
             loop {
                 tokio::select! {
                     _ = c2.cancelled() => break,
-                    _ = tick.tick() => { s2.recompute_state(); }
+                    _ = tick.tick() => { 
+                        if let Some(new_state) = s2.recompute_state() {
+                            if let Some(tx) = &sync_tx2 {
+                                let _ = tx.send(SyncOutcome::StateTransition(new_state)).await;
+                            }
+                        }
+                    }
                 }
             }
         });
 
-        SyncerHandle { tasks: vec![poll, watch] }
+        // Auto-Sync Push (SSE)
+        let s3 = self.clone();
+        let c3 = cancel.clone();
+        let sync_tx3 = sync_tx;
+        let push_url = self.push_url.clone();
+        let sse = tokio::spawn(async move {
+            let client = reqwest::Client::builder()
+                .timeout(Duration::from_secs(3600)) // Long timeout for SSE
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new());
+                
+            loop {
+                if c3.is_cancelled() { break; }
+                
+                match client.get(&push_url)
+                    .header("Accept", "text/event-stream")
+                    .send()
+                    .await
+                {
+                    Ok(mut resp) if resp.status().is_success() => {
+                        info!("[PolicySyncer] Connected to auto-sync push stream at {}", push_url);
+                        while let Ok(Some(chunk)) = resp.chunk().await {
+                            if c3.is_cancelled() { break; }
+                            if let Ok(text) = std::str::from_utf8(&chunk) {
+                                if text.contains("bundle_ready") {
+                                    info!("[PolicySyncer] Received bundle_ready push event, triggering sync_once");
+                                    let outcome = s3.sync_once().await;
+                                    if let Some(tx) = &sync_tx3 {
+                                        let _ = tx.send(outcome).await;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Ok(resp) => {
+                        warn!("[PolicySyncer] Push stream rejected: {}", resp.status());
+                    }
+                    Err(e) => {
+                        warn!("[PolicySyncer] Push stream connection failed: {}", e);
+                    }
+                }
+                
+                // Backoff before reconnecting
+                tokio::select! {
+                    _ = c3.cancelled() => break,
+                    _ = tokio::time::sleep(Duration::from_secs(10)) => {}
+                }
+            }
+        });
+
+        SyncerHandle { tasks: vec![poll, watch, sse] }
     }
 }
 

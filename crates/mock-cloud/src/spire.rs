@@ -147,6 +147,7 @@ async fn enroll_device(
                 profile: "Developer".to_string(),
                 revoked: false,
                 last_health: Utc::now().to_rfc3339(),
+                capabilities: dek_domain_schema::EnforcementCapabilities::default(),
             },
         );
     }

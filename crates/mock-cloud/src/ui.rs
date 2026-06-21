@@ -29,7 +29,7 @@ async fn ui_index() -> impl IntoResponse {
                 <h1>Pollen Mock Cloud UI</h1>
                 <p>Welcome to the Pollen Mock Cloud testing simulator.</p>
                 <ul>
-                    <li><a href="/admin/dashboard">Telemetry Dashboard</a></li>
+                    <li><a href="https://127.0.0.1:43892/admin/dashboard">Telemetry Dashboard</a></li>
                     <li><a href="/admin/registry">Registry State</a></li>
                 </ul>
             </div>

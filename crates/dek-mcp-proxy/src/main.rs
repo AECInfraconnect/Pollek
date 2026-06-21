@@ -574,6 +574,26 @@ async fn handle_mcp_request(
                 latency_ms: start_time.elapsed().as_millis() as u64,
             };
 
+            let mut require_approval = false;
+            let mut require_mfa = false;
+            let mut compliance_tags = vec![];
+
+            for ob in &decision.obligations {
+                if let Some(ob_type) = ob.get("type").and_then(|t| t.as_str()) {
+                    metrics::counter!("dek_obligation_enforced_total", "type" => ob_type.to_string()).increment(1);
+                    if ob_type == "require_approval" {
+                        require_approval = true;
+                        compliance_tags.push("SOC2-CC6.1".to_string());
+                    } else if ob_type == "step_up_mfa" {
+                        require_mfa = true;
+                        compliance_tags.push("PCI-DSS-4.0".to_string());
+                        compliance_tags.push("HIPAA-164.312(a)(1)".to_string());
+                    }
+                }
+            }
+            compliance_tags.sort();
+            compliance_tags.dedup();
+
             if let Some(telemetry) = &state.telemetry {
                 let event = json!({
                     "schema_version": "1.0",
@@ -581,6 +601,7 @@ async fn handle_mcp_request(
                     "device_id": metadata.device_id.clone(),
                     "tenant_id": final_tenant_id.clone(),
                     "timestamp": chrono::Utc::now().to_rfc3339(),
+                    "compliance_tags": if compliance_tags.is_empty() { serde_json::Value::Null } else { json!(compliance_tags) },
                     "mcp": {
                         "principal": principal.clone(),
                         "tool": normalized.tool_name.clone().unwrap_or_default(),
@@ -593,7 +614,33 @@ async fn handle_mcp_request(
                 telemetry.emit_async(event, dek_telemetry::spooler::Priority::Normal);
             }
 
-            if decision.allow {
+            let has_mfa = identity.claims.get("mfa").and_then(|v| v.as_bool()).unwrap_or(false) ||
+                identity.claims.get("amr").and_then(|v| v.as_array()).map(|a| a.iter().any(|s| s.as_str() == Some("mfa"))).unwrap_or(false);
+
+            let mfa_failed = require_mfa && !has_mfa;
+
+            // Emit approval_required event if applicable
+            if require_approval && decision.allow && !mfa_failed {
+                if let Some(telemetry) = &state.telemetry {
+                    let approval_event = json!({
+                        "schema_version": "1.0",
+                        "event_type": "enforcement.approval_required",
+                        "device_id": metadata.device_id.clone(),
+                        "tenant_id": final_tenant_id.clone(),
+                        "timestamp": chrono::Utc::now().to_rfc3339(),
+                        "compliance_tags": if compliance_tags.is_empty() { serde_json::Value::Null } else { json!(compliance_tags) },
+                        "mcp": {
+                            "principal": principal.clone(),
+                            "tool": normalized.tool_name.clone().unwrap_or_default(),
+                            "method": normalized.request_type.clone(),
+                            "request_id": decision_req.request_id.clone(),
+                        }
+                    });
+                    telemetry.emit_async(approval_event, dek_telemetry::spooler::Priority::High);
+                }
+            }
+
+            if decision.allow && !require_approval && !mfa_failed {
                 let final_response = json!({
                     "status": "allowed",
                     "message": "The request passed the PEP evaluation.",
@@ -611,15 +658,29 @@ async fn handle_mcp_request(
                     (StatusCode::OK, Json(final_response)).into_response()
                 }
             } else {
-                (
-                    StatusCode::FORBIDDEN,
-                    Json(json!({
-                        "status": "denied",
-                        "reason": decision.reason,
-                        "decision": response
-                    })),
-                )
-                    .into_response()
+                let (reason, code) = if mfa_failed {
+                    ("step_up_mfa_required".to_string(), -32001)
+                } else if require_approval {
+                    ("pending_approval".to_string(), -32002)
+                } else {
+                    (decision.reason.clone(), -32000)
+                };
+
+                let body = json!({
+                    "jsonrpc": "2.0",
+                    "id": payload.get("id").unwrap_or(&serde_json::Value::Null),
+                    "error": {
+                        "code": code,
+                        "message": format!("Access Denied: {}", reason),
+                        "data": {
+                            "status": "denied",
+                            "reason": reason,
+                            "decision": response
+                        }
+                    }
+                });
+
+                (StatusCode::FORBIDDEN, Json(body)).into_response()
             }
         }
         Err(e) => {
@@ -661,7 +722,29 @@ async fn handle_authorize(
     metrics::histogram!("dek_proxy_request_duration_seconds").record(duration);
 
     match decision_result {
-        Ok(decision) => {
+        Ok(mut decision) => {
+            let mut require_approval = false;
+            let mut require_mfa = false;
+
+            for ob in &decision.obligations {
+                if let Some(ob_type) = ob.get("type").and_then(|t| t.as_str()) {
+                    if ob_type == "require_approval" {
+                        require_approval = true;
+                    } else if ob_type == "step_up_mfa" {
+                        require_mfa = true;
+                    }
+                }
+            }
+
+            if require_mfa || require_approval {
+                decision.allow = false;
+                if require_mfa {
+                    decision.reason = "step_up_mfa_required".into();
+                } else if require_approval {
+                    decision.reason = "pending_approval".into();
+                }
+            }
+
             if decision.allow {
                 metrics::counter!("dek_proxy_requests_total", "decision" => "allow").increment(1);
                 (StatusCode::OK, Json(decision)).into_response()

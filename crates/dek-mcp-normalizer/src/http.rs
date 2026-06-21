@@ -18,15 +18,19 @@ impl TransportAdapter for HttpTransportAdapter {
         spiffe_id: Option<&str>,
         user_id: Option<&str>,
     ) -> Result<NormalizedMcpEvent> {
-        let mcp = raw.get("mcp").cloned().unwrap_or(json!({}));
-        let method = mcp
-            .get("method")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
-        let tool_name = mcp
-            .get("tool_name")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
+        let method = raw.get("method").and_then(|v| v.as_str()).unwrap_or("unknown");
+        
+        let mut tool_name = None;
+        let mut server_id = None;
+
+        // If it's tools/call, the tool name is in params.name
+        if method == "tools/call" {
+            if let Some(params) = raw.get("params") {
+                tool_name = params.get("name").and_then(|v| v.as_str()).map(|s| s.to_string());
+                // For proxy scenario, server_id might be provided in headers or query, 
+                // but if it's in params, extract it (though MCP spec doesn't natively have server_id in tools/call).
+            }
+        }
 
         let jsonrpc_id = raw.get("id").cloned();
 
