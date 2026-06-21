@@ -207,11 +207,14 @@ pub async fn renew_svid(
 /// `rcgen = "0.11"` to dek-spire-node/Cargo.toml. If you bump rcgen to 0.13,
 /// use: `KeyPair::generate()` + `params.serialize_request(&kp)?.pem()`.
 fn generate_keypair_and_csr() -> Result<(String, String)> {
-    use rcgen::{Certificate, CertificateParams};
+    use rcgen::{CertificateParams, KeyPair};
     // Empty subject/SANs: the server stamps the SPIFFE URI SAN when signing.
-    let params = CertificateParams::new(Vec::<String>::new());
-    let cert = Certificate::from_params(params).context("build CSR params")?;
-    let csr_pem = cert.serialize_request_pem().context("serialize CSR")?;
-    let key_pem = cert.serialize_private_key_pem();
+    let params = CertificateParams::new(Vec::<String>::new()).context("build CSR params")?;
+    let key_pair = KeyPair::generate().context("generate key pair")?;
+    let csr_pem = params
+        .serialize_request(&key_pair)
+        .context("serialize CSR")?
+        .pem()?;
+    let key_pem = key_pair.serialize_pem();
     Ok((key_pem, csr_pem))
 }

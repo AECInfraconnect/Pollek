@@ -15,7 +15,7 @@ reqwest.workspace = true
 axum = "0.7"
 axum-server = { version = "0.7.1", features = ["tls-rustls"] }
 base64 = "0.22.1"
-rcgen = { version = "0.11.3", features = ["x509-parser", "pem"] }
+rcgen = { version = "0.13", features = ["x509-parser", "pem"] }
 rustls = { version = "0.23", features = ["ring"] }
 rustls-pemfile = "2.1.0"
 rustls-pki-types = "1.0"
