@@ -21,6 +21,48 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tracing::{error, info, warn};
 
+// helper: extract arguments from JSON-RPC payload of MCP tools/call
+fn extract_tool_params(normalized: &dek_mcp_normalizer::NormalizedMcpEvent) -> serde_json::Value {
+    normalized
+        .payload
+        .get("params")
+        .and_then(|p| p.get("arguments"))
+        .cloned()
+        .unwrap_or_else(|| serde_json::json!({}))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_extract_tool_params() {
+        let mut payload = serde_json::Map::new();
+        let mut params = serde_json::Map::new();
+        params.insert("arguments".to_string(), json!({"key": "value"}));
+        payload.insert("params".to_string(), Value::Object(params));
+        let event = dek_mcp_normalizer::NormalizedMcpEvent {
+            event_id: "test".into(),
+            transport: dek_mcp_normalizer::TransportType::Http,
+            direction: dek_mcp_normalizer::MessageDirection::Request,
+            request_type: "mcp.tools.call".into(),
+            jsonrpc_id: None,
+            tenant_id: "test".into(),
+            device_id: "test".into(),
+            spiffe_id: None,
+            user_id: None,
+            agent_id: None,
+            server_id: None,
+            tool_name: Some("test_tool".into()),
+            resource_uri: None,
+            prompt_name: None,
+            payload: Value::Object(payload),
+            session: json!({}),
+            runtime: json!({}),
+        };
+        assert_eq!(extract_tool_params(&event), json!({"key": "value"}));
+    }
+}
+
 mod state;
 use state::AppState;
 
@@ -510,8 +552,11 @@ async fn handle_mcp_request(
         .tool_name
         .clone()
         .unwrap_or(normalized.request_type.clone()));
-    policy_input["principal"] = json!(principal);
-    policy_input["resource"] = json!("mcp_tool");
+    policy_input["principal"] = json!(principal.clone());
+
+    let tool_params = extract_tool_params(&normalized);
+    policy_input["params"] = tool_params.clone();
+    policy_input["tool"] = serde_json::json!(normalized.tool_name.clone().unwrap_or_default());
 
     let decision_req = dek_decision::DecisionRequestV1 {
         decision_id: uuid::Uuid::new_v4().to_string(),
@@ -530,8 +575,8 @@ async fn handle_mcp_request(
             .unwrap_or(normalized.request_type.clone()),
         resource: dek_decision::ResourceRef {
             resource_type: "mcp_tool".into(),
-            resource_id: "*".into(),
-            uri: None,
+            resource_id: normalized.tool_name.clone().unwrap_or_else(|| "*".into()),
+            uri: normalized.resource_uri.clone(),
         },
         context: policy_input.clone(),
         input_hash: "mock_hash".into(),
