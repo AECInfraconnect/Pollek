@@ -1,6 +1,6 @@
 use crate::model::PolicySuggestion;
-use dek_agent_observer::model::AgentObservationEvent;
 use anyhow::Result;
+use dek_agent_observer::model::AgentObservationEvent;
 
 pub trait SuggestionRule {
     fn evaluate(&self, events: &[AgentObservationEvent]) -> Result<Vec<PolicySuggestion>>;

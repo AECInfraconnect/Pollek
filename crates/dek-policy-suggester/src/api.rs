@@ -8,10 +8,14 @@ pub fn generate_suggestions(
     events: &[AgentObservationEvent],
 ) -> Result<Vec<PolicySuggestion>> {
     let mut engine = crate::rules::RuleEngine::new();
-    
+
     // Add built-in rules
-    engine.add_rule(Box::new(MockCostSpikeRule { tenant_id: _tenant.to_string() }));
-    engine.add_rule(Box::new(MockUnregisteredEgressRule { tenant_id: _tenant.to_string() }));
+    engine.add_rule(Box::new(MockCostSpikeRule {
+        tenant_id: _tenant.to_string(),
+    }));
+    engine.add_rule(Box::new(MockUnregisteredEgressRule {
+        tenant_id: _tenant.to_string(),
+    }));
 
     engine.evaluate_all(events)
 }
