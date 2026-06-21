@@ -132,7 +132,10 @@ async fn get_latest_bundle(
     let _ = body; // ignoring the device's current manifest
     let revision = state.revision.load(std::sync::atomic::Ordering::Relaxed) as u64;
     let manifest = generate_bundle(&tenant_id, revision, false);
-    (StatusCode::OK, Json(json!({"envelope": sign_bundle(&manifest)})))
+    (
+        StatusCode::OK,
+        Json(json!({"envelope": sign_bundle(&manifest)})),
+    )
 }
 
 async fn get_manifest(

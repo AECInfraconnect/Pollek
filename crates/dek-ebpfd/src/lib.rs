@@ -124,7 +124,14 @@ mod linux {
         let mut bpf = Ebpf::load(bpf_bytes).context("load eBPF object")?;
 
         // Pin policy maps so they persist / can be updated out-of-band.
-        for name in ["VERDICT_MAP", "PORTS_MAP", "CGROUP_POLICY_MAP", "EVENTS", "RUNTIME_MODE", "DNS_IP_CACHE_V4"] {
+        for name in [
+            "VERDICT_MAP",
+            "PORTS_MAP",
+            "CGROUP_POLICY_MAP",
+            "EVENTS",
+            "RUNTIME_MODE",
+            "DNS_IP_CACHE_V4",
+        ] {
             if let Some(map) = bpf.map_mut(name) {
                 let pin = format!("{}/{}", BPFFS_PATH, name);
                 let _ = fs::remove_file(&pin);
@@ -195,7 +202,9 @@ mod linux {
                                                 let _ = crate::dns_cache::update_dns_ip_cache_v4(
                                                     ipv4,
                                                     &obs.qname,
-                                                    std::time::Duration::from_secs(rec.ttl_secs as u64),
+                                                    std::time::Duration::from_secs(
+                                                        rec.ttl_secs as u64,
+                                                    ),
                                                     0, // default policy_id
                                                     0, // default tenant_id
                                                 );

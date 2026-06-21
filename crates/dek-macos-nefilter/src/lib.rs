@@ -22,7 +22,9 @@ impl NeFilterClient {
 
 impl NetworkEnforcer for NeFilterClient {
     fn start(&mut self) -> Result<()> {
-        anyhow::bail!("macOS Network Extension integration is not compiled. The current build is a stub.");
+        anyhow::bail!(
+            "macOS Network Extension integration is not compiled. The current build is a stub."
+        );
     }
 
     fn stop(&mut self) -> Result<()> {

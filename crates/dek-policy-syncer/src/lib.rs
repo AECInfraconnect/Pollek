@@ -358,7 +358,9 @@ impl PolicySyncer {
                                 break;
                             }
                             if let Ok(text) = std::str::from_utf8(&chunk) {
-                                if text.contains("bundle_ready") || text.contains("PollenBundleReadyV1") {
+                                if text.contains("bundle_ready")
+                                    || text.contains("PollenBundleReadyV1")
+                                {
                                     info!("[PolicySyncer] Received bundle_ready push event, triggering sync_once");
                                     let outcome = s3.sync_once().await;
                                     if let Some(tx) = &sync_tx3 {

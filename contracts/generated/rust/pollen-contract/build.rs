@@ -21,7 +21,7 @@ fn main() {
         typify::TypeSpaceSettings::default()
             .with_struct_builder(false)
             .with_derive("PartialEq".into())
-            .with_derive("schemars::JsonSchema".into())
+            .with_derive("schemars::JsonSchema".into()),
     );
 
     for file in schema_files {

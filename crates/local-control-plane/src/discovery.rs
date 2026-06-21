@@ -1,5 +1,5 @@
-use axum::{routing::get, Json, Router};
 use crate::state::AppState;
+use axum::{routing::get, Json, Router};
 
 pub fn router() -> Router<AppState> {
     Router::new().route("/.well-known/pollen-contract", get(get_discovery))

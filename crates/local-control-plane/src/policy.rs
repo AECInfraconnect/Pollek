@@ -283,13 +283,17 @@ async fn simulate_policy(
                     if let Ok(s) = String::from_utf8(compiled_policy.compiled_bytes) {
                         policy_text = s;
                     } else {
-                        return Err(ApiError::Internal(anyhow::anyhow!("Compiled policy is not valid UTF-8 text")));
+                        return Err(ApiError::Internal(anyhow::anyhow!(
+                            "Compiled policy is not valid UTF-8 text"
+                        )));
                     }
                 } else {
                     return Err(ApiError::Internal(anyhow::anyhow!("Compilation failed")));
                 }
             } else {
-                return Err(ApiError::Internal(anyhow::anyhow!("Invalid PolicyIntent IR")));
+                return Err(ApiError::Internal(anyhow::anyhow!(
+                    "Invalid PolicyIntent IR"
+                )));
             }
         }
         _ => {
@@ -304,7 +308,10 @@ async fn simulate_policy(
 
     #[async_trait::async_trait]
     impl dek_policy_runtime::PolicyRuntime for SimulateRuntime {
-        async fn evaluate(&self, input: serde_json::Value) -> Result<dek_policy_runtime::PolicyDecision, dek_policy_runtime::PolicyError> {
+        async fn evaluate(
+            &self,
+            input: serde_json::Value,
+        ) -> Result<dek_policy_runtime::PolicyDecision, dek_policy_runtime::PolicyError> {
             let req = dek_plugin_sdk::EvalRequest {
                 request_id: "sim-123".into(),
                 tenant_id: None,
@@ -334,7 +341,9 @@ async fn simulate_policy(
                 Err(e) => Err(dek_policy_runtime::PolicyError::Eval(e.to_string())),
             }
         }
-        fn version(&self) -> String { "1.0".into() }
+        fn version(&self) -> String {
+            "1.0".into()
+        }
         async fn clear_cache(&self) {}
     }
 
@@ -342,13 +351,22 @@ async fn simulate_policy(
 
     if language_id == "cedar" {
         if let Ok(adapter) = dek_cedar::CedarAdapter::new(&policy_text) {
-            router.register_evaluator("sim_evaluator", Box::new(SimulateRuntime { cedar_adapter: adapter }));
+            router.register_evaluator(
+                "sim_evaluator",
+                Box::new(SimulateRuntime {
+                    cedar_adapter: adapter,
+                }),
+            );
         } else {
-            return Err(ApiError::Internal(anyhow::anyhow!("Failed to initialize Cedar engine")));
+            return Err(ApiError::Internal(anyhow::anyhow!(
+                "Failed to initialize Cedar engine"
+            )));
         }
     } else {
         // Fallback for non-cedar
-        return Err(ApiError::Internal(anyhow::anyhow!("Simulate only supports Cedar engine currently")));
+        return Err(ApiError::Internal(anyhow::anyhow!(
+            "Simulate only supports Cedar engine currently"
+        )));
     }
 
     let route = dek_policy_router::Route {
@@ -374,28 +392,24 @@ async fn simulate_policy(
     let eval_time_ms = start_time.elapsed().as_millis();
 
     match result {
-        Ok(decision) => {
-            Ok((
-                StatusCode::OK,
-                Json(json!({
-                    "allowed": decision.allow,
-                    "decision": decision.decision,
-                    "reason": decision.reason,
-                    "evaluation_time_ms": eval_time_ms,
-                    "log_output": ["Simulated using dry_run mode"]
-                })),
-            ))
-        }
-        Err(e) => {
-            Ok((
-                StatusCode::BAD_REQUEST,
-                Json(json!({
-                    "allowed": false,
-                    "error": e.to_string(),
-                    "evaluation_time_ms": eval_time_ms,
-                    "log_output": ["Simulation failed"]
-                })),
-            ))
-        }
+        Ok(decision) => Ok((
+            StatusCode::OK,
+            Json(json!({
+                "allowed": decision.allow,
+                "decision": decision.decision,
+                "reason": decision.reason,
+                "evaluation_time_ms": eval_time_ms,
+                "log_output": ["Simulated using dry_run mode"]
+            })),
+        )),
+        Err(e) => Ok((
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "allowed": false,
+                "error": e.to_string(),
+                "evaluation_time_ms": eval_time_ms,
+                "log_output": ["Simulation failed"]
+            })),
+        )),
     }
 }

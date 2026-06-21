@@ -60,7 +60,10 @@ pub struct ScaleConfig {
     pub pdp_timeout_ms: u64,
     #[serde(default = "default_breaker_failure_threshold")]
     pub breaker_failure_threshold: u32,
-    #[serde(alias = "auto_recovery_delay", default = "default_breaker_cooldown_secs")]
+    #[serde(
+        alias = "auto_recovery_delay",
+        default = "default_breaker_cooldown_secs"
+    )]
     pub breaker_cooldown_secs: u64,
 }
 

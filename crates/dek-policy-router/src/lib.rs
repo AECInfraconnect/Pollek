@@ -164,11 +164,14 @@ impl PolicyRouter {
     pub fn set_override(&self, pdp_id: &str, forced: ForcedState, ttl: Option<Duration>) {
         let until = ttl.map(|t| Instant::now() + t);
         let mut ov = self.overrides.lock_safe();
-        ov.insert(pdp_id.to_string(), ManualOverride {
-            pdp_id: pdp_id.to_string(),
-            forced_state: forced,
-            until,
-        });
+        ov.insert(
+            pdp_id.to_string(),
+            ManualOverride {
+                pdp_id: pdp_id.to_string(),
+                forced_state: forced,
+                until,
+            },
+        );
     }
 
     pub fn override_for(&self, pdp_id: &str) -> Option<ForcedState> {
@@ -212,16 +215,14 @@ impl PolicyRouter {
         }
         let available: Vec<&String> = pool
             .iter()
-            .filter(|p| {
-                match self.override_for(p) {
-                    Some(ForcedState::ForceDown) => false,
-                    Some(ForcedState::ForceUp) => true,
-                    None => {
-                        if let Some(b) = self.breakers.get(*p) {
-                            matches!(b.permitted(), Admit::Allow)
-                        } else {
-                            false
-                        }
+            .filter(|p| match self.override_for(p) {
+                Some(ForcedState::ForceDown) => false,
+                Some(ForcedState::ForceUp) => true,
+                None => {
+                    if let Some(b) = self.breakers.get(*p) {
+                        matches!(b.permitted(), Admit::Allow)
+                    } else {
+                        false
                     }
                 }
             })
@@ -279,7 +280,11 @@ impl PolicyRouter {
         self.authorize_inner(payload, true).await
     }
 
-    async fn authorize_inner(&self, payload: serde_json::Value, dry_run: bool) -> Result<PolicyDecision> {
+    async fn authorize_inner(
+        &self,
+        payload: serde_json::Value,
+        dry_run: bool,
+    ) -> Result<PolicyDecision> {
         // Support both old nested schema and new NormalizedMcpEvent schema
         let method = payload
             .get("request_type")
@@ -720,7 +725,7 @@ mod tests {
         let res = router.authorize_dry_run(payload).await.unwrap();
         assert_eq!(res.decision, "allow");
         assert_eq!(res.reason, "All evaluators passed");
-        
+
         // Ensure no metrics/stats were mutated
         let stats = router.stats.get("dummy").unwrap().lock_safe();
         assert_eq!(stats.successes, 0); // dry_run should skip incrementing

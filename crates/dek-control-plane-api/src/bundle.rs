@@ -1,6 +1,6 @@
 pub use pollen_contract::PollenBundleEnvelopeV1;
-pub use pollen_contract::PollenPolicyBundleManifestV2;
 pub use pollen_contract::PollenBundleSignatureV1 as BundleSignature;
+pub use pollen_contract::PollenPolicyBundleManifestV2;
 pub use pollen_contract::PollenPolicyBundleManifestV2ArtifactsItem as BundleArtifactV2;
 
 use schemars::JsonSchema;

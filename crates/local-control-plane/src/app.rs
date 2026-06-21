@@ -7,7 +7,9 @@ use axum::{
 };
 use tower_http::services::{ServeDir, ServeFile};
 
-use crate::{auth, bundle, connectors, discovery, policy, push, registry, state::AppState, telemetry};
+use crate::{
+    auth, bundle, connectors, discovery, policy, push, registry, state::AppState, telemetry,
+};
 
 pub async fn local_tenant_guard(
     State(state): State<AppState>,
