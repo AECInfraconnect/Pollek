@@ -22,11 +22,18 @@ license-files = [
 
 [advisories]
 ignore = [
+    # owner: @AECInfraconnect, expiry: 2026-12-31, issue: #1, reason: Pending deep audit
     "RUSTSEC-2025-0134",
+    # owner: @AECInfraconnect, expiry: 2026-12-31, issue: #1, reason: Pending deep audit
     "RUSTSEC-2026-0086",
+    # owner: @AECInfraconnect, expiry: 2026-12-31, issue: #1, reason: Pending deep audit
     "RUSTSEC-2026-0088",
+    # owner: @AECInfraconnect, expiry: 2026-12-31, issue: #1, reason: Pending deep audit
     "RUSTSEC-2026-0089",
+    # owner: @AECInfraconnect, expiry: 2026-12-31, issue: #1, reason: Pending deep audit
     "RUSTSEC-2026-0094",
+    # owner: @AECInfraconnect, expiry: 2026-12-31, issue: #1, reason: Pending deep audit
     "RUSTSEC-2026-0095",
+    # owner: @AECInfraconnect, expiry: 2026-12-31, issue: #1, reason: Pending deep audit
     "RUSTSEC-2026-0096",
 ]
