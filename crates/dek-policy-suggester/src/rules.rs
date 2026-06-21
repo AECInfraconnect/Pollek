@@ -44,14 +44,21 @@ impl SuggestionRule for LowTrustRule {
         // ในสถานการณ์จริงจะวิเคราะห์จาก TrustScore ของ Agent
         // สำหรับ Phase A จะจำลองการทำงานคืนค่า PolicySuggestion
         let suggestion = PolicySuggestion {
-            suggestion_id: uuid::Uuid::new_v4().to_string(),
+            suggestion_id: "mock_uuid".into(),
             tenant_id: "default".into(),
             target_agent_id: Some("suspicious_agent".into()),
-            action_type: crate::model::ActionType::RestrictMcpTool,
-            tool_name: Some("*".into()),
-            reason: "Agent trust score dropped below threshold".into(),
+            target_resource_id: None,
+            target_tool_id: Some("*".into()),
+            suggestion_type: "RestrictMcpTool".into(),
+            title: "Restrict suspicious agent".into(),
+            summary: "Agent trust score dropped below threshold".into(),
+            severity: "High".into(),
             confidence: 0.85,
-            generated_at: "2026-06-21T00:00:00Z".into(),
+            recommended_policy_type: "Cedar".into(),
+            recommended_pep_type: "mcp_proxy".into(),
+            artifacts: vec![],
+            status: "draft".into(),
+            created_at: "2026-06-21T00:00:00Z".into(),
         };
         Ok(vec![suggestion])
     }
