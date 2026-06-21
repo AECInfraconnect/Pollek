@@ -143,7 +143,9 @@ impl RollbackManager {
     pub fn revert_to_lkg(&self, data_dir: &std::path::Path) -> Result<String> {
         let state = self.load()?;
         if state.last_known_good_bundle_id.is_empty() {
-            return Err(anyhow::anyhow!("No last known good bundle available to revert to"));
+            return Err(anyhow::anyhow!(
+                "No last known good bundle available to revert to"
+            ));
         }
 
         let lkg_id = &state.last_known_good_bundle_id;
@@ -152,7 +154,10 @@ impl RollbackManager {
         let latest_symlink = target_dir.join("latest");
 
         if !bundle_dir.exists() {
-            return Err(anyhow::anyhow!("LKG bundle directory does not exist: {:?}", bundle_dir));
+            return Err(anyhow::anyhow!(
+                "LKG bundle directory does not exist: {:?}",
+                bundle_dir
+            ));
         }
 
         let _ = std::fs::remove_file(&latest_symlink);

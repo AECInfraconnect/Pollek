@@ -28,7 +28,7 @@ impl CompilerOrchestrator {
         }
 
         let pep_type = &intent.spec.enforcement.preferred_pep_types[0];
-        
+
         match pep_type.as_str() {
             "mcp_proxy" | "cedar" => Self::compile_to_cedar(intent),
             "opa_wasm" | "opa" => Self::compile_to_opa(intent),

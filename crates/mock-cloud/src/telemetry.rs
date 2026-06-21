@@ -168,6 +168,6 @@ async fn ingest_device_status(
             "status": "recorded",
             "device_id": p.device_id,
             "bundle_id": p.bundle_id
-        }))
+        })),
     )
 }

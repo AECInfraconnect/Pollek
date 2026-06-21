@@ -105,7 +105,10 @@ mod linux {
             );
         }
         if let Err(e) = create_secure_dir(cgroup_path) {
-            warn!("Could not securely create supervised cgroup {} ({})", cgroup_path, e);
+            warn!(
+                "Could not securely create supervised cgroup {} ({})",
+                cgroup_path, e
+            );
         } else {
             info!("Scoped cgroup securely ready at {}", cgroup_path);
         }

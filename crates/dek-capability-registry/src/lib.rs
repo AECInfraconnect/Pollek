@@ -50,6 +50,8 @@ pub struct KernelCapabilities {
 
 impl DeviceCapabilities {
     pub fn has_os_l4_ready(&self) -> bool {
-        self.kernel.linux_ebpf.is_some() || self.kernel.windows_wfp.is_some() || self.kernel.macos_nefilter.is_some()
+        self.kernel.linux_ebpf.is_some()
+            || self.kernel.windows_wfp.is_some()
+            || self.kernel.macos_nefilter.is_some()
     }
 }

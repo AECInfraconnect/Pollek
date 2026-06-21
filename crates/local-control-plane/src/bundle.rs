@@ -10,7 +10,8 @@ use axum::{
     Json, Router,
 };
 use dek_bundle_format::{
-    ActivationConfig, BundleArtifact, BundleCompatibility, BundleMetadata, OsModulesConfig, PollenPolicyBundle,
+    ActivationConfig, BundleArtifact, BundleCompatibility, BundleMetadata, OsModulesConfig,
+    PollenPolicyBundle,
 };
 use serde_json::Value;
 
@@ -113,7 +114,11 @@ pub async fn build_signed_bundle(
         }]
     });
 
-    Ok(SignedBundle { manifest, envelope, blobs })
+    Ok(SignedBundle {
+        manifest,
+        envelope,
+        blobs,
+    })
 }
 
 pub fn verify_bundle(_manifest: &PollenPolicyBundle, _public_b64: &str) -> bool {
@@ -157,7 +162,8 @@ async fn get_mock_config(
             if let Ok(manifest) = serde_json::from_value::<PollenPolicyBundle>(inner.clone()) {
                 for artifact in manifest.artifacts {
                     if artifact.r#type == "cedar_text" {
-                        if let Ok(Some(bytes)) = st.policy_store.get_blob(&tenant, &artifact.path).await
+                        if let Ok(Some(bytes)) =
+                            st.policy_store.get_blob(&tenant, &artifact.path).await
                         {
                             if let Ok(text) = String::from_utf8(bytes) {
                                 combined_cedar.push_str(&text);

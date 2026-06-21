@@ -4,7 +4,7 @@
 use crate::state::AppState;
 use crate::BUNDLE_SEED;
 use axum::{
-    extract::{Path, State, Query},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
@@ -141,7 +141,7 @@ async fn get_desired_state(
 ) -> impl IntoResponse {
     let revision = state.revision.load(std::sync::atomic::Ordering::Relaxed) as u64;
     let bundle_id = format!("bundle-{}", revision);
-    
+
     let response = serde_json::json!({
         "device_id": device_id,
         "desired_bundle": {

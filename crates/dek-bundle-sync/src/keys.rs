@@ -204,7 +204,11 @@ pub fn parse_signatures(signatures: &serde_json::Value) -> Vec<SignatureEntry> {
         .map(|arr| {
             arr.iter()
                 .filter_map(|s| {
-                    let sig_b64 = s.get("sig").or_else(|| s.get("payload")).and_then(|v| v.as_str())?.to_string();
+                    let sig_b64 = s
+                        .get("sig")
+                        .or_else(|| s.get("payload"))
+                        .and_then(|v| v.as_str())?
+                        .to_string();
                     let key_id = s
                         .get("keyid")
                         .or_else(|| s.get("signature_id"))

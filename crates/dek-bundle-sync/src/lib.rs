@@ -334,20 +334,25 @@ impl BundleSyncAgent {
         let manifest_val: serde_json::Value = res.json().await?;
 
         // Extract manifest and signatures from the envelope
-        let manifest_json = manifest_val.get("manifest").context("Missing manifest in envelope")?;
-        let signatures_json = manifest_val.get("signatures").context("Missing signatures in envelope")?;
+        let manifest_json = manifest_val
+            .get("manifest")
+            .context("Missing manifest in envelope")?;
+        let signatures_json = manifest_val
+            .get("signatures")
+            .context("Missing signatures in envelope")?;
 
         use dek_bundle_format::PollenPolicyBundle;
         let manifest: PollenPolicyBundle = serde_json::from_value(manifest_json.clone())?;
 
         // The signatures to verify
-        let sigs_for_verify: Vec<crate::keys::SignatureEntry> = crate::keys::parse_signatures(signatures_json)
-            .into_iter()
-            .map(|mut s| {
-                s.key_id = None; // Force check against all pinned keys (bootstrap)
-                s
-            })
-            .collect();
+        let sigs_for_verify: Vec<crate::keys::SignatureEntry> =
+            crate::keys::parse_signatures(signatures_json)
+                .into_iter()
+                .map(|mut s| {
+                    s.key_id = None; // Force check against all pinned keys (bootstrap)
+                    s
+                })
+                .collect();
         tracing::info!("Found {} signatures in manifest", sigs_for_verify.len());
 
         let signed_bytes = serde_json::to_vec(&manifest)?;
@@ -378,7 +383,7 @@ impl BundleSyncAgent {
         }
 
         let target_dir = data_dir.join("state").join("bundles");
-        let bundle_version = format!("{}", manifest.metadata.version);
+        let bundle_version = manifest.metadata.version.to_string();
         let bundle_dir = target_dir.join(format!("bundle_{}", bundle_version));
         let staging_dir = target_dir.join(format!("staging_{}", manifest.metadata.bundle_id));
         std::fs::create_dir_all(&staging_dir)?;
@@ -414,7 +419,7 @@ impl BundleSyncAgent {
             let artifact_path = staging_dir.join(&safe_filename);
             std::fs::write(&artifact_path, &bytes)?;
 
-            let filename = artifact.path.split('/').last().unwrap_or("unknown");
+            let filename = artifact.path.split('/').next_back().unwrap_or("unknown");
 
             if filename.ends_with(".json") {
                 if let Ok(val) = serde_json::from_slice::<serde_json::Value>(&bytes) {
@@ -450,7 +455,10 @@ impl BundleSyncAgent {
 
         // Promote from staging to final bundle directory atomically
         if bundle_dir.exists() {
-            tracing::info!("[BundleSync] Overwriting existing bundle_dir in Local Mode: {:?}", bundle_dir);
+            tracing::info!(
+                "[BundleSync] Overwriting existing bundle_dir in Local Mode: {:?}",
+                bundle_dir
+            );
             let _ = std::fs::remove_dir_all(&bundle_dir);
         }
         std::fs::rename(&staging_dir, &bundle_dir)?;

@@ -126,8 +126,12 @@ async fn publish_policy(
             });
         }
         dek_control_plane_api::policy::PolicySource::Structured { ir } => {
-            if let Ok(intent) = serde_json::from_value::<dek_policy_intent::PolicyIntent>(ir.clone()) {
-                if let Ok(compiled_policy) = dek_policy_compiler::CompilerOrchestrator::compile(&intent) {
+            if let Ok(intent) =
+                serde_json::from_value::<dek_policy_intent::PolicyIntent>(ir.clone())
+            {
+                if let Ok(compiled_policy) =
+                    dek_policy_compiler::CompilerOrchestrator::compile(&intent)
+                {
                     compiled.push(crate::bundle::CompiledArtifact {
                         artifact_id: draft.name.clone(),
                         adapter_id: compiled_policy.engine.clone(),
@@ -138,7 +142,9 @@ async fn publish_policy(
                     return Err(ApiError::Internal(anyhow::anyhow!("Compilation failed")));
                 }
             } else {
-                return Err(ApiError::Internal(anyhow::anyhow!("Invalid PolicyIntent IR")));
+                return Err(ApiError::Internal(anyhow::anyhow!(
+                    "Invalid PolicyIntent IR"
+                )));
             }
         }
         _ => {
@@ -173,11 +179,7 @@ async fn publish_policy(
     .map_err(ApiError::Internal)?;
 
     st.policy_store
-        .upsert_policy_raw(
-            &tenant,
-            "bundle:latest",
-            &built.envelope,
-        )
+        .upsert_policy_raw(&tenant, "bundle:latest", &built.envelope)
         .await
         .map_err(ApiError::Internal)?;
 
@@ -217,13 +219,10 @@ async fn validate_policy(
 
     let mut errors = vec![];
 
-    match policy.source {
-        PolicySource::Structured { ir } => {
-            if let Err(e) = serde_json::from_value::<dek_policy_intent::PolicyIntent>(ir) {
-                errors.push(format!("PPI Validation Error: {}", e));
-            }
+    if let PolicySource::Structured { ir } = policy.source {
+        if let Err(e) = serde_json::from_value::<dek_policy_intent::PolicyIntent>(ir) {
+            errors.push(format!("PPI Validation Error: {}", e));
         }
-        _ => {}
     }
 
     let is_valid = errors.is_empty();

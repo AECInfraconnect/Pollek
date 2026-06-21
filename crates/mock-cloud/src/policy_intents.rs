@@ -1,7 +1,4 @@
-use axum::{
-    routing::post,
-    Json, Router,
-};
+use axum::{routing::post, Json, Router};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -13,13 +10,10 @@ pub struct DraftRequest {
 }
 
 pub fn router() -> Router<crate::state::AppState> {
-    Router::new()
-        .route("/v1/policy-intents/draft", post(draft_policy_intent))
+    Router::new().route("/v1/policy-intents/draft", post(draft_policy_intent))
 }
 
-async fn draft_policy_intent(
-    Json(input): Json<DraftRequest>,
-) -> Json<serde_json::Value> {
+async fn draft_policy_intent(Json(input): Json<DraftRequest>) -> Json<serde_json::Value> {
     // Deterministic beta stub. Replace with AI orchestrator in Pollen Cloud.
     let ppi = serde_json::json!({
         "apiVersion": "pollen.ai/v1alpha1",

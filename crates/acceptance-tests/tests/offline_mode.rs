@@ -121,7 +121,15 @@ async fn authorize(
 async fn test_offline_mode_resilience() -> Result<()> {
     assert!(
         Command::new("cargo")
-            .args(["build", "-p", "local-control-plane", "-p", "dek-cli", "-p", "dek-core"])
+            .args([
+                "build",
+                "-p",
+                "local-control-plane",
+                "-p",
+                "dek-cli",
+                "-p",
+                "dek-core"
+            ])
             .status()
             .await?
             .success(),
@@ -129,7 +137,7 @@ async fn test_offline_mode_resilience() -> Result<()> {
     );
 
     let lcp_data = std::env::temp_dir().join(format!("lcp-off-{}", std::process::id()));
-    
+
     // Spawn LCP
     let mut lcp_proc = Command::new(bin("local-control-plane"))
         .current_dir(workspace_dir())
@@ -141,7 +149,7 @@ async fn test_offline_mode_resilience() -> Result<()> {
         .env_remove("DEK_PINNED_KEY_OVERRIDE")
         .spawn()
         .context("spawn local-control-plane")?;
-        
+
     wait_http(&format!("{LCP}/v1/tenants/local/registry/agents"), 20).await?;
 
     let c = client();
@@ -160,11 +168,21 @@ async fn test_offline_mode_resilience() -> Result<()> {
         "source": { "kind": "raw_text", "language": "cedar", "text": "permit(principal, action, resource);" },
         "compile_options": { "fail_on_warnings": true }
     });
-    
-    let r = c.post(format!("{LCP}/v1/tenants/local/policies")).json(&draft).send().await?;
+
+    let r = c
+        .post(format!("{LCP}/v1/tenants/local/policies"))
+        .json(&draft)
+        .send()
+        .await?;
     anyhow::ensure!(r.status().as_u16() == 201, "author: expected 201");
 
-    let r = c.post(format!("{LCP}/v1/tenants/local/policies/{policy_id}/publish")).json(&draft).send().await?;
+    let r = c
+        .post(format!(
+            "{LCP}/v1/tenants/local/policies/{policy_id}/publish"
+        ))
+        .json(&draft)
+        .send()
+        .await?;
     anyhow::ensure!(r.status().is_success(), "publish: expected 2xx");
 
     let trust_key = fetch_local_trust_key(&c).await?;
@@ -175,7 +193,15 @@ async fn test_offline_mode_resilience() -> Result<()> {
     std::fs::create_dir_all(&data)?;
 
     let st = Command::new(bin("dek-cli"))
-        .args(["profile", "set", "local", "--url", LCP, "--trusted-key", &trust_key])
+        .args([
+            "profile",
+            "set",
+            "local",
+            "--url",
+            LCP,
+            "--trusted-key",
+            &trust_key,
+        ])
         .env("DEK_CONFIG_DIR", &cfg)
         .env("DEK_DATA_DIR", &data)
         .env_remove("DEK_PINNED_KEY_OVERRIDE")
@@ -200,9 +226,9 @@ async fn test_offline_mode_resilience() -> Result<()> {
             .spawn()
             .context("spawn dek-core")?,
     );
-    
+
     wait_http(&format!("{PEP}/healthz"), 30).await?;
-    
+
     // Wait for the bundle to sync and policy to be active
     poll_until(
         Duration::from_secs(30),
@@ -220,18 +246,22 @@ async fn test_offline_mode_resilience() -> Result<()> {
             });
             let (st, allow, body) = authorize(&c, &req).await;
             if st != 200 || !allow {
-                println!("poll_until auth failed: st={}, allow={}, body={}", st, allow, body);
+                println!(
+                    "poll_until auth failed: st={}, allow={}, body={}",
+                    st, allow, body
+                );
             }
             st == 200 && allow
         },
-    ).await?;
+    )
+    .await?;
     println!("[offline_mode] DEK successfully synced bundle and enforced policy online.");
 
     // KILL THE LOCAL CONTROL PLANE
     lcp_proc.kill().await?;
     println!("[offline_mode] Local control plane killed (simulating outage).");
     sleep(Duration::from_secs(3)).await; // wait a few seconds to let DEK notice the outage
-    
+
     // Assert DEK still works using cached bundle
     let req = serde_json::json!({
         "request_id": "req-off-2",
@@ -248,7 +278,9 @@ async fn test_offline_mode_resilience() -> Result<()> {
         status == 200 && allow,
         "enforce: expected allow in offline mode using LKG bundle (status={status}, allow={allow}, body={body})"
     );
-    println!("[offline_mode] DEK successfully enforced policy OFFLINE using Last Known Good bundle.");
+    println!(
+        "[offline_mode] DEK successfully enforced policy OFFLINE using Last Known Good bundle."
+    );
 
     println!("[offline_mode] PASS");
     let _ = std::fs::remove_dir_all(&lcp_data);

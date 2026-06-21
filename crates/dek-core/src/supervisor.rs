@@ -343,7 +343,8 @@ impl Supervisor {
         });
 
         // Spawn SVID Renewal Task (Only in Cloud Mode)
-        let is_local_mode = self.cloud_url.contains("127.0.0.1") || self.cloud_url.contains("localhost");
+        let is_local_mode =
+            self.cloud_url.contains("127.0.0.1") || self.cloud_url.contains("localhost");
         let renew_handle = if !is_local_mode {
             crate::svid_renewal::spawn_svid_renewal_task(
                 self.cancel.clone(),
