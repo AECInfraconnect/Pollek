@@ -17,18 +17,24 @@ Before any tag is pushed to GitHub, you **MUST** verify the following:
 Do not tag blindly. Tags should only be applied to a green commit on `main`.
 
 1. **Pull the latest green commit**:
+
    ```bash
    git checkout main
    git pull origin main
    ```
+
 2. **Create the tag**:
+
    ```bash
    git tag v1.0.0-beta.5
    ```
+
 3. **Push ONLY the single tag**:
+
    ```bash
    git push origin v1.0.0-beta.5
    ```
+
    *(Do not use `git push --tags` as it pushes all local tags, potentially triggering multiple pipeline runs for outdated/abandoned tags).*
 
 ## 3. Tag Recovery (Fixing a Botched Release)
@@ -36,13 +42,17 @@ Do not tag blindly. Tags should only be applied to a green commit on `main`.
 If a tag was created on a failing commit or if the release pipeline fails halfway, follow this procedure strictly. Do not just keep adding new tags to test CI.
 
 1. **Delete the tag locally**:
+
    ```bash
    git tag -d v1.0.0-beta.5
    ```
+
 2. **Delete the tag remotely**:
+
    ```bash
    git push origin :refs/tags/v1.0.0-beta.5
    ```
+
 3. **Fix the underlying code**, push to `main`, wait for the `main` pipeline to turn **green**, and then restart the tagging process.
 
 ## 4. Beta vs GA Artifact Blocking Matrix

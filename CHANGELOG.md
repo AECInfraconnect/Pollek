@@ -31,6 +31,7 @@ Pollen DEK beta 5 brings major stability and edge functionality improvements.
 - **Contract Hub** — Strict enforcement of `DecisionResult` schema with `adapter_results` and `obligations`.
 
 ### Changed
+
 - **OS Capability Honesty** — `dek-capability-registry` accurately advertises native OS enforcement modes (e.g. `windows-wfp`, `macos-nefilter`) only if the host OS supports them. Stubs correctly return `NotSupported` errors instead of panicking.
 - Refactored `latency_ms` to `i64` to match typify types and schema definitions.
 - Restored `PollenError` standard envelope across API specs.

@@ -17,12 +17,14 @@ decision logs back — all on `localhost`.
 ## 1. Build
 
 For Linux/macOS or PowerShell 7+:
+
 ```bash
 cargo build --workspace
 cd apps/local-admin-dashboard && npm install && npm run build && cd -
 ```
 
 For Windows PowerShell (older versions):
+
 ```powershell
 cargo build --workspace
 cd apps/local-admin-dashboard; npm install; npm run build; cd ../..
@@ -31,6 +33,7 @@ cd apps/local-admin-dashboard; npm install; npm run build; cd ../..
 ## 2. Start the Local Control Plane
 
 For Linux/macOS or bash/Zsh:
+
 ```bash
 # data dir holds the local bundle-signing key (created 0600 on first run)
 DEK_LCP_DATA=./pollen-local-data \
@@ -40,6 +43,7 @@ DEK_LCP_AUTH_DISABLE=1 \
 ```
 
 For Windows PowerShell:
+
 ```powershell
 # data dir holds the local bundle-signing key (created 0600 on first run)
 $env:DEK_LCP_DATA="./pollen-local-data"
@@ -57,9 +61,10 @@ local control-plane signing key: local-ab12cd34 (pub Base64EncodedKey==)
 
 ## 3. Point the DEK at the Local Control Plane
 
-> **Note for Windows Users:** Keep the terminal from Step 2 open, and open a **NEW terminal window or tab** for Step 3 and beyond. 
+> **Note for Windows Users:** Keep the terminal from Step 2 open, and open a **NEW terminal window or tab** for Step 3 and beyond.
 
 For Linux/macOS or bash/Zsh:
+
 ```bash
 # copy the trust key from the control plane log above (looks like 'pub Base64EncodedKey==')
 # (Optional for bash/Zsh) you can fetch it with curl if auth is disabled:
@@ -70,6 +75,7 @@ For Linux/macOS or bash/Zsh:
 ```
 
 For Windows PowerShell:
+
 ```powershell
 # Copy the trust key from the control plane log above (looks like 'pub Base64EncodedKey==')
 .\target\debug\dek-cli.exe profile set local --url http://127.0.0.1:3000 --trusted-key "Base64EncodedKey=="
@@ -81,6 +87,7 @@ For Windows PowerShell:
 *(Note: In local mode, `profile set local` already bootstraps the configuration, so we skip `dek-cli enroll`)*
 
 For Linux/macOS or bash/Zsh:
+
 ```bash
 ./target/debug/dek-core &     # PEP on :43890 (runs in background)
 ./target/debug/dek-cli doctor                # checks certs / connectivity / permissions
@@ -88,6 +95,7 @@ For Linux/macOS or bash/Zsh:
 ```
 
 For Windows PowerShell:
+
 ```powershell
 # dek-core blocks the terminal, so we use Start-Process to run it in the background
 Start-Process .\target\debug\dek-core.exe -NoNewWindow
@@ -145,6 +153,7 @@ So the DEK never knows whether it's talking to Local or Cloud.
 ## Switching to Pollen Cloud (later)
 
 For Linux/macOS or bash/Zsh:
+
 ```bash
 ./target/debug/dek-cli profile set cloud --url https://cloud.<your-cloud-domain> --tenant-id your-tenant
 ./target/debug/dek-cli enroll --cloud-url https://cloud.<your-cloud-domain>
@@ -152,6 +161,7 @@ For Linux/macOS or bash/Zsh:
 ```
 
 For Windows PowerShell:
+
 ```powershell
 .\target\debug\dek-cli.exe profile set cloud --url https://cloud.<your-cloud-domain> --tenant-id your-tenant
 .\target\debug\dek-cli.exe enroll --cloud-url https://cloud.<your-cloud-domain>

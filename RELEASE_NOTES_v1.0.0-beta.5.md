@@ -3,6 +3,7 @@
 We are excited to announce Pollen DEK `v1.0.0-beta.5`. This release focuses on addressing edge deployment gaps and bringing critical control plane capabilities to the local environment.
 
 ## Highlights
+
 - **Dry-run Simulation Engine:** Easily simulate and test draft policies with multiple what-if scenarios directly from the Local Admin Dashboard without affecting live traffic.
 - **Audit Logging Export:** Export decision logs directly from the dashboard in CSV and JSON formats for external reporting and SIEM integrations.
 - **Connector Health Checks:** Test connectivity to external PDP backends (OPA, OpenFGA, Cedar) via the Local Admin Dashboard settings.
@@ -12,7 +13,9 @@ We are excited to announce Pollen DEK `v1.0.0-beta.5`. This release focuses on a
 - **MSRV Enforced:** Minimum Supported Rust Version (MSRV) raised to `1.85`.
 
 ## Upgrading
+
 To upgrade your DEK CLI to the latest version via the beta channel:
+
 ```bash
 dek-cli update --channel beta
 ```
