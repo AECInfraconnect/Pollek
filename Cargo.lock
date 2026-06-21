@@ -1252,14 +1252,14 @@ checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
 
 [[package]]
 name = "content-guard"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "contract-conformance"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "axum",
@@ -1712,7 +1712,7 @@ dependencies = [
 
 [[package]]
 name = "dek-a2a-mediator"
-version = "1.0.0-beta.6"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "dek-agent-observer",
@@ -1755,7 +1755,7 @@ dependencies = [
 
 [[package]]
 name = "dek-agent-discovery"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1776,7 +1776,7 @@ dependencies = [
 
 [[package]]
 name = "dek-agent-observer"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "chrono",
  "serde",
@@ -1798,7 +1798,7 @@ dependencies = [
 
 [[package]]
 name = "dek-bundle-format"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "serde",
 ]
@@ -1833,7 +1833,7 @@ dependencies = [
 
 [[package]]
 name = "dek-capability-registry"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "serde",
  "serde_json",
@@ -2011,7 +2011,7 @@ dependencies = [
 
 [[package]]
 name = "dek-enforcement-api"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2037,7 +2037,7 @@ dependencies = [
 
 [[package]]
 name = "dek-entity-registry"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "serde",
  "serde_json",
@@ -2055,7 +2055,7 @@ dependencies = [
 
 [[package]]
 name = "dek-execution-sandbox"
-version = "1.0.0-beta.6"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "dek-mcp-normalizer",
@@ -2116,7 +2116,7 @@ dependencies = [
 
 [[package]]
 name = "dek-load-test"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "clap",
@@ -2237,7 +2237,7 @@ dependencies = [
 
 [[package]]
 name = "dek-opa-wasm"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2269,7 +2269,7 @@ dependencies = [
 
 [[package]]
 name = "dek-pdp-sdk"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "async-trait",
  "dek-policy-runtime",
@@ -2281,7 +2281,7 @@ dependencies = [
 
 [[package]]
 name = "dek-plugin-host"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2296,7 +2296,7 @@ dependencies = [
 
 [[package]]
 name = "dek-plugin-sdk"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "async-trait",
  "serde",
@@ -2306,7 +2306,7 @@ dependencies = [
 
 [[package]]
 name = "dek-policy-compiler"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "dek-policy-intent",
@@ -2317,7 +2317,7 @@ dependencies = [
 
 [[package]]
 name = "dek-policy-intent"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "serde",
  "serde_json",
@@ -2325,7 +2325,7 @@ dependencies = [
 
 [[package]]
 name = "dek-policy-presets"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "dek-control-plane-api",
@@ -2373,7 +2373,7 @@ dependencies = [
 
 [[package]]
 name = "dek-policy-suggester"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "chrono",

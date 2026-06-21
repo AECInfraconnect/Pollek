@@ -3,7 +3,7 @@ import { Cpu, MoreVertical, Plus } from "lucide-react";
 import { RegistryApi } from "../services/api";
 import type { BlackboxAiProvider } from "../services/types";
 
-export function BlackboxAI() {
+export function BlackboxAI({ hideHeader = false }: { hideHeader?: boolean }) {
   const [providers, setProviders] = useState<BlackboxAiProvider[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,18 +16,20 @@ export function BlackboxAI() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Blackbox AI</h2>
-          <p className="text-muted-foreground">
-            Manage external AI model providers (OpenAI, Anthropic, Google, etc).
-          </p>
+      {!hideHeader && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Blackbox AI</h2>
+            <p className="text-muted-foreground">
+              Manage external AI model providers (OpenAI, Anthropic, Google, etc).
+            </p>
+          </div>
+          <button className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+            <Plus className="h-4 w-4" />
+            Add Provider
+          </button>
         </div>
-        <button className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-          <Plus className="h-4 w-4" />
-          Add Provider
-        </button>
-      </div>
+      )}
 
       <div className="glass rounded-xl overflow-hidden border">
         <table className="w-full text-sm text-left">

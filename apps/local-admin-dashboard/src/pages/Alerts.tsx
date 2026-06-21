@@ -3,7 +3,7 @@ import { AlertCircle, ShieldAlert } from "lucide-react";
 
 import { TelemetryApi } from "../services/api";
 
-export function Alerts() {
+export function Alerts({ hideHeader = false }: { hideHeader?: boolean }) {
   const [denyCount, setDenyCount] = useState(0);
 
   useEffect(() => {
@@ -35,12 +35,14 @@ export function Alerts() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Alerts</h1>
-        <p className="text-muted-foreground mt-2">
-          Local edge alerts and recent policy violations.
-        </p>
-      </div>
+      {!hideHeader && (
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Alerts</h1>
+          <p className="text-muted-foreground mt-2">
+            Local edge alerts and recent policy violations.
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-6">
         {denyCount > 5 ? (

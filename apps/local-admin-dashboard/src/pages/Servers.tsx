@@ -3,7 +3,7 @@ import { Server, MoreVertical, Plus } from "lucide-react";
 import { RegistryApi } from "../services/api";
 import type { McpServer } from "../services/api";
 
-export function Servers() {
+export function Servers({ hideHeader = false }: { hideHeader?: boolean }) {
   const [servers, setServers] = useState<McpServer[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,18 +16,20 @@ export function Servers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">MCP Servers</h2>
-          <p className="text-muted-foreground">
-            Manage Model Context Protocol servers available in the local registry.
-          </p>
+      {!hideHeader && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">MCP Servers</h2>
+            <p className="text-muted-foreground">
+              Manage Model Context Protocol servers available in the local registry.
+            </p>
+          </div>
+          <button className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+            <Plus className="h-4 w-4" />
+            Add Server
+          </button>
         </div>
-        <button className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-          <Plus className="h-4 w-4" />
-          Add Server
-        </button>
-      </div>
+      )}
 
       <div className="glass rounded-xl overflow-hidden border">
         <table className="w-full text-sm text-left">
