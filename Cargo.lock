@@ -1716,6 +1716,7 @@ version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
  "dek-agent-observer",
+ "dek-control-plane-api",
  "serde",
  "serde_json",
  "tokio",
@@ -2058,6 +2059,7 @@ name = "dek-execution-sandbox"
 version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
+ "dek-control-plane-api",
  "dek-mcp-normalizer",
  "serde",
  "serde_json",
@@ -2328,6 +2330,7 @@ name = "dek-policy-presets"
 version = "1.0.0-beta.10"
 dependencies = [
  "anyhow",
+ "cedar-policy",
  "dek-control-plane-api",
  "dek-domain-schema",
  "schemars 0.8.22",
