@@ -13,6 +13,8 @@
 use serde::Serialize;
 use std::net::IpAddr;
 
+pub mod map_updater;
+
 /// A parsed DNS observation handed to userspace consumers (telemetry / IP map).
 #[derive(Debug, Clone, Serialize)]
 pub struct DnsObservation {
