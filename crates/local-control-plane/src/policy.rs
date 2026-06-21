@@ -350,8 +350,8 @@ async fn simulate_policy(
     let mut router = dek_policy_router::PolicyRouter::new();
 
     let mut syntax_check = "Passed".to_string();
-    let mut recommended_pep = "Gateway PEP".to_string();
-    let mut deployment_test = "Passed".to_string();
+    let recommended_pep: String;
+    let mut deployment_test: String;
 
     if language_id == "cedar" {
         recommended_pep = "Application PEP (Native Cedar)".to_string();
