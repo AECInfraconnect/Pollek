@@ -104,7 +104,7 @@ jobs:
           cp target/${{ matrix.target }}/release/dek-cli staging/dek-cli || cp target/${{ matrix.target }}/release/dek-cli.exe staging/dek-cli.exe
           
       - name: Sign macOS Binaries
-        if: matrix.os == 'macos-latest' && env.APPLE_CERT_B64 != ''
+        if: matrix.os == 'macos-latest'
         env:
           APPLE_CERT_B64: ${{ secrets.APPLE_CERT_B64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
@@ -112,6 +112,14 @@ jobs:
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          if [ -z "$APPLE_CERT_B64" ]; then
+            if [[ ! "$RELEASE_TAG" == *"-"* ]]; then
+              echo "Error: Production release requires macOS signing certificates"
+              exit 1
+            fi
+            echo "Skipping macOS signing for pre-release because cert is missing."
+            exit 0
+          fi
           echo "$APPLE_CERT_B64" | base64 --decode > cert.p12
           security create-keychain -p "" build.keychain
           security import cert.p12 -k build.keychain -P "$APPLE_CERT_PASSWORD" -T /usr/bin/codesign
@@ -131,12 +139,20 @@ jobs:
           xcrun stapler staple staging/dek-cli
 
       - name: Sign Windows Binaries
-        if: matrix.os == 'windows-latest' && env.WINDOWS_PFX_B64 != ''
+        if: matrix.os == 'windows-latest'
         env:
           WINDOWS_PFX_B64: ${{ secrets.WINDOWS_PFX_B64 }}
           WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
         shell: powershell
         run: |
+          if ([string]::IsNullOrEmpty($env:WINDOWS_PFX_B64)) {
+            if (-not ($env:RELEASE_TAG -match "-")) {
+              Write-Error "Production release requires Windows signing certificates"
+              exit 1
+            }
+            Write-Host "Skipping Windows signing for pre-release because cert is missing."
+            exit 0
+          }
           $pfxBytes = [System.Convert]::FromBase64String($env:WINDOWS_PFX_B64)
           [IO.File]::WriteAllBytes("cert.pfx", $pfxBytes)
           & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe" sign /f cert.pfx /p $env:WINDOWS_PFX_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 staging\dek-core.exe staging\dek-mcp-proxy.exe staging\dek-ext-authz.exe staging\dek-cli.exe

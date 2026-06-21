@@ -78,4 +78,19 @@ jobs:
     - name: Build WASM Plugins
       run: cargo build --target wasm32-wasip1 -p pii-redactor-plugin
 
+  security_insights_check:
+    name: Verify SECURITY-INSIGHTS.yml Links
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+    - name: Check URLs
+      run: |
+        missing=0
+        for wf in $(grep -oE 'actions/workflows/[a-zA-Z0-9_-]+\.yml' SECURITY-INSIGHTS.yml | awk -F'/' '{print $3}'); do
+           if [ ! -f ".github/workflows/$wf" ]; then
+              echo "Error: Referenced workflow $wf does not exist."
+              missing=1
+           fi
+        done
+        exit $missing
 
