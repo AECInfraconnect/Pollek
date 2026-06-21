@@ -138,6 +138,8 @@ impl Supervisor {
             client_key_override.as_deref(),
             &data_dir.join("telemetry.db").to_string_lossy(),
             bootstrap.local_api_token.clone(),
+            tenant_id.to_string(),
+            bootstrap.device_id.clone(),
         )?;
         let metrics_client = Arc::new(RwLock::new(
             bootstrap

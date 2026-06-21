@@ -4,6 +4,7 @@
 pub mod redactor;
 pub mod routing;
 pub mod spooler;
+pub mod fallback_spool;
 
 use anyhow::Result;
 use dek_config::MtlsConfig;
@@ -66,6 +67,7 @@ pub struct CloudTelemetrySink {
     endpoint_url: String,
     enterprise_profile: Arc<std::sync::RwLock<dek_config::EnterpriseProfile>>,
     api_token: Option<String>,
+    fallback: Arc<fallback_spool::SecureFallback>,
 }
 
 impl CloudTelemetrySink {
@@ -75,6 +77,8 @@ impl CloudTelemetrySink {
         client_key_override: Option<&[u8]>,
         db_path: &str,
         api_token: Option<String>,
+        tenant_id: String,
+        device_id: String,
     ) -> Result<Arc<Self>> {
         let client = Arc::new(tokio::sync::RwLock::new(
             mtls.build_client(client_key_override)?,
@@ -91,6 +95,7 @@ impl CloudTelemetrySink {
                 dek_config::EnterpriseProfile::default(),
             )),
             api_token,
+            fallback: Arc::new(fallback_spool::SecureFallback::new(tenant_id, device_id)?),
         });
 
         // Initialize OTLP Metrics Provider
@@ -105,6 +110,17 @@ impl CloudTelemetrySink {
         let hb_sink = sink.clone();
         tokio::spawn(async move {
             hb_sink.start_heartbeat().await;
+        });
+
+        // Start fallback replay
+        let fb_sink = sink.clone();
+        let fallback_url = endpoint_url.to_string();
+        tokio::spawn(async move {
+            fb_sink.fallback.start_replay(
+                fallback_url,
+                fb_sink.client.clone(),
+                fb_sink.api_token.clone()
+            ).await;
         });
 
         Ok(sink)
@@ -253,9 +269,13 @@ impl CloudTelemetrySink {
                     Err(e) => {
                         if e.to_string().contains("Non-retryable") {
                             warn!(
-                                "[Telemetry] Dropping non-retryable batch for endpoint {}",
+                                "[Telemetry] Cloud rejected batch (4xx). Spooling to secure fallback for endpoint {}",
                                 suffix
                             );
+                            let events_to_fallback: Vec<serde_json::Value> = events.clone();
+                            if let Err(fe) = self.fallback.append_batch(events_to_fallback) {
+                                error!("[Telemetry] Failed to append to secure fallback: {}", fe);
+                            }
                             all_ok_ids.extend(ids);
                         } else {
                             warn!(

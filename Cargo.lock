@@ -2493,6 +2493,7 @@ dependencies = [
  "chrono",
  "dek-config",
  "dek-errors",
+ "dek-secure-spool",
  "hex",
  "keyring",
  "metrics",
@@ -2509,6 +2510,7 @@ dependencies = [
  "tokio",
  "tokio-retry",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
