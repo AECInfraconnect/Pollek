@@ -21,6 +21,7 @@ sysinfo = "0.33"
 dek-control-plane-api = { path = "../dek-control-plane-api" }
 dek-domain-schema = { path = "../dek-domain-schema" }
 thiserror.workspace = true
+reqwest.workspace = true
 
 [lints]
 workspace = true

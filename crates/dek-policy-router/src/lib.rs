@@ -24,6 +24,30 @@ pub enum EnforcementMode {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
+pub enum PdpRouteMode {
+    #[default]
+    LocalOnly,
+    LocalPrimaryRemoteFallback,
+    RemotePrimaryLocalFallback,
+    CloudPrimaryLocalFallback,
+    ShadowRemote,
+    MirrorAuditOnly,
+    StrictRemote,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PdpFailureBehavior {
+    #[default]
+    Deny,
+    Allow,
+    Fallback,
+    LastKnownGood,
+    NotApplicable,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "snake_case")]
 pub enum FailoverStrategy {
     #[default]
     Priority,
@@ -39,6 +63,22 @@ pub struct Route {
     #[serde(default)]
     pub enforcement_mode: EnforcementMode,
     pub match_rule: EnterpriseMatchRule,
+
+    // New fields from PdpRouteRule
+    #[serde(default)]
+    pub mode: PdpRouteMode,
+    #[serde(default)]
+    pub primary_pdp_id: String,
+    #[serde(default)]
+    pub fallback_pdp_ids: Vec<String>,
+    #[serde(default)]
+    pub shadow_pdp_ids: Vec<String>,
+    #[serde(default = "default_merge_strategy")]
+    pub merge_strategy: String,
+    #[serde(default)]
+    pub failure_behavior: PdpFailureBehavior,
+
+    // Legacy fields (for backward compatibility if needed)
     #[serde(default)]
     pub pdp_required: Vec<String>,
     #[serde(default)]
@@ -47,6 +87,10 @@ pub struct Route {
     pub failover_strategy: FailoverStrategy,
     #[serde(default)]
     pub pdp_conditional: Vec<ConditionalPdp>,
+}
+
+fn default_merge_strategy() -> String {
+    "override".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -415,8 +459,8 @@ impl PolicyRouter {
             }
         }
 
-        // AUTO-SELECT: เนเธกเนเธกเธต PDP เธฃเธฐเธเธธเน€เธฅเธข -> เน€เธฅเธทเธญเธ engine เธ•เธฒเธก decision kind
-        if to_evaluate.is_empty() {
+        // AUTO-SELECT: ถ้าไม่มีระบุอะไรเลย ให้ใช้ auto select
+        if to_evaluate.is_empty() && route.primary_pdp_id.is_empty() {
             let available = self.evaluator_ids();
             match EngineSelector::resolve(method, &payload, &available) {
                 Some(engine) => {
@@ -427,7 +471,6 @@ impl PolicyRouter {
                     to_evaluate.push(engine);
                 }
                 None => {
-                    // fail-closed: เนเธกเนเธกเธต engine เธ—เธตเนเน€เธซเธกเธฒเธฐ + build เนเธกเนเธกเธต -> deny
                     return Ok(PolicyDecision {
                         evaluator_id: "router_autoselect".into(),
                         evaluator_type: "router".into(),
@@ -444,8 +487,18 @@ impl PolicyRouter {
             }
         }
 
+        // Add primary_pdp_id if it's set and we haven't already added engines
+        if !route.primary_pdp_id.is_empty() {
+            to_evaluate.insert(0, route.primary_pdp_id.clone());
+        }
+
         let to_evaluate_clone = to_evaluate.clone();
-        for ev_id in to_evaluate {
+        let mut evaluate_queue = to_evaluate;
+        let mut fallback_queue = route.fallback_pdp_ids.clone();
+
+        while !evaluate_queue.is_empty() {
+            let ev_id = evaluate_queue.remove(0);
+
             if let Some(evaluator) = self.evaluators.get(&ev_id) {
                 let breaker = self.breakers.get(&ev_id).cloned();
 
@@ -530,15 +583,31 @@ impl PolicyRouter {
                                 stats.lock_safe().failures += 1;
                             }
                         }
-                        if route.enforcement_mode == EnforcementMode::ObserveOnly {
+
+                        if route.failure_behavior == PdpFailureBehavior::Fallback
+                            && !fallback_queue.is_empty()
+                        {
+                            let next_pdp = fallback_queue.remove(0);
                             tracing::warn!(
-                                "required PDP unavailable but mode is ObserveOnly: {}; allowing request.",
+                                "Falling back to {} due to unavailable {}",
+                                next_pdp,
+                                ev_id
+                            );
+                            evaluate_queue.push(next_pdp);
+                            continue;
+                        }
+
+                        if route.failure_behavior == PdpFailureBehavior::Allow
+                            || route.enforcement_mode == EnforcementMode::ObserveOnly
+                        {
+                            tracing::warn!(
+                                "required PDP unavailable but failure_behavior is Allow (or ObserveOnly): {}; allowing request.",
                                 msg
                             );
                             combined_decision.allow = true;
                             combined_decision.decision = "allow".into();
                             combined_decision.reason =
-                                format!("PDP unavailable but ObserveOnly: {}", msg);
+                                format!("PDP unavailable but Allow/ObserveOnly: {}", msg);
                         } else {
                             combined_decision.allow = false;
                             combined_decision.decision = "deny".into();
@@ -554,7 +623,7 @@ impl PolicyRouter {
                             metrics::counter!("dek_pdp_error_total", "evaluator" => ev_id.clone())
                                 .increment(1);
                         }
-                        tracing::warn!("PDP error: {e}; mode: {:?}", route.enforcement_mode);
+                        tracing::error!("evaluator error from {}: {}", ev_id, e);
                         if !dry_run {
                             if let Some(ref b) = breaker {
                                 b.on_failure();
@@ -563,29 +632,44 @@ impl PolicyRouter {
                                 stats.lock_safe().failures += 1;
                             }
                         }
-                        if route.enforcement_mode == EnforcementMode::ObserveOnly {
+
+                        if route.failure_behavior == PdpFailureBehavior::Fallback
+                            && !fallback_queue.is_empty()
+                        {
+                            let next_pdp = fallback_queue.remove(0);
                             tracing::warn!(
-                                "PDP error but mode is ObserveOnly: {}; allowing request.",
-                                e
+                                "Falling back to {} due to error in {}",
+                                next_pdp,
+                                ev_id
                             );
+                            evaluate_queue.push(next_pdp);
+                            continue;
+                        }
+
+                        if route.failure_behavior == PdpFailureBehavior::Allow
+                            || route.enforcement_mode == EnforcementMode::ObserveOnly
+                        {
                             combined_decision.allow = true;
                             combined_decision.decision = "allow".into();
-                            combined_decision.reason = format!("PDP error but ObserveOnly: {}", e);
+                            combined_decision.reason =
+                                format!("PDP error but Allow/ObserveOnly: {}", e);
                         } else {
                             combined_decision.allow = false;
                             combined_decision.decision = "deny".into();
-                            combined_decision.reason =
-                                format!("PDP error: {} (Mode: {:?})", e, route.enforcement_mode);
+                            combined_decision.reason = format!("evaluator error: {}", e);
                             break;
                         }
                     }
                     Err(_) => {
-                        // Timeout elapsed
                         if !dry_run {
                             metrics::counter!("dek_pdp_timeout_total", "evaluator" => ev_id.clone())
                                 .increment(1);
                         }
-                        tracing::warn!("PDP timeout for evaluator: {}", ev_id);
+                        tracing::error!(
+                            "evaluator timeout from {} after {}ms",
+                            ev_id,
+                            self.pdp_timeout_ms
+                        );
                         if !dry_run {
                             if let Some(ref b) = breaker {
                                 b.on_failure();
@@ -594,19 +678,32 @@ impl PolicyRouter {
                                 stats.lock_safe().failures += 1;
                             }
                         }
-                        if route.enforcement_mode == EnforcementMode::ObserveOnly {
+
+                        if route.failure_behavior == PdpFailureBehavior::Fallback
+                            && !fallback_queue.is_empty()
+                        {
+                            let next_pdp = fallback_queue.remove(0);
                             tracing::warn!(
-                                "PDP timeout but mode is ObserveOnly; allowing request."
+                                "Falling back to {} due to timeout in {}",
+                                next_pdp,
+                                ev_id
                             );
+                            evaluate_queue.push(next_pdp);
+                            continue;
+                        }
+
+                        if route.failure_behavior == PdpFailureBehavior::Allow
+                            || route.enforcement_mode == EnforcementMode::ObserveOnly
+                        {
                             combined_decision.allow = true;
                             combined_decision.decision = "allow".into();
                             combined_decision.reason =
-                                format!("PDP timeout but ObserveOnly for {}", ev_id);
+                                "PDP timeout but Allow/ObserveOnly".to_string();
                         } else {
                             combined_decision.allow = false;
                             combined_decision.decision = "deny".into();
                             combined_decision.reason =
-                                format!("PDP timeout ({} ms) for {}", self.pdp_timeout_ms, ev_id);
+                                format!("evaluator timeout: {}ms", self.pdp_timeout_ms);
                             break;
                         }
                     }
@@ -712,6 +809,12 @@ mod tests {
             pdp_conditional: vec![],
             pdp_pool: vec![],
             failover_strategy: FailoverStrategy::Priority,
+            mode: Default::default(),
+            primary_pdp_id: "".into(),
+            fallback_pdp_ids: vec![],
+            shadow_pdp_ids: vec![],
+            merge_strategy: default_merge_strategy(),
+            failure_behavior: Default::default(),
         }]);
 
         let payload = serde_json::json!({ "request_type": "test" });
@@ -736,6 +839,12 @@ mod tests {
             pdp_conditional: vec![],
             pdp_pool: vec![],
             failover_strategy: FailoverStrategy::Priority,
+            mode: Default::default(),
+            primary_pdp_id: "".into(),
+            fallback_pdp_ids: vec![],
+            shadow_pdp_ids: vec![],
+            merge_strategy: default_merge_strategy(),
+            failure_behavior: Default::default(),
         }]);
 
         let payload = serde_json::json!({ "request_type": "emergency_action" });
@@ -762,6 +871,12 @@ mod tests {
             pdp_conditional: vec![],
             pdp_pool: vec![],
             failover_strategy: FailoverStrategy::Priority,
+            mode: Default::default(),
+            primary_pdp_id: "".into(),
+            fallback_pdp_ids: vec![],
+            shadow_pdp_ids: vec![],
+            merge_strategy: default_merge_strategy(),
+            failure_behavior: Default::default(),
         }]);
 
         let payload = serde_json::json!({ "request_type": "test" });
@@ -795,6 +910,12 @@ mod tests {
             }],
             pdp_pool: vec![],
             failover_strategy: FailoverStrategy::Priority,
+            mode: Default::default(),
+            primary_pdp_id: "".into(),
+            fallback_pdp_ids: vec![],
+            shadow_pdp_ids: vec![],
+            merge_strategy: default_merge_strategy(),
+            failure_behavior: Default::default(),
         }]);
 
         // Payload without require_dummy -> won't evaluate dummy, defaults to auto-select but fail-closed since no match

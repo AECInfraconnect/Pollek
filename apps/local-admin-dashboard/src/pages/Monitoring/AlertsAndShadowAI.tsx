@@ -10,9 +10,12 @@ export function AlertsAndShadowAI() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Alerts & Shadow AI</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Alerts & Shadow AI
+          </h2>
           <p className="text-muted-foreground">
-            Monitor policy violations, security alerts, and unregistered AI activities.
+            Monitor policy violations, security alerts, and unregistered AI
+            activities.
           </p>
         </div>
       </div>

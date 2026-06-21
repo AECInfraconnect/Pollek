@@ -22,3 +22,11 @@ pub mod policy_suggestions_api;
 pub mod observation_api;
 pub mod pep_capabilities_api;
 pub mod policy_presets_api;
+
+pub mod pdp_credentials;
+pub mod pdp_models;
+pub mod pdp_router;
+pub mod pdp_routing_api;
+pub mod pdp_runtime_api;
+
+pub mod cloud_sync;

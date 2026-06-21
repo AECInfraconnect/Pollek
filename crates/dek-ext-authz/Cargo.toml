@@ -7,7 +7,7 @@ edition = "2021"
 
 
 [dependencies]
-tonic = "0.14"
+tonic = "0.12"
 tokio = { workspace = true, features = ["full"] }
 prost = "0.13"
 serde_json.workspace = true

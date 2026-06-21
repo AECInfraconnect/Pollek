@@ -102,7 +102,7 @@ The easiest way to start the **Local Control Plane** and **Local Admin Dashboard
 ./start-dek.sh
 ```
 
-After running the script, the Local Admin Dashboard will automatically open in your browser at `http://127.0.0.1:3000`.
+After running the script, the Local Admin Dashboard will automatically open in your browser at `http://127.0.0.1:43891`.
 
 To stop the Local Control Plane:
 - Windows: `.\stop-dek.ps1`

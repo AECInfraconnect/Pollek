@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -75,11 +75,22 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: "Inter", sans-serif;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
     /* Soft mesh gradient background for dark mode */
-    background-image: radial-gradient(circle at top left, rgba(80, 40, 200, 0.05), transparent 40%),
-                      radial-gradient(circle at bottom right, rgba(40, 120, 255, 0.05), transparent 40%);
+    background-image:
+      radial-gradient(
+        circle at top left,
+        rgba(80, 40, 200, 0.05),
+        transparent 40%
+      ),
+      radial-gradient(
+        circle at bottom right,
+        rgba(40, 120, 255, 0.05),
+        transparent 40%
+      );
     background-attachment: fixed;
   }
 }

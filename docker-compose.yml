@@ -8,10 +8,13 @@ services:
     environment:
       - OPENFGA_DATASTORE_ENGINE=memory
       - OPENFGA_LOG_FORMAT=text
+      - OPENFGA_PLAYGROUND_ENABLED=true
+      - OPENFGA_PLAYGROUND_PORT=3000
+      - OPENFGA_PLAYGROUND_ADDR=0.0.0.0:3000
     ports:
       - "8080:8080" # HTTP API
       - "8081:8081" # gRPC API
-      - "3000:3000" # Playground
+      - "3001:3000" # Playground
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=localhost:8081"]
       interval: 5s

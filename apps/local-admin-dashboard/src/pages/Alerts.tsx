@@ -11,14 +11,17 @@ export function Alerts({ hideHeader = false }: { hideHeader?: boolean }) {
     const checkAlerts = async () => {
       try {
         const data = await TelemetryApi.listDecisionLogs();
-        
+
         const oneMinuteAgo = new Date(Date.now() - 60000);
         let recentDenies = 0;
-        
+
         for (const item of data) {
           const timestamp = new Date(item.timestamp);
           const decisionStr = item.payload?.decision?.toString().toLowerCase();
-          if (timestamp > oneMinuteAgo && (decisionStr === "deny" || decisionStr === "false")) {
+          if (
+            timestamp > oneMinuteAgo &&
+            (decisionStr === "deny" || decisionStr === "false")
+          ) {
             recentDenies++;
           }
         }
@@ -49,9 +52,13 @@ export function Alerts({ hideHeader = false }: { hideHeader?: boolean }) {
           <div className="flex items-start gap-4 rounded-xl border border-destructive/50 bg-destructive/10 p-6 shadow-sm">
             <ShieldAlert className="h-6 w-6 text-destructive shrink-0 mt-1" />
             <div>
-              <h3 className="font-semibold text-destructive text-lg">High Deny Rate Detected</h3>
+              <h3 className="font-semibold text-destructive text-lg">
+                High Deny Rate Detected
+              </h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                There have been {denyCount} Access Denied decisions in the last minute. This could indicate an ongoing attack or misconfigured policy.
+                There have been {denyCount} Access Denied decisions in the last
+                minute. This could indicate an ongoing attack or misconfigured
+                policy.
               </p>
             </div>
           </div>
@@ -61,7 +68,8 @@ export function Alerts({ hideHeader = false }: { hideHeader?: boolean }) {
               <AlertCircle className="h-8 w-8 mb-3 opacity-50" />
               <p>No active alerts. The system is operating normally.</p>
               <p className="text-xs opacity-75 mt-1">
-                Note: Local edge will trigger an alert if "Deny" decisions exceed 5 per minute.
+                Note: Local edge will trigger an alert if "Deny" decisions
+                exceed 5 per minute.
               </p>
             </div>
           </div>

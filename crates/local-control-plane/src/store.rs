@@ -4,6 +4,7 @@ use dek_control_plane_api::registry::*;
 use dek_policy_suggester::model::PolicySuggestion;
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
+use std::sync::Arc;
 
 #[async_trait::async_trait]
 pub trait RegistryStore: Send + Sync {
@@ -113,11 +114,16 @@ pub trait TelemetryStore: Send + Sync {
 }
 
 #[async_trait::async_trait]
-pub trait ConnectorStore: Send + Sync {
-    async fn upsert(&self, tenant: &str, id: &str, data: &serde_json::Value) -> Result<()>;
-    async fn get(&self, tenant: &str, id: &str) -> Result<Option<serde_json::Value>>;
-    async fn list(&self, tenant: &str) -> Result<Vec<serde_json::Value>>;
-    async fn delete(&self, tenant: &str, id: &str) -> Result<bool>;
+pub trait PdpStore: Send + Sync {
+    async fn upsert_runtime(&self, tenant: &str, id: &str, data: &serde_json::Value) -> Result<()>;
+    async fn get_runtime(&self, tenant: &str, id: &str) -> Result<Option<serde_json::Value>>;
+    async fn list_runtimes(&self, tenant: &str) -> Result<Vec<serde_json::Value>>;
+    async fn delete_runtime(&self, tenant: &str, id: &str) -> Result<bool>;
+
+    async fn upsert_route(&self, tenant: &str, id: &str, data: &serde_json::Value) -> Result<()>;
+    async fn get_route(&self, tenant: &str, id: &str) -> Result<Option<serde_json::Value>>;
+    async fn list_routes(&self, tenant: &str) -> Result<Vec<serde_json::Value>>;
+    async fn delete_route(&self, tenant: &str, id: &str) -> Result<bool>;
 }
 
 #[async_trait::async_trait]
@@ -649,23 +655,426 @@ impl TelemetryStore for SqliteStore {
 }
 
 #[async_trait::async_trait]
-impl ConnectorStore for SqliteStore {
-    async fn upsert(&self, tenant: &str, id: &str, data: &serde_json::Value) -> Result<()> {
-        self.upsert_object(tenant, "connector", id, "active", "local", data)
-            .await
+impl PdpStore for SqliteStore {
+    async fn upsert_runtime(&self, tenant: &str, id: &str, data: &serde_json::Value) -> Result<()> {
+        let name = data.get("name").and_then(|v| v.as_str()).unwrap_or(id);
+        let category = data
+            .get("category")
+            .and_then(|v| v.as_str())
+            .unwrap_or("external_connector");
+        let kind = data
+            .get("kind")
+            .and_then(|v| v.as_str())
+            .unwrap_or("custom_http");
+        let enabled = data
+            .get("enabled")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+        let status = data
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("ready");
+        let endpoint = data.get("endpoint").and_then(|v| v.as_str());
+        let auth_ref = data.get("auth_ref").and_then(|v| v.as_str());
+        let capabilities_json = data
+            .get("capabilities")
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "[]".to_string());
+        let health_json = data.get("health").map(|v| v.to_string());
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query(
+            r#"
+            INSERT INTO pdp_runtimes (
+                tenant_id, id, name, category, kind, enabled, status, endpoint, auth_ref, capabilities_json, health_json, created_at, updated_at
+            )
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?12)
+            ON CONFLICT(tenant_id, id) DO UPDATE SET
+                name=excluded.name,
+                category=excluded.category,
+                kind=excluded.kind,
+                enabled=excluded.enabled,
+                status=excluded.status,
+                endpoint=excluded.endpoint,
+                auth_ref=excluded.auth_ref,
+                capabilities_json=excluded.capabilities_json,
+                health_json=excluded.health_json,
+                updated_at=excluded.updated_at
+            "#
+        )
+        .bind(tenant)
+        .bind(id)
+        .bind(name)
+        .bind(category)
+        .bind(kind)
+        .bind(enabled)
+        .bind(status)
+        .bind(endpoint)
+        .bind(auth_ref)
+        .bind(capabilities_json)
+        .bind(health_json)
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 
-    async fn get(&self, tenant: &str, id: &str) -> Result<Option<serde_json::Value>> {
-        self.get_object(tenant, "connector", id).await
+    async fn get_runtime(&self, tenant: &str, id: &str) -> Result<Option<serde_json::Value>> {
+        let row = sqlx::query("SELECT * FROM pdp_runtimes WHERE tenant_id = ?1 AND id = ?2")
+            .bind(tenant)
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
+
+        if let Some(r) = row {
+            Ok(Some(Self::row_to_pdp_runtime(r)?))
+        } else {
+            Ok(None)
+        }
     }
 
-    async fn list(&self, tenant: &str) -> Result<Vec<serde_json::Value>> {
-        self.list_objects(tenant, "connector").await
+    async fn list_runtimes(&self, tenant: &str) -> Result<Vec<serde_json::Value>> {
+        let rows = sqlx::query("SELECT * FROM pdp_runtimes WHERE tenant_id = ?1")
+            .bind(tenant)
+            .fetch_all(&self.pool)
+            .await?;
+
+        let mut results = Vec::new();
+        for r in rows {
+            if let Ok(val) = Self::row_to_pdp_runtime(r) {
+                results.push(val);
+            }
+        }
+        Ok(results)
     }
 
-    async fn delete(&self, tenant: &str, id: &str) -> Result<bool> {
-        self.delete_object(tenant, "connector", id).await
+    async fn delete_runtime(&self, tenant: &str, id: &str) -> Result<bool> {
+        let result = sqlx::query("DELETE FROM pdp_runtimes WHERE tenant_id = ?1 AND id = ?2")
+            .bind(tenant)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected() > 0)
     }
+
+    async fn upsert_route(&self, tenant: &str, id: &str, data: &serde_json::Value) -> Result<()> {
+        let name = data.get("name").and_then(|v| v.as_str()).unwrap_or(id);
+        let enabled = data
+            .get("enabled")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+        let priority = data.get("priority").and_then(|v| v.as_i64()).unwrap_or(0);
+        let match_cond_json = data
+            .get("match")
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "{}".to_string());
+        let mode = data
+            .get("mode")
+            .and_then(|v| v.as_str())
+            .unwrap_or("local_only");
+        let primary_pdp_id = data
+            .get("primary_pdp_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let fallback_pdp_ids_json = data
+            .get("fallback_pdp_ids")
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "[]".to_string());
+        let shadow_pdp_ids_json = data
+            .get("shadow_pdp_ids")
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "[]".to_string());
+        let merge_strategy = data
+            .get("merge_strategy")
+            .and_then(|v| v.as_str())
+            .unwrap_or("override");
+        let failure_behavior = data
+            .get("failure_behavior")
+            .and_then(|v| v.as_str())
+            .unwrap_or("deny");
+        let timeout_ms = data
+            .get("timeout_ms")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(1000);
+        let max_retries = data
+            .get("max_retries")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query(
+            r#"
+            INSERT INTO pdp_routes (
+                tenant_id, id, name, enabled, priority, match_cond_json, mode, primary_pdp_id, fallback_pdp_ids_json, shadow_pdp_ids_json, merge_strategy, failure_behavior, timeout_ms, max_retries, created_at, updated_at
+            )
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?15)
+            ON CONFLICT(tenant_id, id) DO UPDATE SET
+                name=excluded.name,
+                enabled=excluded.enabled,
+                priority=excluded.priority,
+                match_cond_json=excluded.match_cond_json,
+                mode=excluded.mode,
+                primary_pdp_id=excluded.primary_pdp_id,
+                fallback_pdp_ids_json=excluded.fallback_pdp_ids_json,
+                shadow_pdp_ids_json=excluded.shadow_pdp_ids_json,
+                merge_strategy=excluded.merge_strategy,
+                failure_behavior=excluded.failure_behavior,
+                timeout_ms=excluded.timeout_ms,
+                max_retries=excluded.max_retries,
+                updated_at=excluded.updated_at
+            "#
+        )
+        .bind(tenant)
+        .bind(id)
+        .bind(name)
+        .bind(enabled)
+        .bind(priority)
+        .bind(match_cond_json)
+        .bind(mode)
+        .bind(primary_pdp_id)
+        .bind(fallback_pdp_ids_json)
+        .bind(shadow_pdp_ids_json)
+        .bind(merge_strategy)
+        .bind(failure_behavior)
+        .bind(timeout_ms)
+        .bind(max_retries)
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    async fn get_route(&self, tenant: &str, id: &str) -> Result<Option<serde_json::Value>> {
+        let row = sqlx::query("SELECT * FROM pdp_routes WHERE tenant_id = ?1 AND id = ?2")
+            .bind(tenant)
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
+
+        if let Some(r) = row {
+            Ok(Some(Self::row_to_pdp_route(r)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn list_routes(&self, tenant: &str) -> Result<Vec<serde_json::Value>> {
+        let rows =
+            sqlx::query("SELECT * FROM pdp_routes WHERE tenant_id = ?1 ORDER BY priority DESC")
+                .bind(tenant)
+                .fetch_all(&self.pool)
+                .await?;
+
+        let mut results = Vec::new();
+        for r in rows {
+            if let Ok(val) = Self::row_to_pdp_route(r) {
+                results.push(val);
+            }
+        }
+        Ok(results)
+    }
+
+    async fn delete_route(&self, tenant: &str, id: &str) -> Result<bool> {
+        let result = sqlx::query("DELETE FROM pdp_routes WHERE tenant_id = ?1 AND id = ?2")
+            .bind(tenant)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected() > 0)
+    }
+}
+
+impl SqliteStore {
+    fn row_to_pdp_runtime(row: sqlx::sqlite::SqliteRow) -> Result<serde_json::Value> {
+        let id: String = row.try_get("id")?;
+        let name: String = row.try_get("name")?;
+        let category: String = row.try_get("category")?;
+        let kind: String = row.try_get("kind")?;
+        let enabled: bool = row.try_get("enabled")?;
+        let status: String = row.try_get("status")?;
+        let endpoint: Option<String> = row.try_get("endpoint")?;
+        let auth_ref: Option<String> = row.try_get("auth_ref")?;
+        let capabilities_json: String = row.try_get("capabilities_json")?;
+        let health_json: Option<String> = row.try_get("health_json")?;
+        let created_at: String = row.try_get("created_at")?;
+        let updated_at: String = row.try_get("updated_at")?;
+
+        let capabilities: serde_json::Value =
+            serde_json::from_str(&capabilities_json).unwrap_or_else(|_| serde_json::json!([]));
+        let health = health_json.and_then(|h| serde_json::from_str::<serde_json::Value>(&h).ok());
+
+        let mut obj = serde_json::json!({
+            "id": id,
+            "name": name,
+            "category": category,
+            "kind": kind,
+            "enabled": enabled,
+            "status": status,
+            "capabilities": capabilities,
+            "created_at": created_at,
+            "updated_at": updated_at
+        });
+
+        if let Some(ep) = endpoint {
+            obj["endpoint"] = serde_json::Value::String(ep);
+        }
+        if let Some(ar) = auth_ref {
+            obj["auth_ref"] = serde_json::Value::String(ar);
+        }
+        if let Some(h) = health {
+            obj["health"] = h;
+        }
+
+        Ok(obj)
+    }
+
+    fn row_to_pdp_route(row: sqlx::sqlite::SqliteRow) -> Result<serde_json::Value> {
+        let id: String = row.try_get("id")?;
+        let name: String = row.try_get("name")?;
+        let enabled: bool = row.try_get("enabled")?;
+        let priority: i64 = row.try_get("priority")?;
+        let match_cond_json: String = row.try_get("match_cond_json")?;
+        let mode: String = row.try_get("mode")?;
+        let primary_pdp_id: String = row.try_get("primary_pdp_id")?;
+        let fallback_pdp_ids_json: String = row.try_get("fallback_pdp_ids_json")?;
+        let shadow_pdp_ids_json: String = row.try_get("shadow_pdp_ids_json")?;
+        let merge_strategy: String = row.try_get("merge_strategy")?;
+        let failure_behavior: String = row.try_get("failure_behavior")?;
+        let timeout_ms: i64 = row.try_get("timeout_ms")?;
+        let max_retries: i64 = row.try_get("max_retries")?;
+        let created_at: String = row.try_get("created_at")?;
+        let updated_at: String = row.try_get("updated_at")?;
+
+        let match_cond: serde_json::Value =
+            serde_json::from_str(&match_cond_json).unwrap_or_else(|_| serde_json::json!({}));
+        let fallback_pdp_ids: serde_json::Value =
+            serde_json::from_str(&fallback_pdp_ids_json).unwrap_or_else(|_| serde_json::json!([]));
+        let shadow_pdp_ids: serde_json::Value =
+            serde_json::from_str(&shadow_pdp_ids_json).unwrap_or_else(|_| serde_json::json!([]));
+
+        Ok(serde_json::json!({
+            "id": id,
+            "name": name,
+            "enabled": enabled,
+            "priority": priority,
+            "match": match_cond,
+            "mode": mode,
+            "primary_pdp_id": primary_pdp_id,
+            "fallback_pdp_ids": fallback_pdp_ids,
+            "shadow_pdp_ids": shadow_pdp_ids,
+            "merge_strategy": merge_strategy,
+            "failure_behavior": failure_behavior,
+            "timeout_ms": timeout_ms,
+            "max_retries": max_retries,
+            "created_at": created_at,
+            "updated_at": updated_at
+        }))
+    }
+}
+
+pub async fn seed_pdp_defaults(store: &Arc<dyn PdpStore>) -> Result<()> {
+    let tenant = "local";
+
+    use crate::pdp_models::*;
+    let local_runtimes = vec![
+        PdpRuntime {
+            id: "opa_wasm".to_string(),
+            name: "OPA WASM".to_string(),
+            category: PdpRuntimeCategory::LocalEngine,
+            kind: PdpKind::OpaWasm,
+            enabled: true,
+            status: PdpStatus::Ready,
+            endpoint: None,
+            auth_ref: None,
+            capabilities: vec![],
+            health: None,
+            created_at: chrono::Utc::now().to_rfc3339(),
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        },
+        PdpRuntime {
+            id: "cedar_local".to_string(),
+            name: "Cedar Local".to_string(),
+            category: PdpRuntimeCategory::LocalEngine,
+            kind: PdpKind::CedarLocal,
+            enabled: true,
+            status: PdpStatus::Ready,
+            endpoint: None,
+            auth_ref: None,
+            capabilities: vec![],
+            health: None,
+            created_at: chrono::Utc::now().to_rfc3339(),
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        },
+        PdpRuntime {
+            id: "wasm_plugin".to_string(),
+            name: "WASM Plugin".to_string(),
+            category: PdpRuntimeCategory::LocalEngine,
+            kind: PdpKind::WasmPlugin,
+            enabled: true,
+            status: PdpStatus::Ready,
+            endpoint: None,
+            auth_ref: None,
+            capabilities: vec![],
+            health: None,
+            created_at: chrono::Utc::now().to_rfc3339(),
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        },
+        PdpRuntime {
+            id: "policy_router".to_string(),
+            name: "Policy Router".to_string(),
+            category: PdpRuntimeCategory::LocalEngine,
+            kind: PdpKind::CustomHttp,
+            enabled: true,
+            status: PdpStatus::Ready,
+            endpoint: None,
+            auth_ref: None,
+            capabilities: vec![],
+            health: None,
+            created_at: chrono::Utc::now().to_rfc3339(),
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        },
+    ];
+
+    for rt in local_runtimes {
+        if store.get_runtime(tenant, &rt.id).await?.is_none() {
+            let val = serde_json::to_value(&rt)?;
+            store.upsert_runtime(tenant, &rt.id, &val).await?;
+        }
+    }
+
+    let default_route_id = "default_route";
+    if store.get_route(tenant, default_route_id).await?.is_none() {
+        let route = PdpRouteRule {
+            id: default_route_id.to_string(),
+            name: "Default Route".to_string(),
+            enabled: true,
+            priority: 0,
+            match_cond: RouteMatch {
+                agent_ids: None,
+                resource_ids: None,
+                protocols: None,
+                policy_tags: None,
+                sensitivity: None,
+                environment: None,
+            },
+            mode: PdpRouteMode::LocalPrimaryRemoteFallback,
+            primary_pdp_id: "opa_wasm".to_string(),
+            fallback_pdp_ids: vec![],
+            shadow_pdp_ids: vec![],
+            merge_strategy: "override".to_string(),
+            failure_behavior: PdpFailureBehavior::Deny,
+            timeout_ms: 1000,
+            max_retries: 0,
+        };
+        let val = serde_json::to_value(&route)?;
+        store.upsert_route(tenant, default_route_id, &val).await?;
+    }
+
+    Ok(())
 }
 
 #[async_trait::async_trait]

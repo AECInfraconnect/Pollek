@@ -13,11 +13,12 @@ pub struct AppState {
     pub registry_store: Arc<dyn store::RegistryStore>,
     pub policy_store: Arc<dyn store::PolicyStore>,
     pub telemetry_store: Arc<dyn store::TelemetryStore>,
-    pub connector_store: Arc<dyn store::ConnectorStore>,
+    pub pdp_store: Arc<dyn store::PdpStore>,
     pub observability_store: Arc<dyn store::ObservabilityStore>,
     pub signer: Arc<LocalSigner>,
     pub build_number: Arc<AtomicU64>,
     pub api_token: String,
     pub auth_disabled: bool,
     pub bundle_tx: broadcast::Sender<String>,
+    pub pdp_credentials: Arc<crate::pdp_credentials::PdpCredentialsStore>,
 }

@@ -33,6 +33,7 @@ pub fn router() -> Router<AppState> {
         .route("/v1/telemetry/traces", post(ingest))
         .route("/v1/telemetry/ebpf-events", post(ingest))
         .route("/v1/metrics", post(ingest))
+        .route("/v1/telemetry/runtime-metrics", post(ingest))
         .route("/v1/telemetry/batches", post(ingest_batches))
         // tenant-scoped alias (DEK may post per-tenant)
         .route("/v1/tenants/:tenant/telemetry/events", post(ingest_tenant))

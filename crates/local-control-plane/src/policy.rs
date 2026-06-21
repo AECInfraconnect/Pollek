@@ -616,6 +616,12 @@ async fn simulate_policy(
         pdp_pool: vec![],
         pdp_conditional: vec![],
         failover_strategy: dek_policy_router::FailoverStrategy::Priority,
+        mode: dek_policy_router::PdpRouteMode::LocalOnly,
+        primary_pdp_id: "".into(),
+        fallback_pdp_ids: vec![],
+        shadow_pdp_ids: vec![],
+        merge_strategy: "override".into(),
+        failure_behavior: dek_policy_router::PdpFailureBehavior::Deny,
     };
 
     router.set_routes(vec![route]);

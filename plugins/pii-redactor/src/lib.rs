@@ -7,7 +7,6 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::io::{self, Read, Write};
 
 /// Define the standard entity type
 #[derive(Debug, Clone, Serialize, Deserialize)]

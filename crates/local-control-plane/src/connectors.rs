@@ -1,7 +1,8 @@
 use crate::error::{ApiError, ApiResult};
+use crate::pdp_models::{PdpKind, PdpRuntime, PdpRuntimeCategory, PdpStatus};
 use crate::state::AppState;
 use axum::{
-    extract::State,
+    extract::{Path, State},
     routing::{get, post},
     Json, Router,
 };
@@ -22,6 +23,7 @@ pub struct ConnectorConfig {
 pub enum ConnectorKind {
     Opa,
     Cedar,
+    #[serde(rename = "openfga")]
     OpenFga,
 }
 
@@ -49,7 +51,7 @@ pub struct OverridePayload {
 }
 
 async fn set_override(
-    axum::extract::Path((_tenant, id)): axum::extract::Path<(String, String)>,
+    Path((_tenant, id)): Path<(String, String)>,
     State(_st): State<AppState>,
     Json(payload): Json<OverridePayload>,
 ) -> ApiResult<Json<serde_json::Value>> {
@@ -70,11 +72,11 @@ async fn set_override(
 }
 
 async fn test_connection(
-    axum::extract::Path((_tenant, id)): axum::extract::Path<(String, String)>,
+    Path((tenant, id)): Path<(String, String)>,
     State(st): State<AppState>,
 ) -> Json<TestResult> {
-    let cfg = match st.connector_store.get(&_tenant, &id).await {
-        Ok(Some(c)) => match serde_json::from_value::<ConnectorConfig>(c) {
+    let rt = match st.pdp_store.get_runtime(&tenant, &id).await {
+        Ok(Some(c)) => match serde_json::from_value::<PdpRuntime>(c) {
             Ok(c) => c,
             Err(_) => {
                 return Json(TestResult {
@@ -93,61 +95,109 @@ async fn test_connection(
         }
     };
     let start = std::time::Instant::now();
-    let ok = match cfg.kind {
-        ConnectorKind::Cedar => true,
-        ConnectorKind::OpenFga => reqwest::Client::new()
-            .get(format!("{}/healthz", cfg.endpoint.trim_end_matches('/')))
-            .timeout(std::time::Duration::from_secs(3))
-            .send()
-            .await
-            .map(|r| r.status().is_success())
-            .unwrap_or(false),
-        _ => reqwest::Client::new()
-            .get(format!("{}/health", cfg.endpoint.trim_end_matches('/')))
-            .timeout(std::time::Duration::from_secs(3))
-            .send()
-            .await
-            .map(|r| r.status().is_success())
-            .unwrap_or(false),
-    };
-    Json(TestResult {
-        ok,
-        latency_ms: start.elapsed().as_millis() as u64,
-        detail: if ok {
-            "reachable".into()
-        } else {
-            "unreachable".into()
-        },
-    })
+
+    if let Some(endpoint) = rt.endpoint {
+        let ok = match rt.kind {
+            PdpKind::CedarHttp => true,
+            PdpKind::OpenfgaServer => reqwest::Client::new()
+                .get(format!("{}/healthz", endpoint.trim_end_matches('/')))
+                .timeout(std::time::Duration::from_secs(3))
+                .send()
+                .await
+                .map(|r| r.status().is_success())
+                .unwrap_or(false),
+            _ => reqwest::Client::new()
+                .get(format!("{}/health", endpoint.trim_end_matches('/')))
+                .timeout(std::time::Duration::from_secs(3))
+                .send()
+                .await
+                .map(|r| r.status().is_success())
+                .unwrap_or(false),
+        };
+        Json(TestResult {
+            ok,
+            latency_ms: start.elapsed().as_millis() as u64,
+            detail: if ok {
+                "reachable".into()
+            } else {
+                "unreachable".into()
+            },
+        })
+    } else {
+        Json(TestResult {
+            ok: false,
+            latency_ms: 0,
+            detail: "no endpoint configured".into(),
+        })
+    }
 }
 
 async fn list(
-    axum::extract::Path(tenant): axum::extract::Path<String>,
+    Path(tenant): Path<String>,
     State(st): State<AppState>,
 ) -> ApiResult<Json<Vec<ConnectorConfig>>> {
     let list = st
-        .connector_store
-        .list(&tenant)
+        .pdp_store
+        .list_runtimes(&tenant)
         .await
         .map_err(ApiError::Internal)?;
     let mut configs = vec![];
     for val in list {
-        if let Ok(c) = serde_json::from_value::<ConnectorConfig>(val) {
-            configs.push(c);
+        if let Ok(rt) = serde_json::from_value::<PdpRuntime>(val) {
+            // Map back to legacy ConnectorConfig
+            if rt.category == PdpRuntimeCategory::ExternalConnector {
+                let kind = match rt.kind {
+                    PdpKind::OpaServer => ConnectorKind::Opa,
+                    PdpKind::OpenfgaServer => ConnectorKind::OpenFga,
+                    PdpKind::CedarHttp => ConnectorKind::Cedar,
+                    _ => continue,
+                };
+                configs.push(ConnectorConfig {
+                    id: rt.id,
+                    kind,
+                    endpoint: rt.endpoint.unwrap_or_default(),
+                    store_id: None,
+                    health_interval_secs: 60,
+                    mtls_enabled: false,
+                });
+            }
         }
     }
     Ok(Json(configs))
 }
 
 async fn upsert(
-    axum::extract::Path(tenant): axum::extract::Path<String>,
+    Path(tenant): Path<String>,
     State(st): State<AppState>,
     Json(payload): Json<ConnectorConfig>,
 ) -> ApiResult<Json<ConnectorConfig>> {
-    let val = serde_json::to_value(&payload).map_err(|e| ApiError::Internal(anyhow::anyhow!(e)))?;
-    st.connector_store
-        .upsert(&tenant, &payload.id, &val)
+    let pdp_kind = match payload.kind {
+        ConnectorKind::Opa => PdpKind::OpaServer,
+        ConnectorKind::Cedar => PdpKind::CedarHttp,
+        ConnectorKind::OpenFga => PdpKind::OpenfgaServer,
+    };
+
+    let rt = PdpRuntime {
+        id: payload.id.clone(),
+        name: payload.id.clone(), // Default name to ID
+        category: PdpRuntimeCategory::ExternalConnector,
+        kind: pdp_kind,
+        enabled: true,
+        status: PdpStatus::Ready,
+        endpoint: Some(payload.endpoint.clone()),
+        auth_ref: None,
+        capabilities: vec![],
+        health: None,
+        created_at: chrono::Utc::now().to_rfc3339(),
+        updated_at: chrono::Utc::now().to_rfc3339(),
+    };
+
+    let val = serde_json::to_value(&rt).map_err(|e| ApiError::Internal(anyhow::anyhow!(e)))?;
+    st.pdp_store
+        .upsert_runtime(&tenant, &payload.id, &val)
         .await
         .map_err(ApiError::Internal)?;
+
+    // Add deprecation warning to response later if needed. For now just succeed.
     Ok(Json(payload))
 }

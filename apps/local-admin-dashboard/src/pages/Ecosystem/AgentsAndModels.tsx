@@ -12,7 +12,8 @@ export function AgentsAndModels() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Agents & Models</h2>
           <p className="text-muted-foreground">
-            Manage your AI Ecosystem: Authorized agents and external model providers.
+            Manage your AI Ecosystem: Authorized agents and external model
+            providers.
           </p>
         </div>
       </div>

@@ -12,7 +12,8 @@ export function Integrations() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Integrations</h2>
           <p className="text-muted-foreground">
-            Manage Model Context Protocol (MCP) servers and their provided tools.
+            Manage Model Context Protocol (MCP) servers and their provided
+            tools.
           </p>
         </div>
       </div>

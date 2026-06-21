@@ -33,7 +33,7 @@ impl LocalControlPlaneHarness {
             identity: ControlPlaneIdentity::local_default(),
             registry_store: store.clone(),
             policy_store: store.clone(),
-            connector_store: store.clone(),
+            pdp_store: store.clone(),
             telemetry_store: store.clone(),
             observability_store: store,
             signer,
@@ -41,6 +41,9 @@ impl LocalControlPlaneHarness {
             api_token: api_token.clone(),
             auth_disabled: true, // For tests, or test token
             bundle_tx,
+            pdp_credentials: Arc::new(
+                local_control_plane::pdp_credentials::PdpCredentialsStore::new(tempdir.path()),
+            ),
         };
 
         let app = app::create_app(state, "dummy_static_dir");

@@ -128,3 +128,58 @@ pub fn to_registry_agent(
         labels: std::collections::HashMap::new(),
     })
 }
+
+pub async fn run_scan_v2(
+    tenant: &str,
+    req: &serde_json::Value,
+) -> Result<(DiscoveryScanJob, Vec<DiscoveredAgentCandidateV2>)> {
+    let orchestrator = crate::orchestrator::DiscoveryOrchestrator::new(tenant);
+    orchestrator.run_scan(req).await
+}
+
+pub fn to_registry_agent_v2(
+    tenant: &str,
+    candidate: &DiscoveredAgentCandidateV2,
+    req: &serde_json::Value,
+) -> Result<AiAgent> {
+    let name = req
+        .get("agent_name")
+        .and_then(|v| v.as_str())
+        .unwrap_or(&candidate.suggested_registration.name);
+
+    Ok(AiAgent {
+        meta: dek_control_plane_api::registry::ObjectMeta {
+            schema_version: "pollen.agent.v1".into(),
+            tenant_id: tenant.to_string(),
+            workspace_id: "default".into(),
+            environment_id: "local".into(),
+            created_at: chrono::Utc::now().to_rfc3339(),
+            updated_at: chrono::Utc::now().to_rfc3339(),
+            created_by: "system".into(),
+            updated_by: "system".into(),
+            source: dek_control_plane_api::registry::RegistrationSource::Discovery,
+            status: dek_control_plane_api::registry::RegistryStatus::Registered,
+            tags: vec!["auto-discovered".into()],
+        },
+        agent_id: candidate.suggested_registration.agent_id.clone(),
+        name: name.to_string(),
+        agent_type: dek_control_plane_api::registry::AgentType::Unknown,
+        vendor: candidate.vendor.clone(),
+        runtime: dek_control_plane_api::registry::AgentRuntime {
+            runtime_name: candidate.suggested_registration.runtime_name.clone(),
+            version: None,
+        },
+        entrypoints: vec![],
+        declared_tools: candidate.suggested_registration.declared_tools.clone(),
+        declared_resources: candidate.suggested_registration.declared_resources.clone(),
+        identity: dek_control_plane_api::registry::AgentIdentity {
+            spiffe_id: None,
+            process_path: candidate.suggested_registration.process_path_hash.clone(),
+            user_subject: None,
+            signing_key_fingerprint: candidate.suggested_registration.executable_signer.clone(),
+        },
+        trust_level: dek_control_plane_api::registry::TrustLevel::Medium,
+        capabilities: vec![],
+        labels: std::collections::HashMap::new(),
+    })
+}

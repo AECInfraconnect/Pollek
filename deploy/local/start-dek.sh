@@ -20,14 +20,14 @@ nohup ./target/release/local-control-plane > /dev/null 2>&1 &
 
 echo "Waiting for server to start..."
 sleep 2
-echo -e "\033[0;32mOpening Dashboard at http://127.0.0.1:3000\033[0m"
+echo -e "\033[0;32mOpening Dashboard at http://127.0.0.1:43891\033[0m"
 
 if command -v open > /dev/null; then
-    open "http://127.0.0.1:3000"
+    open "http://127.0.0.1:43891"
 elif command -v xdg-open > /dev/null; then
-    xdg-open "http://127.0.0.1:3000"
+    xdg-open "http://127.0.0.1:43891"
 else
-  echo "Please open http://localhost:3000 in your browser."
+  echo "Please open http://127.0.0.1:43891 in your browser."
 fi
 
 echo -e "\033[0;36mDone! The Local Control Plane is now running silently in the background.\033[0m"

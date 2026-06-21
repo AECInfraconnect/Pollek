@@ -16,39 +16,41 @@ import {
   Lightbulb,
   ShieldCheck,
   Zap,
-  Globe
+  Globe,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const groups = [
   {
     title: "Dashboard",
-    items: [
-      { name: "Overview", href: "/", icon: LayoutDashboard }
-    ]
+    items: [{ name: "Overview", href: "/", icon: LayoutDashboard }],
   },
   {
     title: "AI Ecosystem",
     items: [
       { name: "Agents & Models", href: "/agents", icon: Users },
-      { name: "Integrations", href: "/integrations", icon: Wrench }
-    ]
+      { name: "Integrations", href: "/integrations", icon: Wrench },
+    ],
   },
   {
     title: "Security & Policies",
     items: [
       { name: "Policy Presets", href: "/policy-presets", icon: ShieldCheck },
-      { name: "Policy Suggestions", href: "/policy-suggestions", icon: Lightbulb },
-      { name: "Active Policies", href: "/policies", icon: FileKey }
-    ]
+      {
+        name: "Policy Suggestions",
+        href: "/policy-suggestions",
+        icon: Lightbulb,
+      },
+      { name: "Active Policies", href: "/policies", icon: FileKey },
+    ],
   },
   {
     title: "Monitoring & Audit",
     items: [
       { name: "Alerts & Shadow AI", href: "/alerts", icon: ShieldAlert },
       { name: "Audit Logs", href: "/audit", icon: Activity },
-      { name: "Cost & Tokens", href: "/cost-ledger", icon: Zap }
-    ]
+      { name: "Cost & Tokens", href: "/cost-ledger", icon: Zap },
+    ],
   },
   {
     title: "System Settings",
@@ -58,9 +60,9 @@ const groups = [
       { name: "Simulator", href: "/simulator", icon: Activity },
       { name: "Bundles & Sync", href: "/bundles", icon: Server },
       { name: "Auto Discovery", href: "/discovery", icon: Search },
-      { name: "Global Settings", href: "/settings", icon: SettingsIcon }
-    ]
-  }
+      { name: "Global Settings", href: "/settings", icon: SettingsIcon },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -77,7 +79,7 @@ export function Sidebar() {
           v2
         </span>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="space-y-6 px-3">
           {groups.map((group) => (
@@ -89,7 +91,10 @@ export function Sidebar() {
               )}
               <div className="space-y-1">
                 {group.items.map((item) => {
-                  const isActive = location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href));
+                  const isActive =
+                    location.pathname === item.href ||
+                    (item.href !== "/" &&
+                      location.pathname.startsWith(item.href));
                   return (
                     <Link
                       key={item.name}
@@ -98,13 +103,15 @@ export function Sidebar() {
                         isActive
                           ? "bg-primary/10 text-primary font-semibold shadow-[0_0_15px_rgba(124,58,237,0.15)]"
                           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground hover-glow",
-                        "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all duration-300"
+                        "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all duration-300",
                       )}
                     >
                       <item.icon
                         className={cn(
-                          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
-                          "mr-3 h-5 w-5 flex-shrink-0 transition-colors"
+                          isActive
+                            ? "text-primary"
+                            : "text-muted-foreground group-hover:text-foreground",
+                          "mr-3 h-5 w-5 flex-shrink-0 transition-colors",
                         )}
                         aria-hidden="true"
                       />

@@ -4,15 +4,20 @@ import { Entities } from "../Entities";
 import { Relationships } from "../Relationships";
 
 export function IdentityNetwork() {
-  const [activeTab, setActiveTab] = useState<"entities" | "relationships">("entities");
+  const [activeTab, setActiveTab] = useState<"entities" | "relationships">(
+    "entities",
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Identity & Network</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Identity & Network
+          </h2>
           <p className="text-muted-foreground">
-            Manage your local identity graph: people, systems, and their relationships.
+            Manage your local identity graph: people, systems, and their
+            relationships.
           </p>
         </div>
       </div>

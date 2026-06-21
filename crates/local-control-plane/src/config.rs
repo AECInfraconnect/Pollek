@@ -8,12 +8,14 @@ pub struct LocalControlPlaneConfig {
     pub data_dir: PathBuf,
     pub dashboard_dir: PathBuf,
     pub auth_disabled: bool,
+    pub cloud_url: Option<String>,
+    pub cloud_api_key: Option<String>,
 }
 
 impl LocalControlPlaneConfig {
     pub fn from_env() -> anyhow::Result<Self> {
         let bind_addr = std::env::var("DEK_LCP_BIND")
-            .unwrap_or_else(|_| "127.0.0.1:3000".to_string())
+            .unwrap_or_else(|_| "127.0.0.1:43891".to_string())
             .parse()?;
 
         let db_url = std::env::var("DEK_LCP_DB")
@@ -30,12 +32,17 @@ impl LocalControlPlaneConfig {
 
         let auth_disabled = std::env::var("DEK_LCP_AUTH_DISABLE").unwrap_or_default() == "1";
 
+        let cloud_url = std::env::var("DEK_CLOUD_URL").ok();
+        let cloud_api_key = std::env::var("DEK_CLOUD_API_KEY").ok();
+
         Ok(Self {
             bind_addr,
             db_url,
             data_dir,
             dashboard_dir,
             auth_disabled,
+            cloud_url,
+            cloud_api_key,
         })
     }
 }
