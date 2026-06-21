@@ -53,29 +53,14 @@ export interface McpServer {
   risk_level: 'low' | 'medium' | 'high' | 'critical';
 }
 
-export interface Tool {
-  meta: ObjectMeta;
-  tool_id: string;
-  mcp_server_id?: string;
-  name: string;
-  description?: string;
-  input_schema: any;
-  output_schema?: any;
-  side_effect_level: 'none' | 'local' | 'network' | 'system';
-  data_access_level: 'none' | 'public' | 'internal' | 'confidential' | 'restricted';
-  risk_level: 'low' | 'medium' | 'high' | 'critical';
-}
+import type { components } from '../../../../contracts/generated/typescript/api';
 
-export interface Resource {
-  meta: ObjectMeta;
-  resource_id: string;
-  resource_type: 'file' | 'database' | 'api_endpoint' | 'mcp_resource' | 'vector_store' | 'topic' | 'queue' | 'device' | 'secret' | 'unknown';
-  name: string;
-  uri: string;
-  classification: 'public' | 'internal' | 'confidential' | 'restricted';
-  owner_entity_id?: string;
-  attributes: Record<string, any>;
-}
+export type Tool = components['schemas']['Tool'];
+export type Resource = components['schemas']['Resource'];
+export type AgentObservationEvent = components['schemas']['AgentObservationEvent'];
+export type CostLedgerEntry = components['schemas']['CostLedgerEntry'];
+export type PolicySuggestion = components['schemas']['PolicySuggestion'];
+export type DiscoveryCandidate = components['schemas']['DiscoveryCandidate'];
 
 export interface Entity {
   meta: ObjectMeta;

@@ -24,31 +24,27 @@ pub enum SuggestedPolicyLanguage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SuggestedArtifact {
-    pub language: SuggestedPolicyLanguage,
-    pub filename: String,
+pub struct PolicyArtifact {
+    pub name: String,
     pub content: String,
+    pub language: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicySuggestion {
-    pub schema_version: String,
     pub suggestion_id: String,
     pub tenant_id: String,
-    pub device_id: String,
-    pub suggestion_type: SuggestionType,
+    pub target_agent_id: Option<String>,
+    pub target_resource_id: Option<String>,
+    pub target_tool_id: Option<String>,
+    pub suggestion_type: String,
     pub title: String,
     pub summary: String,
     pub severity: String,
     pub confidence: f32,
-    pub evidence_event_ids: Vec<String>,
-    pub affected_agents: Vec<String>,
-    pub affected_shadow_candidates: Vec<String>,
-    pub affected_resources: Vec<String>,
-    pub recommended_pep_types: Vec<String>,
-    pub recommended_languages: Vec<SuggestedPolicyLanguage>,
-    pub artifacts: Vec<SuggestedArtifact>,
-    pub dry_run_required: bool,
+    pub recommended_policy_type: String,
+    pub recommended_pep_type: String,
+    pub artifacts: Vec<PolicyArtifact>,
     pub status: String,
     pub created_at: String,
 }

@@ -19,6 +19,98 @@ model ObjectMeta {
   tags: string[];
 }
 
+model TokenUsage {
+  input_tokens?: int64;
+  output_tokens?: int64;
+  total_tokens?: int64;
+  "model"?: string;
+}
+
+model AgentObservationEvent {
+  event_id: string;
+  tenant_id: string;
+  trace_id: string;
+  agent_id?: string;
+  shadow_candidate_id?: string;
+  tool_id?: string;
+  resource_id?: string;
+  surface: string;
+  action: string;
+  pep_type?: string;
+  risk_level?: string;
+  timestamp: string;
+  payload_json: string;
+  token_usage?: TokenUsage;
+}
+
+model PolicyArtifact {
+  name: string;
+  content: string;
+  language: string;
+}
+
+model PolicySuggestion {
+  suggestion_id: string;
+  tenant_id: string;
+  target_agent_id?: string;
+  target_resource_id?: string;
+  target_tool_id?: string;
+  suggestion_type: string;
+  title: string;
+  summary: string;
+  severity: string;
+  confidence: float32;
+  recommended_policy_type: string;
+  recommended_pep_type: string;
+  artifacts: PolicyArtifact[];
+  status: string;
+  created_at: string;
+}
+
+model DiscoveryCandidate {
+  candidate_id: string;
+  tenant_id: string;
+  surface: string;
+  first_seen_at: string;
+  last_seen_at: string;
+  observation_count: int64;
+  inferred_name?: string;
+  inferred_provider?: string;
+  status: string;
+}
+
+model AgentObservationEventListResponse {
+  items: AgentObservationEvent[];
+}
+
+model CostLedgerEntry {
+  event_id: string;
+  agent_id: string;
+  provider: string;
+  "model"?: string;
+  input_tokens: int64;
+  output_tokens: int64;
+  total_tokens: int64;
+  input_cost: float32;
+  output_cost: float32;
+  total_cost: float32;
+  currency: string;
+  estimated: boolean;
+  timestamp: string;
+}
+
+model CostLedgerListResponse {
+  items: CostLedgerEntry[];
+}
+
+model PolicySuggestionListResponse {
+  items: PolicySuggestion[];
+}
+
+model DiscoveryCandidateListResponse {
+  items: DiscoveryCandidate[];
+}
+
 model PolicyCoverageSummary {
   status: string;
   policy_ids: string[];
@@ -130,63 +222,63 @@ interface ResourcesApi {
 @route("/v1/tenants/{tenant_id}/observations")
 interface ObservationApi {
   @route("events")
-  @post ingestEvents(@path tenant_id: string, @body body: unknown): unknown | PollenError;
+  @post ingestEvents(@path tenant_id: string, @body body: AgentObservationEvent[]): void | PollenError;
 
   @route("agents/{agent_id}")
-  @get getAgentObservations(@path tenant_id: string, @path agent_id: string): unknown | PollenError;
+  @get getAgentObservations(@path tenant_id: string, @path agent_id: string): AgentObservationEventListResponse | PollenError;
 
   @route("tools/{tool_id}")
-  @get getToolObservations(@path tenant_id: string, @path tool_id: string): unknown | PollenError;
+  @get getToolObservations(@path tenant_id: string, @path tool_id: string): AgentObservationEventListResponse | PollenError;
 
   @route("resources/{resource_id}")
-  @get getResourceObservations(@path tenant_id: string, @path resource_id: string): unknown | PollenError;
+  @get getResourceObservations(@path tenant_id: string, @path resource_id: string): AgentObservationEventListResponse | PollenError;
 
   @route("costs")
-  @get getCosts(@path tenant_id: string): unknown | PollenError;
+  @get getCosts(@path tenant_id: string): CostLedgerListResponse | PollenError;
 
   @route("coverage")
-  @get getCoverage(@path tenant_id: string): unknown | PollenError;
+  @get getCoverage(@path tenant_id: string): PolicyCoverageSummary | PollenError;
 }
 
 @tag("Discovery")
 @route("/v1/tenants/{tenant_id}/agent-discovery")
 interface DiscoveryApi {
   @route("scan")
-  @post scan(@path tenant_id: string): unknown | PollenError;
+  @post scan(@path tenant_id: string): void | PollenError;
 
   @route("candidates")
-  @get listCandidates(@path tenant_id: string): unknown | PollenError;
+  @get listCandidates(@path tenant_id: string): DiscoveryCandidateListResponse | PollenError;
 
   @route("candidates/{candidate_id}/register")
-  @post registerCandidate(@path tenant_id: string, @path candidate_id: string): unknown | PollenError;
+  @post registerCandidate(@path tenant_id: string, @path candidate_id: string): void | PollenError;
 
   @route("candidates/{candidate_id}/ignore")
-  @post ignoreCandidate(@path tenant_id: string, @path candidate_id: string): unknown | PollenError;
+  @post ignoreCandidate(@path tenant_id: string, @path candidate_id: string): void | PollenError;
 
   @route("candidates/{candidate_id}/observe-only")
-  @post observeCandidate(@path tenant_id: string, @path candidate_id: string): unknown | PollenError;
+  @post observeCandidate(@path tenant_id: string, @path candidate_id: string): void | PollenError;
 
   @route("candidates/{candidate_id}/block")
-  @post blockCandidate(@path tenant_id: string, @path candidate_id: string): unknown | PollenError;
+  @post blockCandidate(@path tenant_id: string, @path candidate_id: string): void | PollenError;
 }
 
 @tag("PolicySuggestions")
 @route("/v1/tenants/{tenant_id}/policy-suggestions")
 interface PolicySuggestionsApi {
   @route("generate")
-  @post generate(@path tenant_id: string): unknown | PollenError;
+  @post generate(@path tenant_id: string): void | PollenError;
 
-  @get listSuggestions(@path tenant_id: string): unknown | PollenError;
+  @get listSuggestions(@path tenant_id: string): PolicySuggestionListResponse | PollenError;
 
   @route("{suggestion_id}")
-  @get getSuggestion(@path tenant_id: string, @path suggestion_id: string): unknown | PollenError;
+  @get getSuggestion(@path tenant_id: string, @path suggestion_id: string): PolicySuggestion | PollenError;
 
   @route("{suggestion_id}/create-draft")
-  @post createDraft(@path tenant_id: string, @path suggestion_id: string): unknown | PollenError;
+  @post createDraft(@path tenant_id: string, @path suggestion_id: string): void | PollenError;
 
   @route("{suggestion_id}/dismiss")
-  @post dismiss(@path tenant_id: string, @path suggestion_id: string): unknown | PollenError;
+  @post dismiss(@path tenant_id: string, @path suggestion_id: string): void | PollenError;
 
   @route("{suggestion_id}/simulate")
-  @post simulate(@path tenant_id: string, @path suggestion_id: string): unknown | PollenError;
+  @post simulate(@path tenant_id: string, @path suggestion_id: string): void | PollenError;
 }

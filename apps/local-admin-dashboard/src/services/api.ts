@@ -1,4 +1,4 @@
-import type { AiAgent, McpServer, Tool, Resource, Entity, Relationship, PolicyDraft, TelemetryEventEnvelope, BlackboxAiProvider } from './types';
+import type { AiAgent, McpServer, Tool, Resource, Entity, Relationship, PolicyDraft, TelemetryEventEnvelope, BlackboxAiProvider, DiscoveryCandidate, PolicySuggestion } from './types';
 export type * from './types';
 import type { components } from '../../../../contracts/generated/typescript/api';
 
@@ -121,18 +121,27 @@ export class ControlPlaneClient {
   }
 
   // Shadow AI & Discovery
-  async listDiscoveryCandidates(): Promise<any[]> {
-    return this.fetchApi('/registry/discovery-candidates').catch(() => []); // Mock fallback if endpoint not exist
+  async listDiscoveryCandidates(): Promise<DiscoveryCandidate[]> {
+    return this.fetchApi('/discovery/candidates').then((data: any) => data.candidates ?? data).catch(() => []); // Mock fallback if endpoint not exist
+  }
+
+  async triggerDiscoveryScan(): Promise<any> {
+    return this.fetchApi('/discovery/scans', { method: 'POST', body: JSON.stringify({}) });
   }
 
   // Policy Suggestions
-  async listPolicySuggestions(): Promise<any[]> {
+  async listPolicySuggestions(): Promise<PolicySuggestion[]> {
     const data = await this.fetchApi('/policy-suggestions');
-    return data.suggestions ?? [];
+    return data.items ?? data;
   }
   
   async generatePolicySuggestions(): Promise<any> {
     return this.fetchApi('/policy-suggestions/generate', { method: 'POST' });
+  }
+
+  // Cost
+  async getCostSummary(): Promise<any> {
+    return this.fetchApi('/observations/costs');
   }
 
 }
@@ -163,11 +172,16 @@ export const RegistryApi = {
   listRelationships: () => defaultClient.listRelationships(),
   listBlackboxAiProviders: () => defaultClient.listBlackboxAiProviders(),
   listDiscoveryCandidates: () => defaultClient.listDiscoveryCandidates(),
+  triggerDiscoveryScan: () => defaultClient.triggerDiscoveryScan(),
 };
 
 export const PolicySuggestionApi = {
   list: () => defaultClient.listPolicySuggestions(),
   generate: () => defaultClient.generatePolicySuggestions(),
+};
+
+export const ObservationApi = {
+  getCostSummary: () => defaultClient.getCostSummary(),
 };
 
 export const PolicyApi = {

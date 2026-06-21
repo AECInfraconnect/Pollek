@@ -76,10 +76,29 @@ export function PolicySuggestions() {
                   </span>
                 </div>
                 <p className="text-muted-foreground text-sm mb-4">{s.summary}</p>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xs font-medium text-muted-foreground">Recommended PEP:</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium bg-muted text-foreground">
+                    {s.recommended_pep_type || 'Unknown'}
+                  </span>
+                </div>
                 
                 {s.artifacts && s.artifacts.length > 0 && (
-                  <div className="mt-4 bg-background p-4 rounded-md border text-xs font-mono overflow-x-auto whitespace-pre">
-                    {s.artifacts[0].content}
+                  <div className="mt-4 space-y-4">
+                    <h5 className="text-sm font-medium">Policy Artifacts:</h5>
+                    <div className="grid grid-cols-1 gap-4">
+                      {s.artifacts.map((art: any, i: number) => (
+                        <div key={i} className="bg-background rounded-md border overflow-hidden">
+                          <div className="bg-muted px-4 py-2 border-b flex justify-between items-center">
+                            <span className="text-xs font-medium uppercase">{art.language}</span>
+                            <span className="text-xs text-muted-foreground font-mono">{art.name}</span>
+                          </div>
+                          <pre className="p-4 text-xs font-mono overflow-x-auto whitespace-pre">
+                            {art.content}
+                          </pre>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

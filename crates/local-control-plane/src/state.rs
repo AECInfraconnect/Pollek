@@ -14,6 +14,7 @@ pub struct AppState {
     pub policy_store: Arc<dyn store::PolicyStore>,
     pub telemetry_store: Arc<dyn store::TelemetryStore>,
     pub connector_store: Arc<dyn store::ConnectorStore>,
+    pub observability_store: Arc<dyn store::ObservabilityStore>,
     pub signer: Arc<LocalSigner>,
     pub build_number: Arc<AtomicU64>,
     pub api_token: String,

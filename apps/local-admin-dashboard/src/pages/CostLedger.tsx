@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DollarSign, RefreshCw } from "lucide-react";
+import { ObservationApi } from "../services/api";
 
 export function CostLedger() {
   const [loading, setLoading] = useState(false);
@@ -8,11 +9,8 @@ export function CostLedger() {
   const fetchCost = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:3000/v1/tenants/local/observations/costs");
-      if (res.ok) {
-        const data = await res.json();
-        setTotalCost(data.total_cost || 0);
-      }
+      const data = await ObservationApi.getCostSummary();
+      setTotalCost(data.total_cost || 0);
     } catch (e) {
       console.error(e);
     } finally {

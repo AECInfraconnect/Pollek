@@ -2,6 +2,8 @@ use anyhow::Result;
 use dek_control_plane_api::registry::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
+use dek_agent_observer::model::{AgentObservationEvent, CostLedgerEntry};
+use dek_policy_suggester::model::PolicySuggestion;
 
 #[async_trait::async_trait]
 pub trait RegistryStore: Send + Sync {
@@ -116,6 +118,15 @@ pub trait ConnectorStore: Send + Sync {
     async fn get(&self, tenant: &str, id: &str) -> Result<Option<serde_json::Value>>;
     async fn list(&self, tenant: &str) -> Result<Vec<serde_json::Value>>;
     async fn delete(&self, tenant: &str, id: &str) -> Result<bool>;
+}
+
+#[async_trait::async_trait]
+pub trait ObservabilityStore: Send + Sync {
+    async fn insert_observation_event(&self, event: &AgentObservationEvent) -> Result<()>;
+    async fn list_observation_events(&self, tenant_id: &str) -> Result<Vec<AgentObservationEvent>>;
+    async fn insert_cost_ledger(&self, entry: &CostLedgerEntry) -> Result<()>;
+    async fn upsert_policy_suggestion(&self, suggestion: &PolicySuggestion) -> Result<()>;
+    async fn list_policy_suggestions(&self, tenant_id: &str) -> Result<Vec<PolicySuggestion>>;
 }
 
 pub struct SqliteStore {
@@ -653,5 +664,113 @@ impl ConnectorStore for SqliteStore {
 
     async fn delete(&self, tenant: &str, id: &str) -> Result<bool> {
         self.delete_object(tenant, "connector", id).await
+    }
+}
+
+#[async_trait::async_trait]
+impl ObservabilityStore for SqliteStore {
+    async fn insert_observation_event(&self, event: &AgentObservationEvent) -> Result<()> {
+        let payload = serde_json::to_string(event)?;
+        sqlx::query(
+            r#"
+            INSERT INTO observation_events (id, tenant_id, trace_id, agent_id, shadow_candidate_id, tool_id, resource_id, surface, action, pep_type, risk_level, timestamp, payload_json)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+            "#
+        )
+        .bind(&event.event_id)
+        .bind(&event.tenant_id)
+        .bind(&event.trace_id)
+        .bind(&event.agent_id)
+        .bind(&event.shadow_candidate_id)
+        .bind(&event.tool_id)
+        .bind(&event.resource_id)
+        .bind(&event.surface)
+        .bind(&event.action)
+        .bind(&event.pep_type)
+        .bind(&event.risk_level)
+        .bind(&event.timestamp)
+        .bind(&payload)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn list_observation_events(&self, tenant_id: &str) -> Result<Vec<AgentObservationEvent>> {
+        let rows = sqlx::query("SELECT payload_json FROM observation_events WHERE tenant_id = ?1 ORDER BY timestamp DESC LIMIT 100")
+            .bind(tenant_id)
+            .fetch_all(&self.pool)
+            .await?;
+        let mut out = Vec::new();
+        for r in rows {
+            let j: String = r.try_get("payload_json")?;
+            if let Ok(e) = serde_json::from_str(&j) {
+                out.push(e);
+            }
+        }
+        Ok(out)
+    }
+
+    async fn insert_cost_ledger(&self, entry: &CostLedgerEntry) -> Result<()> {
+        sqlx::query(
+            r#"
+            INSERT INTO cost_ledger (id, agent_id, provider, model, input_tokens, output_tokens, total_tokens, input_cost, output_cost, total_cost, currency, estimated, timestamp)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+            "#
+        )
+        .bind(&entry.event_id)
+        .bind(&entry.agent_id)
+        .bind(&entry.provider)
+        .bind(&entry.model)
+        .bind(entry.input_tokens)
+        .bind(entry.output_tokens)
+        .bind(entry.total_tokens)
+        .bind(entry.input_cost)
+        .bind(entry.output_cost)
+        .bind(entry.total_cost)
+        .bind(&entry.currency)
+        .bind(entry.estimated)
+        .bind(&entry.timestamp)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn upsert_policy_suggestion(&self, suggestion: &PolicySuggestion) -> Result<()> {
+        let payload = serde_json::to_string(suggestion)?;
+        sqlx::query(
+            r#"
+            INSERT INTO policy_suggestions (id, tenant_id, target_agent_id, target_resource_id, suggestion_type, status, created_at, data_json)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            ON CONFLICT(id) DO UPDATE SET
+                status=excluded.status,
+                data_json=excluded.data_json
+            "#
+        )
+        .bind(&suggestion.suggestion_id)
+        .bind(&suggestion.tenant_id)
+        .bind(&suggestion.target_agent_id)
+        .bind(&suggestion.target_resource_id)
+        .bind(&suggestion.suggestion_type)
+        .bind(&suggestion.status)
+        .bind(&suggestion.created_at)
+        .bind(&payload)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn list_policy_suggestions(&self, tenant_id: &str) -> Result<Vec<PolicySuggestion>> {
+        let rows = sqlx::query("SELECT data_json FROM policy_suggestions WHERE tenant_id = ?1 ORDER BY created_at DESC")
+            .bind(tenant_id)
+            .fetch_all(&self.pool)
+            .await?;
+        let mut out = Vec::new();
+        for r in rows {
+            let j: String = r.try_get("data_json")?;
+            if let Ok(s) = serde_json::from_str(&j) {
+                out.push(s);
+            }
+        }
+        Ok(out)
     }
 }

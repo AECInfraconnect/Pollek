@@ -1,9 +1,10 @@
-pub fn recommend_pep(suggestion_type: &crate::model::SuggestionType) -> Vec<String> {
-    use crate::model::SuggestionType::*;
+pub fn recommend_pep(suggestion_type: &str) -> String {
     match suggestion_type {
-        RestrictExternalLlmProvider | EnforceTokenBudget | EnforceCostBudget => vec!["HttpGateway".to_string()],
-        RestrictMcpTool => vec!["McpProxy".to_string(), "StdioWrapper".to_string()],
-        CreateNetworkGuardrail => vec!["Envoy".to_string(), "LinuxEbpf".to_string(), "WindowsWfp".to_string(), "MacosNeFilter".to_string()],
-        _ => vec![],
+        "RestrictExternalLlmProvider" | "EnforceTokenBudget" | "EnforceCostBudget" => {
+            "forward_proxy".to_string()
+        }
+        "RestrictMcpTool" => "mcp_proxy".to_string(),
+        "CreateNetworkGuardrail" => "envoy_proxy".to_string(),
+        _ => "unknown".to_string(),
     }
 }

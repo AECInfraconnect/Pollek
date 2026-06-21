@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Database, MoreVertical, Plus } from "lucide-react";
 import { RegistryApi } from "../services/api";
 import type { Resource } from "../services/api";
+import { ResourceDetailDrawer } from "../components/ResourceDetailDrawer";
 
 export function Resources() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
 
   useEffect(() => {
     RegistryApi.listResources()
@@ -54,7 +56,11 @@ export function Resources() {
                 </td>
               </tr>
             ) : resources.map((resource) => (
-              <tr key={resource.resource_id} className="hover:bg-muted/30 transition-colors">
+              <tr 
+                key={resource.resource_id} 
+                className="hover:bg-muted/30 transition-colors cursor-pointer"
+                onClick={() => setSelectedResource(resource)}
+              >
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -93,6 +99,11 @@ export function Resources() {
           </tbody>
         </table>
       </div>
+
+      <ResourceDetailDrawer 
+        resource={selectedResource} 
+        onClose={() => setSelectedResource(null)} 
+      />
     </div>
   );
 }

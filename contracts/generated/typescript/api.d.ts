@@ -379,6 +379,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AgentObservationEvent: {
+            event_id: string;
+            tenant_id: string;
+            trace_id: string;
+            agent_id?: string;
+            shadow_candidate_id?: string;
+            tool_id?: string;
+            resource_id?: string;
+            surface: string;
+            action: string;
+            pep_type?: string;
+            risk_level?: string;
+            timestamp: string;
+            payload_json: string;
+            token_usage?: components["schemas"]["TokenUsage"];
+        };
+        AgentObservationEventListResponse: {
+            items: components["schemas"]["AgentObservationEvent"][];
+        };
         BundleFetchRequest: {
             tenant_id: string;
             device_id: string;
@@ -403,6 +422,45 @@ export interface components {
             minimum_dek_version?: string;
             sunset?: Record<string, never>;
             capabilities: string[];
+        };
+        CostLedgerEntry: {
+            event_id: string;
+            agent_id: string;
+            provider: string;
+            model?: string;
+            /** Format: int64 */
+            input_tokens: number;
+            /** Format: int64 */
+            output_tokens: number;
+            /** Format: int64 */
+            total_tokens: number;
+            /** Format: float */
+            input_cost: number;
+            /** Format: float */
+            output_cost: number;
+            /** Format: float */
+            total_cost: number;
+            currency: string;
+            estimated: boolean;
+            timestamp: string;
+        };
+        CostLedgerListResponse: {
+            items: components["schemas"]["CostLedgerEntry"][];
+        };
+        DiscoveryCandidate: {
+            candidate_id: string;
+            tenant_id: string;
+            surface: string;
+            first_seen_at: string;
+            last_seen_at: string;
+            /** Format: int64 */
+            observation_count: number;
+            inferred_name?: string;
+            inferred_provider?: string;
+            status: string;
+        };
+        DiscoveryCandidateListResponse: {
+            items: components["schemas"]["DiscoveryCandidate"][];
         };
         MissingControl: {
             control_type: string;
@@ -430,6 +488,11 @@ export interface components {
             capabilities: string[];
             limitations: string[];
         };
+        PolicyArtifact: {
+            name: string;
+            content: string;
+            language: string;
+        };
         PolicyCoverageSummary: {
             status: string;
             policy_ids: string[];
@@ -438,6 +501,27 @@ export interface components {
             last_enforced_at?: string;
             /** Format: float */
             confidence: number;
+        };
+        PolicySuggestion: {
+            suggestion_id: string;
+            tenant_id: string;
+            target_agent_id?: string;
+            target_resource_id?: string;
+            target_tool_id?: string;
+            suggestion_type: string;
+            title: string;
+            summary: string;
+            severity: string;
+            /** Format: float */
+            confidence: number;
+            recommended_policy_type: string;
+            recommended_pep_type: string;
+            artifacts: components["schemas"]["PolicyArtifact"][];
+            status: string;
+            created_at: string;
+        };
+        PolicySuggestionListResponse: {
+            items: components["schemas"]["PolicySuggestion"][];
         };
         PollenError: {
             code: string;
@@ -498,6 +582,15 @@ export interface components {
             rejected: number;
             /** Format: int32 */
             retry_after_seconds?: number;
+        };
+        TokenUsage: {
+            /** Format: int64 */
+            input_tokens?: number;
+            /** Format: int64 */
+            output_tokens?: number;
+            /** Format: int64 */
+            total_tokens?: number;
+            model?: string;
         };
         Tool: {
             meta: components["schemas"]["ObjectMeta"];
@@ -631,7 +724,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["DiscoveryCandidateListResponse"];
                 };
             };
             /** @description An unexpected error response. */
@@ -657,14 +750,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The request has succeeded. */
-            200: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {
@@ -689,14 +780,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The request has succeeded. */
-            200: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {
@@ -721,14 +810,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The request has succeeded. */
-            200: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {
@@ -753,14 +840,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The request has succeeded. */
-            200: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {
@@ -784,14 +869,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The request has succeeded. */
-            200: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {
@@ -869,7 +952,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["AgentObservationEventListResponse"];
                 };
             };
             /** @description An unexpected error response. */
@@ -900,7 +983,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["CostLedgerListResponse"];
                 };
             };
             /** @description An unexpected error response. */
@@ -931,7 +1014,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["PolicyCoverageSummary"];
                 };
             };
             /** @description An unexpected error response. */
@@ -956,18 +1039,16 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": unknown;
+                "application/json": components["schemas"]["AgentObservationEvent"][];
             };
         };
         responses: {
-            /** @description The request has succeeded. */
-            200: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {
@@ -998,7 +1079,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["AgentObservationEventListResponse"];
                 };
             };
             /** @description An unexpected error response. */
@@ -1030,7 +1111,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["AgentObservationEventListResponse"];
                 };
             };
             /** @description An unexpected error response. */
@@ -1061,7 +1142,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["PolicySuggestionListResponse"];
                 };
             };
             /** @description An unexpected error response. */
@@ -1086,14 +1167,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The request has succeeded. */
-            200: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {
@@ -1124,7 +1203,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["PolicySuggestion"];
                 };
             };
             /** @description An unexpected error response. */
@@ -1150,14 +1229,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The request has succeeded. */
-            200: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {
@@ -1182,14 +1259,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The request has succeeded. */
-            200: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {
@@ -1214,14 +1289,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The request has succeeded. */
-            200: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {

@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Wrench, MoreVertical, Plus } from "lucide-react";
 import { RegistryApi } from "../services/api";
 import type { Tool } from "../services/api";
+import { ToolDetailDrawer } from "../components/ToolDetailDrawer";
 
 export function Tools() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
 
   useEffect(() => {
     RegistryApi.listTools()
@@ -55,7 +57,11 @@ export function Tools() {
                 </td>
               </tr>
             ) : tools.map((tool) => (
-              <tr key={tool.tool_id} className="hover:bg-muted/30 transition-colors">
+              <tr 
+                key={tool.tool_id} 
+                className="hover:bg-muted/30 transition-colors cursor-pointer"
+                onClick={() => setSelectedTool(tool)}
+              >
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -99,6 +105,11 @@ export function Tools() {
           </tbody>
         </table>
       </div>
+
+      <ToolDetailDrawer 
+        tool={selectedTool} 
+        onClose={() => setSelectedTool(null)} 
+      />
     </div>
   );
 }

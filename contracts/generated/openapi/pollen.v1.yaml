@@ -81,7 +81,8 @@ paths:
           description: The request has succeeded.
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/DiscoveryCandidateListResponse'
         default:
           description: An unexpected error response.
           content:
@@ -105,11 +106,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema: {}
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -133,11 +131,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema: {}
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -161,11 +156,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema: {}
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -189,11 +181,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema: {}
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -212,11 +201,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema: {}
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -285,7 +271,8 @@ paths:
           description: The request has succeeded.
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AgentObservationEventListResponse'
         default:
           description: An unexpected error response.
           content:
@@ -308,7 +295,8 @@ paths:
           description: The request has succeeded.
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/CostLedgerListResponse'
         default:
           description: An unexpected error response.
           content:
@@ -331,7 +319,8 @@ paths:
           description: The request has succeeded.
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/PolicyCoverageSummary'
         default:
           description: An unexpected error response.
           content:
@@ -350,11 +339,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema: {}
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -367,7 +353,10 @@ paths:
         required: true
         content:
           application/json:
-            schema: {}
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/AgentObservationEvent'
   /v1/tenants/{tenant_id}/observations/resources/{resource_id}:
     get:
       operationId: ObservationApi_getResourceObservations
@@ -387,7 +376,8 @@ paths:
           description: The request has succeeded.
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AgentObservationEventListResponse'
         default:
           description: An unexpected error response.
           content:
@@ -415,7 +405,8 @@ paths:
           description: The request has succeeded.
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/AgentObservationEventListResponse'
         default:
           description: An unexpected error response.
           content:
@@ -438,7 +429,8 @@ paths:
           description: The request has succeeded.
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/PolicySuggestionListResponse'
         default:
           description: An unexpected error response.
           content:
@@ -457,11 +449,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema: {}
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -489,7 +478,8 @@ paths:
           description: The request has succeeded.
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/PolicySuggestion'
         default:
           description: An unexpected error response.
           content:
@@ -513,11 +503,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema: {}
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -541,11 +528,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema: {}
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -569,11 +553,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema: {}
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -709,6 +690,54 @@ components:
       schema:
         type: string
   schemas:
+    AgentObservationEvent:
+      type: object
+      required:
+        - event_id
+        - tenant_id
+        - trace_id
+        - surface
+        - action
+        - timestamp
+        - payload_json
+      properties:
+        event_id:
+          type: string
+        tenant_id:
+          type: string
+        trace_id:
+          type: string
+        agent_id:
+          type: string
+        shadow_candidate_id:
+          type: string
+        tool_id:
+          type: string
+        resource_id:
+          type: string
+        surface:
+          type: string
+        action:
+          type: string
+        pep_type:
+          type: string
+        risk_level:
+          type: string
+        timestamp:
+          type: string
+        payload_json:
+          type: string
+        token_usage:
+          $ref: '#/components/schemas/TokenUsage'
+    AgentObservationEventListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentObservationEvent'
     BundleFetchRequest:
       type: object
       required:
@@ -774,6 +803,102 @@ components:
           type: array
           items:
             type: string
+    CostLedgerEntry:
+      type: object
+      required:
+        - event_id
+        - agent_id
+        - provider
+        - input_tokens
+        - output_tokens
+        - total_tokens
+        - input_cost
+        - output_cost
+        - total_cost
+        - currency
+        - estimated
+        - timestamp
+      properties:
+        event_id:
+          type: string
+        agent_id:
+          type: string
+        provider:
+          type: string
+        model:
+          type: string
+        input_tokens:
+          type: integer
+          format: int64
+        output_tokens:
+          type: integer
+          format: int64
+        total_tokens:
+          type: integer
+          format: int64
+        input_cost:
+          type: number
+          format: float
+        output_cost:
+          type: number
+          format: float
+        total_cost:
+          type: number
+          format: float
+        currency:
+          type: string
+        estimated:
+          type: boolean
+        timestamp:
+          type: string
+    CostLedgerListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CostLedgerEntry'
+    DiscoveryCandidate:
+      type: object
+      required:
+        - candidate_id
+        - tenant_id
+        - surface
+        - first_seen_at
+        - last_seen_at
+        - observation_count
+        - status
+      properties:
+        candidate_id:
+          type: string
+        tenant_id:
+          type: string
+        surface:
+          type: string
+        first_seen_at:
+          type: string
+        last_seen_at:
+          type: string
+        observation_count:
+          type: integer
+          format: int64
+        inferred_name:
+          type: string
+        inferred_provider:
+          type: string
+        status:
+          type: string
+    DiscoveryCandidateListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiscoveryCandidate'
     MissingControl:
       type: object
       required:
@@ -854,6 +979,19 @@ components:
           type: array
           items:
             type: string
+    PolicyArtifact:
+      type: object
+      required:
+        - name
+        - content
+        - language
+      properties:
+        name:
+          type: string
+        content:
+          type: string
+        language:
+          type: string
     PolicyCoverageSummary:
       type: object
       required:
@@ -879,6 +1017,64 @@ components:
         confidence:
           type: number
           format: float
+    PolicySuggestion:
+      type: object
+      required:
+        - suggestion_id
+        - tenant_id
+        - suggestion_type
+        - title
+        - summary
+        - severity
+        - confidence
+        - recommended_policy_type
+        - recommended_pep_type
+        - artifacts
+        - status
+        - created_at
+      properties:
+        suggestion_id:
+          type: string
+        tenant_id:
+          type: string
+        target_agent_id:
+          type: string
+        target_resource_id:
+          type: string
+        target_tool_id:
+          type: string
+        suggestion_type:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        severity:
+          type: string
+        confidence:
+          type: number
+          format: float
+        recommended_policy_type:
+          type: string
+        recommended_pep_type:
+          type: string
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyArtifact'
+        status:
+          type: string
+        created_at:
+          type: string
+    PolicySuggestionListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicySuggestion'
     PollenError:
       type: object
       required:
@@ -1047,6 +1243,20 @@ components:
         retry_after_seconds:
           type: integer
           format: int32
+    TokenUsage:
+      type: object
+      properties:
+        input_tokens:
+          type: integer
+          format: int64
+        output_tokens:
+          type: integer
+          format: int64
+        total_tokens:
+          type: integer
+          format: int64
+        model:
+          type: string
     Tool:
       type: object
       required:
