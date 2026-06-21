@@ -64,7 +64,7 @@ impl NetworkEnforcer for WfpFilterManager {
             self.engine_handle = Some(handle);
             self.is_active = true;
             info!("WFP Engine initialized and ALE_AUTH_CONNECT sublayers ready");
-            return Ok(());
+            Ok(())
         }
 
         #[cfg(not(windows))]

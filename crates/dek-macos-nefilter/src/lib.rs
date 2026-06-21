@@ -36,7 +36,7 @@ impl NetworkEnforcer for NeFilterClient {
             // Skeleton: Connect to Unix Domain Socket provided by NEFilterDataProvider
             let _socket_path = "/var/run/pollen/nefilter.sock";
             self.connected = true;
-            return Ok(());
+            Ok(())
         }
 
         #[cfg(not(target_os = "macos"))]

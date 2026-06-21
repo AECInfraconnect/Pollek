@@ -90,7 +90,7 @@ impl SecureFallback {
             }
 
             for path in files {
-                if !path.extension().map_or(false, |ext| ext == "pds") {
+                if path.extension() != Some(std::ffi::OsStr::new("pds")) {
                     continue;
                 }
 
