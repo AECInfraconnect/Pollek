@@ -241,7 +241,11 @@ async fn get_manifest(
     Path((tenant, _device)): Path<(String, String)>,
     State(st): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    match st.policy_store.get_policy_raw(&tenant, "bundle:latest").await {
+    match st
+        .policy_store
+        .get_policy_raw(&tenant, "bundle:latest")
+        .await
+    {
         Ok(Some(val)) => Ok(Json(val)),
         Ok(None) => Err(ApiError::NotFound("bundle".into())),
         Err(e) => Err(ApiError::Internal(e)),
@@ -264,10 +268,7 @@ async fn get_artifact(
                 "public_key_fingerprint": st.signer.public_key_b64(),
             }]
         });
-        return Ok((
-            StatusCode::OK,
-            serde_json::to_vec(&signed_payload).unwrap(),
-        ));
+        return Ok((StatusCode::OK, serde_json::to_vec(&signed_payload).unwrap()));
     }
 
     let path = format!("artifacts/{sha}");

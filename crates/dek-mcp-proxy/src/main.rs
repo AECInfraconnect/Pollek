@@ -151,7 +151,9 @@ async fn main() -> Result<()> {
         }
     }
 
-    let plugin_host = Arc::new(WasmPluginHost::new(dek_wasm_host::WasmHostConfig::default())?);
+    let plugin_host = Arc::new(WasmPluginHost::new(
+        dek_wasm_host::WasmHostConfig::default(),
+    )?);
     for (name, p) in plugin_paths {
         if let Ok(bytes) = std::fs::read(&p) {
             let key = dek_wasm_host::PluginKey {
@@ -691,10 +693,17 @@ async fn handle_mcp_request(
                 // Apply PII redaction plugin if required
                 if let Ok(redacted_bytes) = snapshot
                     .plugin_host
-                    .invoke("default:pii-redactor:1.0:dev", uuid::Uuid::new_v4().to_string(), final_response.to_string().as_bytes()).await
+                    .invoke(
+                        "default:pii-redactor:1.0:dev",
+                        uuid::Uuid::new_v4().to_string(),
+                        final_response.to_string().as_bytes(),
+                    )
+                    .await
                 {
                     info!("Applied PII redaction plugin successfully.");
-                    if let Ok(redacted_val) = serde_json::from_slice::<serde_json::Value>(&redacted_bytes) {
+                    if let Ok(redacted_val) =
+                        serde_json::from_slice::<serde_json::Value>(&redacted_bytes)
+                    {
                         (StatusCode::OK, Json(redacted_val)).into_response()
                     } else {
                         (StatusCode::OK, Json(final_response)).into_response()
@@ -827,12 +836,20 @@ async fn handle_filter_response(
 ) -> Response {
     let snapshot = state.snapshot.load();
     // Apply redaction plugin
-    if let Ok(redacted_bytes) = snapshot.plugin_host.invoke("default:pii-redactor:1.0:dev", uuid::Uuid::new_v4().to_string(), payload.to_string().as_bytes()).await {
+    if let Ok(redacted_bytes) = snapshot
+        .plugin_host
+        .invoke(
+            "default:pii-redactor:1.0:dev",
+            uuid::Uuid::new_v4().to_string(),
+            payload.to_string().as_bytes(),
+        )
+        .await
+    {
         if let Ok(redacted_val) = serde_json::from_slice::<serde_json::Value>(&redacted_bytes) {
             tracing::info!("Applied PII redaction successfully.");
             return (StatusCode::OK, Json(redacted_val)).into_response();
         }
     }
-    
+
     (StatusCode::OK, Json(payload)).into_response()
 }

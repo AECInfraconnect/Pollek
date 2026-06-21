@@ -1,8 +1,0 @@
-{
-  "device_id": "device-001",
-  "mtls": {
-    "client_cert_path": "certs/client.crt",
-    "client_key_path": "certs/client.key",
-    "root_ca_path": "certs/root_ca.crt"
-  }
-}

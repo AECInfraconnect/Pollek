@@ -23,7 +23,10 @@ use std::sync::Mutex;
 static SERIAL: Mutex<()> = Mutex::new(());
 
 fn now() -> i64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64
 }
 fn b64(b: &[u8]) -> String {
     use base64::Engine;
@@ -50,7 +53,10 @@ fn s1_verify_valid_and_reject_forged() {
     let signed_bytes = serde_json::to_vec(&signed).unwrap();
 
     let out = set.verify(now(), &signed_bytes, &parse_signatures(&sigs_json));
-    assert!(matches!(out, VerifyOutcome::Valid { .. }), "valid bundle must verify");
+    assert!(
+        matches!(out, VerifyOutcome::Valid { .. }),
+        "valid bundle must verify"
+    );
 
     // forged: signed by a different key but claims keyid "bootstrap"
     let (sk_forged, _) = keypair(9);
@@ -71,34 +77,86 @@ fn s2_key_rotation_overlap_then_revoke() {
 
     // introduce "next" key (overlap): both verify
     let delta = set.merge_rotation(vec![TrustedKey {
-        key_id: "key-2".into(), public_b64: pk_new.clone(), status: KeyStatus::Next,
-        not_before_unix: 0, not_after_unix: 0,
+        key_id: "key-2".into(),
+        public_b64: pk_new.clone(),
+        status: KeyStatus::Next,
+        not_before_unix: 0,
+        not_after_unix: 0,
     }]);
     assert_eq!(delta.added, vec!["key-2".to_string()]);
 
     let signed = serde_json::json!({ "v": 1 });
     let sb = serde_json::to_vec(&signed).unwrap();
-    assert!(matches!(set.verify(now(), &sb, &parse_signatures(&sign_sigs(&sk_old, "bootstrap", &signed))), VerifyOutcome::Valid{..}));
-    assert!(matches!(set.verify(now(), &sb, &parse_signatures(&sign_sigs(&sk_new, "key-2", &signed))), VerifyOutcome::Valid{..}));
+    assert!(matches!(
+        set.verify(
+            now(),
+            &sb,
+            &parse_signatures(&sign_sigs(&sk_old, "bootstrap", &signed))
+        ),
+        VerifyOutcome::Valid { .. }
+    ));
+    assert!(matches!(
+        set.verify(
+            now(),
+            &sb,
+            &parse_signatures(&sign_sigs(&sk_new, "key-2", &signed))
+        ),
+        VerifyOutcome::Valid { .. }
+    ));
 
     // revoke old, promote new
     set.merge_rotation(vec![
-        TrustedKey { key_id: "bootstrap".into(), public_b64: pk_old, status: KeyStatus::Revoked, not_before_unix: 0, not_after_unix: 0 },
-        TrustedKey { key_id: "key-2".into(), public_b64: pk_new, status: KeyStatus::Active, not_before_unix: 0, not_after_unix: 0 },
+        TrustedKey {
+            key_id: "bootstrap".into(),
+            public_b64: pk_old,
+            status: KeyStatus::Revoked,
+            not_before_unix: 0,
+            not_after_unix: 0,
+        },
+        TrustedKey {
+            key_id: "key-2".into(),
+            public_b64: pk_new,
+            status: KeyStatus::Active,
+            not_before_unix: 0,
+            not_after_unix: 0,
+        },
     ]);
     // old key no longer usable
-    assert_eq!(set.verify(now(), &sb, &parse_signatures(&sign_sigs(&sk_old, "bootstrap", &signed))), VerifyOutcome::NoValidSignature);
-    assert!(matches!(set.verify(now(), &sb, &parse_signatures(&sign_sigs(&sk_new, "key-2", &signed))), VerifyOutcome::Valid{..}));
+    assert_eq!(
+        set.verify(
+            now(),
+            &sb,
+            &parse_signatures(&sign_sigs(&sk_old, "bootstrap", &signed))
+        ),
+        VerifyOutcome::NoValidSignature
+    );
+    assert!(matches!(
+        set.verify(
+            now(),
+            &sb,
+            &parse_signatures(&sign_sigs(&sk_new, "key-2", &signed))
+        ),
+        VerifyOutcome::Valid { .. }
+    ));
 }
 
 // ── Scenario 3: freshness state machine (partition -> grace -> strict deny) ─
 #[test]
 fn s3_freshness_partition_to_strict_deny() {
-    let cfg = FreshnessConfig { max_bundle_age_secs: 1000, grace_secs: 10 };
+    let cfg = FreshnessConfig {
+        max_bundle_age_secs: 1000,
+        grace_secs: 10,
+    };
     // fresh
-    assert!(matches!(evaluate_state(100, Some(200), Some(90), &cfg), EnforcementState::Active{..}));
+    assert!(matches!(
+        evaluate_state(100, Some(200), Some(90), &cfg),
+        EnforcementState::Active { .. }
+    ));
     // expired within grace -> still enforcing (LKG)
-    assert!(matches!(evaluate_state(205, Some(200), Some(150), &cfg), EnforcementState::GracePeriod{..}));
+    assert!(matches!(
+        evaluate_state(205, Some(200), Some(150), &cfg),
+        EnforcementState::GracePeriod { .. }
+    ));
     // beyond grace -> deny
     assert!(evaluate_state(215, Some(200), Some(150), &cfg).is_strict_deny());
     // max_bundle_age exceeded (partition) even if bundle not expired -> deny
@@ -114,24 +172,36 @@ fn s4_pep_gate_failsafe() {
 
     // strict deny published -> gate denies
     write_status_atomic(&EnforcementStatus {
-        state: EnforcementState::StrictDeny { since_unix: now(), reason: "bundle_expired_beyond_grace".into() },
-        updated_unix: now(), bundle_version: None,
-    }).unwrap();
+        state: EnforcementState::StrictDeny {
+            since_unix: now(),
+            reason: "bundle_expired_beyond_grace".into(),
+        },
+        updated_unix: now(),
+        bundle_version: None,
+    })
+    .unwrap();
     invalidate_cache();
     assert!(strict_deny_reason().is_some());
 
     // active -> gate allows
     write_status_atomic(&EnforcementStatus {
-        state: EnforcementState::Active { expires_at_unix: now() + 3600 },
-        updated_unix: now(), bundle_version: Some("9_9_9".into()),
-    }).unwrap();
+        state: EnforcementState::Active {
+            expires_at_unix: now() + 3600,
+        },
+        updated_unix: now(),
+        bundle_version: Some("9_9_9".into()),
+    })
+    .unwrap();
     invalidate_cache();
     assert_eq!(strict_deny_reason(), None);
 
     // absent status -> fail closed
     let _ = std::fs::remove_file(dek_policy_syncer::state::status_path());
     invalidate_cache();
-    assert!(strict_deny_reason().is_some(), "no status => deny (fail-closed)");
+    assert!(
+        strict_deny_reason().is_some(),
+        "no status => deny (fail-closed)"
+    );
 }
 
 // ── Scenario 5: in-process mock /v1/keys is verified before merge (chain) ───
@@ -155,13 +225,25 @@ async fn s5_v1_keys_chain_of_trust() {
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    let app = Router::new().route("/v1/keys", get(move || { let b = body.clone(); async move { Json(b) } }));
-    tokio::spawn(async move { axum::serve(listener, app).await.unwrap(); });
+    let app = Router::new().route(
+        "/v1/keys",
+        get(move || {
+            let b = body.clone();
+            async move { Json(b) }
+        }),
+    );
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
 
     let client = reqwest::Client::new();
     let url = format!("http://{addr}/v1/keys");
-    let (merged, delta) =
-        dek_policy_syncer::keys::fetch_and_merge(&client, &url, None, &current).await.unwrap();
-    assert!(delta.added.contains(&"key-2".to_string()), "next key merged after chain-of-trust verify");
+    let (merged, delta) = dek_policy_syncer::keys::fetch_and_merge(&client, &url, None, &current)
+        .await
+        .unwrap();
+    assert!(
+        delta.added.contains(&"key-2".to_string()),
+        "next key merged after chain-of-trust verify"
+    );
     assert_eq!(merged.usable_keys(now()).count(), 2);
 }

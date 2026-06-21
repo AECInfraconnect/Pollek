@@ -75,10 +75,14 @@ async fn setup() -> Result<Proc> {
             .args([
                 "build",
                 "--workspace",
-                "--exclude", "dek-ebpf-prog",
-                "--exclude", "dek-ebpfd",
-                "--exclude", "pii_redactor",
-                "--exclude", "pii-redactor",
+                "--exclude",
+                "dek-ebpf-prog",
+                "--exclude",
+                "dek-ebpfd",
+                "--exclude",
+                "pii_redactor",
+                "--exclude",
+                "pii-redactor",
             ])
             .status()
             .await?

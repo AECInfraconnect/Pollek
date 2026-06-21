@@ -125,6 +125,8 @@ pub fn validate_tenant_isolation(
             }
             Ok(())
         }
-        TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => Err("Unsupported strategy"),
+        TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => {
+            Err("Unsupported strategy")
+        }
     }
 }

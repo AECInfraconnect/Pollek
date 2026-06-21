@@ -1,14 +1,8 @@
-use local_control_plane::{
-    app,
-    auth,
-    signing::LocalSigner,
-    state::AppState,
-    store,
-};
+use dek_control_plane_api::identity::ControlPlaneIdentity;
+use local_control_plane::{app, auth, signing::LocalSigner, state::AppState, store};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use dek_control_plane_api::identity::ControlPlaneIdentity;
 
 pub struct LocalControlPlaneHarness {
     pub base_url: String,

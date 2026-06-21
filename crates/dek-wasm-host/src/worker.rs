@@ -80,7 +80,10 @@ impl PluginWorker {
 
         self.uses += 1;
 
-        let ptr = self.alloc.call_async(&mut self.store, input.len() as i32).await?;
+        let ptr = self
+            .alloc
+            .call_async(&mut self.store, input.len() as i32)
+            .await?;
         if ptr <= 0 {
             bail!("plugin allocation failed");
         }

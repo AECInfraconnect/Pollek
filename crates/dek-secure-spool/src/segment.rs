@@ -35,10 +35,7 @@ impl SegmentWriter {
         device_id: impl Into<String>,
         segment_id: impl Into<String>,
     ) -> io::Result<Self> {
-        let mut file = OpenOptions::new()
-            .create_new(true)
-            .write(true)
-            .open(path)?;
+        let mut file = OpenOptions::new().create_new(true).write(true).open(path)?;
 
         file.write_all(MAGIC)?;
         file.write_all(&1u16.to_le_bytes())?; // segment format version
@@ -60,8 +57,8 @@ impl SegmentWriter {
     ) -> io::Result<()> {
         self.seq += 1;
 
-        let plaintext = serde_json::to_vec(event)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let plaintext =
+            serde_json::to_vec(event).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         let aad = crate::crypto::RecordAad {
             schema: "pollen.spool.frame.v1".to_string(),
@@ -81,7 +78,10 @@ impl SegmentWriter {
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         if frame.len() > u32::MAX as usize {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "frame too large"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "frame too large",
+            ));
         }
 
         let frame_len = frame.len() as u32;
@@ -101,27 +101,36 @@ pub fn read_encrypted_records(path: &Path) -> io::Result<Vec<crate::crypto::Encr
     let mut magic = [0u8; 4];
     file.read_exact(&mut magic)?;
     if &magic != b"PDS1" {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "bad spool magic"));
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "bad spool magic",
+        ));
     }
 
     let mut version = [0u8; 2];
     file.read_exact(&mut version)?;
     if u16::from_le_bytes(version) != 1 {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "unsupported spool version"));
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "unsupported spool version",
+        ));
     }
 
     let mut records = Vec::new();
     loop {
         let mut len_buf = [0u8; 4];
         match file.read_exact(&mut len_buf) {
-            Ok(()) => {},
+            Ok(()) => {}
             Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => break,
             Err(e) => return Err(e),
         }
 
         let frame_len = u32::from_le_bytes(len_buf) as usize;
         if frame_len > 16 * 1024 * 1024 {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "frame too large"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "frame too large",
+            ));
         }
 
         let mut frame = vec![0u8; frame_len];
@@ -132,7 +141,10 @@ pub fn read_encrypted_records(path: &Path) -> io::Result<Vec<crate::crypto::Encr
         let expected = u32::from_le_bytes(crc_buf);
         let actual = crc32c(&frame);
         if expected != actual {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "frame crc mismatch"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "frame crc mismatch",
+            ));
         }
 
         let record: crate::crypto::EncryptedRecord = serde_json::from_slice(&frame)

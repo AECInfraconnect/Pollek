@@ -85,15 +85,27 @@ pub async fn fetch_and_merge(
     if let Some(t) = api_token {
         req = req.header("Authorization", format!("Bearer {}", t));
     }
-    let res = req.send().await.map_err(|e| crate::SyncError::Fetch(format!("GET /v1/keys failed: {}", e)))?;
+    let res = req
+        .send()
+        .await
+        .map_err(|e| crate::SyncError::Fetch(format!("GET /v1/keys failed: {}", e)))?;
     if !res.status().is_success() {
-        return Err(crate::SyncError::Fetch(format!("keys fetch failed: HTTP {}", res.status())));
+        return Err(crate::SyncError::Fetch(format!(
+            "keys fetch failed: HTTP {}",
+            res.status()
+        )));
     }
-    let body: serde_json::Value = res.json().await.map_err(|e| crate::SyncError::Fetch(format!("parse /v1/keys: {}", e)))?;
+    let body: serde_json::Value = res
+        .json()
+        .await
+        .map_err(|e| crate::SyncError::Fetch(format!("parse /v1/keys: {}", e)))?;
 
     // Chain of trust: verify `signed` with a CURRENTLY trusted key.
-    let signed = body.get("signed").ok_or_else(|| crate::SyncError::Verify("missing 'signed'".into()))?;
-    let signed_bytes = serde_json::to_vec(signed).map_err(|e| crate::SyncError::Verify(format!("serialize signed: {}", e)))?;
+    let signed = body
+        .get("signed")
+        .ok_or_else(|| crate::SyncError::Verify("missing 'signed'".into()))?;
+    let signed_bytes = serde_json::to_vec(signed)
+        .map_err(|e| crate::SyncError::Verify(format!("serialize signed: {}", e)))?;
     let sigs = parse_signatures(body.get("signatures").unwrap_or(&serde_json::Value::Null));
     match current.verify(now_unix(), &signed_bytes, &sigs) {
         VerifyOutcome::Valid { key_id } => {
@@ -105,13 +117,20 @@ pub async fn fetch_and_merge(
         other => {
             // SECURITY: refuse to merge keys that aren't vouched for by a key we
             // already trust. This is the rogue-key-injection guard.
-            return Err(crate::SyncError::Verify(format!("payload not signed by a trusted key ({:?})", other)));
+            return Err(crate::SyncError::Verify(format!(
+                "payload not signed by a trusted key ({:?})",
+                other
+            )));
         }
     }
 
-    let incoming: Vec<TrustedKey> =
-        serde_json::from_value(signed.get("keys").cloned().ok_or_else(|| crate::SyncError::Verify("missing signed.keys".into()))?)
-            .map_err(|e| crate::SyncError::Verify(format!("parse keys list: {}", e)))?;
+    let incoming: Vec<TrustedKey> = serde_json::from_value(
+        signed
+            .get("keys")
+            .cloned()
+            .ok_or_else(|| crate::SyncError::Verify("missing signed.keys".into()))?,
+    )
+    .map_err(|e| crate::SyncError::Verify(format!("parse keys list: {}", e)))?;
 
     let mut merged = current.clone();
     let delta = merged.merge_rotation(incoming);
@@ -120,7 +139,8 @@ pub async fn fetch_and_merge(
             "[KeyMgr] key rotation: added={:?} promoted={:?} revoked={:?}",
             delta.added, delta.promoted, delta.revoked
         );
-        persist(&merged).map_err(|e| crate::SyncError::Activation(format!("failed to persist keys: {}", e)))?;
+        persist(&merged)
+            .map_err(|e| crate::SyncError::Activation(format!("failed to persist keys: {}", e)))?;
     }
     Ok((merged, delta))
 }

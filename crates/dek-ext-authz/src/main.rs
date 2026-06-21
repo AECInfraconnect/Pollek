@@ -69,8 +69,11 @@ impl Authorization for ExtAuthzService {
             Some(p) => p,
             None => {
                 metrics::counter!("dek_proxy_requests_total", "decision" => "deny",
-                    "reason" => "overloaded", "tenant" => self.tenant_id.clone()).increment(1);
-                return Ok(tonic::Response::new(denied_check_response("overloaded_backpressure")));
+                    "reason" => "overloaded", "tenant" => self.tenant_id.clone())
+                .increment(1);
+                return Ok(tonic::Response::new(denied_check_response(
+                    "overloaded_backpressure",
+                )));
             }
         };
 
@@ -231,9 +234,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let addr = "[::1]:50051".parse()?;
-    
+
     let scale_config = dek_config::ScaleConfig::default(); // Could be loaded from bundle
-    let admission = AdmissionControl::new(scale_config.max_concurrent, scale_config.max_concurrent_per_tenant);
+    let admission = AdmissionControl::new(
+        scale_config.max_concurrent,
+        scale_config.max_concurrent_per_tenant,
+    );
 
     let service = ExtAuthzService {
         router: Arc::new(RwLock::new(router)),

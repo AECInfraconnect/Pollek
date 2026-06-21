@@ -1,6 +1,10 @@
 use crate::key_manager::{KeyStoreError, OsKeyStore};
 use rand::{rngs::OsRng, RngCore};
-use std::{fs::OpenOptions, io::{Read, Write}, path::PathBuf};
+use std::{
+    fs::OpenOptions,
+    io::{Read, Write},
+    path::PathBuf,
+};
 
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
@@ -23,7 +27,8 @@ impl OsKeyStore for LinuxFileFallbackStore {
                 .open(&self.key_path)
                 .map_err(|e| KeyStoreError::Os(e.to_string()))?;
             let mut key = [0u8; 32];
-            file.read_exact(&mut key).map_err(|e| KeyStoreError::Os(e.to_string()))?;
+            file.read_exact(&mut key)
+                .map_err(|e| KeyStoreError::Os(e.to_string()))?;
             return Ok(key);
         }
 
@@ -36,9 +41,13 @@ impl OsKeyStore for LinuxFileFallbackStore {
         #[cfg(unix)]
         options.mode(0o600);
 
-        let mut file = options.open(&self.key_path).map_err(|e| KeyStoreError::Os(e.to_string()))?;
-        file.write_all(&key).map_err(|e| KeyStoreError::Os(e.to_string()))?;
-        file.sync_data().map_err(|e| KeyStoreError::Os(e.to_string()))?;
+        let mut file = options
+            .open(&self.key_path)
+            .map_err(|e| KeyStoreError::Os(e.to_string()))?;
+        file.write_all(&key)
+            .map_err(|e| KeyStoreError::Os(e.to_string()))?;
+        file.sync_data()
+            .map_err(|e| KeyStoreError::Os(e.to_string()))?;
         Ok(key)
     }
 
@@ -52,9 +61,13 @@ impl OsKeyStore for LinuxFileFallbackStore {
         #[cfg(unix)]
         options.mode(0o600);
 
-        let mut file = options.open(&self.key_path).map_err(|e| KeyStoreError::Os(e.to_string()))?;
-        file.write_all(&key).map_err(|e| KeyStoreError::Os(e.to_string()))?;
-        file.sync_data().map_err(|e| KeyStoreError::Os(e.to_string()))?;
+        let mut file = options
+            .open(&self.key_path)
+            .map_err(|e| KeyStoreError::Os(e.to_string()))?;
+        file.write_all(&key)
+            .map_err(|e| KeyStoreError::Os(e.to_string()))?;
+        file.sync_data()
+            .map_err(|e| KeyStoreError::Os(e.to_string()))?;
         Ok(key)
     }
 }

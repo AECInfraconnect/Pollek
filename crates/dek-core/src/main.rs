@@ -20,7 +20,6 @@ mod supervisor;
 mod svid_renewal;
 mod svid_renewal_failclosed;
 
-
 fn main() -> anyhow::Result<()> {
     #[cfg(windows)]
     service_integration::run_as_service_if_needed(async { run().await })?;

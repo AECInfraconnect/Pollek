@@ -1,4 +1,7 @@
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
 use axum::{
     extract::{Path, State},
     routing::get,
@@ -89,7 +92,11 @@ async fn list_agents(
     Path(tenant_id): Path<String>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let items = state.registry_store.list_agents(&tenant_id).await.map_err(ApiError::Internal)?;
+    let items = state
+        .registry_store
+        .list_agents(&tenant_id)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(items)))
 }
 
@@ -99,7 +106,11 @@ async fn create_agent(
     Json(mut payload): Json<AiAgent>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_agent(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_agent(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok((axum::http::StatusCode::CREATED, Json(json!(item))))
 }
 
@@ -107,7 +118,11 @@ async fn get_agent(
     Path((tenant_id, agent_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let item = state.registry_store.get_agent(&tenant_id, &agent_id).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .get_agent(&tenant_id, &agent_id)
+        .await
+        .map_err(ApiError::Internal)?;
     match item {
         Some(i) => Ok(Json(json!(i))),
         None => Err(ApiError::NotFound(agent_id)),
@@ -120,7 +135,11 @@ async fn patch_agent(
     Json(mut payload): Json<AiAgent>,
 ) -> ApiResult<Json<serde_json::Value>> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_agent(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_agent(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(item)))
 }
 
@@ -128,7 +147,11 @@ async fn delete_agent(
     Path((tenant_id, agent_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
-    let deleted = state.registry_store.delete_agent(&tenant_id, &agent_id).await.map_err(ApiError::Internal)?;
+    let deleted = state
+        .registry_store
+        .delete_agent(&tenant_id, &agent_id)
+        .await
+        .map_err(ApiError::Internal)?;
     if deleted {
         Ok((axum::http::StatusCode::NO_CONTENT, Json(json!({}))))
     } else {
@@ -143,7 +166,11 @@ async fn list_blackbox_ai(
     Path(tenant_id): Path<String>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let items = state.registry_store.list_blackbox_ai(&tenant_id).await.map_err(ApiError::Internal)?;
+    let items = state
+        .registry_store
+        .list_blackbox_ai(&tenant_id)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(items)))
 }
 
@@ -153,7 +180,11 @@ async fn create_blackbox_ai(
     Json(mut payload): Json<BlackboxAiProvider>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_blackbox_ai(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_blackbox_ai(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok((axum::http::StatusCode::CREATED, Json(json!(item))))
 }
 
@@ -161,7 +192,11 @@ async fn get_blackbox_ai(
     Path((tenant_id, provider_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let item = state.registry_store.get_blackbox_ai(&tenant_id, &provider_id).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .get_blackbox_ai(&tenant_id, &provider_id)
+        .await
+        .map_err(ApiError::Internal)?;
     match item {
         Some(i) => Ok(Json(json!(i))),
         None => Err(ApiError::NotFound(provider_id)),
@@ -174,7 +209,11 @@ async fn patch_blackbox_ai(
     Json(mut payload): Json<BlackboxAiProvider>,
 ) -> ApiResult<Json<serde_json::Value>> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_blackbox_ai(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_blackbox_ai(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(item)))
 }
 
@@ -182,7 +221,11 @@ async fn delete_blackbox_ai(
     Path((tenant_id, provider_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
-    let deleted = state.registry_store.delete_blackbox_ai(&tenant_id, &provider_id).await.map_err(ApiError::Internal)?;
+    let deleted = state
+        .registry_store
+        .delete_blackbox_ai(&tenant_id, &provider_id)
+        .await
+        .map_err(ApiError::Internal)?;
     if deleted {
         Ok((axum::http::StatusCode::NO_CONTENT, Json(json!({}))))
     } else {
@@ -197,7 +240,11 @@ async fn list_mcp_servers(
     Path(tenant_id): Path<String>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let items = state.registry_store.list_mcp_servers(&tenant_id).await.map_err(ApiError::Internal)?;
+    let items = state
+        .registry_store
+        .list_mcp_servers(&tenant_id)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(items)))
 }
 
@@ -207,7 +254,11 @@ async fn create_mcp_server(
     Json(mut payload): Json<McpServer>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_mcp_server(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_mcp_server(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok((axum::http::StatusCode::CREATED, Json(json!(item))))
 }
 
@@ -215,7 +266,11 @@ async fn get_mcp_server(
     Path((tenant_id, server_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let item = state.registry_store.get_mcp_server(&tenant_id, &server_id).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .get_mcp_server(&tenant_id, &server_id)
+        .await
+        .map_err(ApiError::Internal)?;
     match item {
         Some(i) => Ok(Json(json!(i))),
         None => Err(ApiError::NotFound(server_id)),
@@ -228,7 +283,11 @@ async fn patch_mcp_server(
     Json(mut payload): Json<McpServer>,
 ) -> ApiResult<Json<serde_json::Value>> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_mcp_server(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_mcp_server(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(item)))
 }
 
@@ -236,7 +295,11 @@ async fn delete_mcp_server(
     Path((tenant_id, server_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
-    let deleted = state.registry_store.delete_mcp_server(&tenant_id, &server_id).await.map_err(ApiError::Internal)?;
+    let deleted = state
+        .registry_store
+        .delete_mcp_server(&tenant_id, &server_id)
+        .await
+        .map_err(ApiError::Internal)?;
     if deleted {
         Ok((axum::http::StatusCode::NO_CONTENT, Json(json!({}))))
     } else {
@@ -251,7 +314,11 @@ async fn list_tools(
     Path(tenant_id): Path<String>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let items = state.registry_store.list_tools(&tenant_id).await.map_err(ApiError::Internal)?;
+    let items = state
+        .registry_store
+        .list_tools(&tenant_id)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(items)))
 }
 
@@ -261,7 +328,11 @@ async fn create_tool(
     Json(mut payload): Json<Tool>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_tool(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_tool(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok((axum::http::StatusCode::CREATED, Json(json!(item))))
 }
 
@@ -269,7 +340,11 @@ async fn get_tool(
     Path((tenant_id, tool_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let item = state.registry_store.get_tool(&tenant_id, &tool_id).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .get_tool(&tenant_id, &tool_id)
+        .await
+        .map_err(ApiError::Internal)?;
     match item {
         Some(i) => Ok(Json(json!(i))),
         None => Err(ApiError::NotFound(tool_id)),
@@ -282,7 +357,11 @@ async fn patch_tool(
     Json(mut payload): Json<Tool>,
 ) -> ApiResult<Json<serde_json::Value>> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_tool(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_tool(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(item)))
 }
 
@@ -290,7 +369,11 @@ async fn delete_tool(
     Path((tenant_id, tool_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
-    let deleted = state.registry_store.delete_tool(&tenant_id, &tool_id).await.map_err(ApiError::Internal)?;
+    let deleted = state
+        .registry_store
+        .delete_tool(&tenant_id, &tool_id)
+        .await
+        .map_err(ApiError::Internal)?;
     if deleted {
         Ok((axum::http::StatusCode::NO_CONTENT, Json(json!({}))))
     } else {
@@ -305,7 +388,11 @@ async fn list_resources(
     Path(tenant_id): Path<String>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let items = state.registry_store.list_resources(&tenant_id).await.map_err(ApiError::Internal)?;
+    let items = state
+        .registry_store
+        .list_resources(&tenant_id)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(items)))
 }
 
@@ -315,7 +402,11 @@ async fn create_resource(
     Json(mut payload): Json<Resource>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_resource(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_resource(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok((axum::http::StatusCode::CREATED, Json(json!(item))))
 }
 
@@ -323,7 +414,11 @@ async fn get_resource(
     Path((tenant_id, resource_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let item = state.registry_store.get_resource(&tenant_id, &resource_id).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .get_resource(&tenant_id, &resource_id)
+        .await
+        .map_err(ApiError::Internal)?;
     match item {
         Some(i) => Ok(Json(json!(i))),
         None => Err(ApiError::NotFound(resource_id)),
@@ -336,7 +431,11 @@ async fn patch_resource(
     Json(mut payload): Json<Resource>,
 ) -> ApiResult<Json<serde_json::Value>> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_resource(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_resource(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(item)))
 }
 
@@ -344,7 +443,11 @@ async fn delete_resource(
     Path((tenant_id, resource_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
-    let deleted = state.registry_store.delete_resource(&tenant_id, &resource_id).await.map_err(ApiError::Internal)?;
+    let deleted = state
+        .registry_store
+        .delete_resource(&tenant_id, &resource_id)
+        .await
+        .map_err(ApiError::Internal)?;
     if deleted {
         Ok((axum::http::StatusCode::NO_CONTENT, Json(json!({}))))
     } else {
@@ -359,7 +462,11 @@ async fn list_entities(
     Path(tenant_id): Path<String>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let items = state.registry_store.list_entities(&tenant_id).await.map_err(ApiError::Internal)?;
+    let items = state
+        .registry_store
+        .list_entities(&tenant_id)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(items)))
 }
 
@@ -369,7 +476,11 @@ async fn create_entity(
     Json(mut payload): Json<Entity>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_entity(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_entity(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok((axum::http::StatusCode::CREATED, Json(json!(item))))
 }
 
@@ -377,7 +488,11 @@ async fn get_entity(
     Path((tenant_id, entity_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let item = state.registry_store.get_entity(&tenant_id, &entity_id).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .get_entity(&tenant_id, &entity_id)
+        .await
+        .map_err(ApiError::Internal)?;
     match item {
         Some(i) => Ok(Json(json!(i))),
         None => Err(ApiError::NotFound(entity_id)),
@@ -390,7 +505,11 @@ async fn patch_entity(
     Json(mut payload): Json<Entity>,
 ) -> ApiResult<Json<serde_json::Value>> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_entity(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_entity(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(item)))
 }
 
@@ -398,7 +517,11 @@ async fn delete_entity(
     Path((tenant_id, entity_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
-    let deleted = state.registry_store.delete_entity(&tenant_id, &entity_id).await.map_err(ApiError::Internal)?;
+    let deleted = state
+        .registry_store
+        .delete_entity(&tenant_id, &entity_id)
+        .await
+        .map_err(ApiError::Internal)?;
     if deleted {
         Ok((axum::http::StatusCode::NO_CONTENT, Json(json!({}))))
     } else {
@@ -413,7 +536,11 @@ async fn list_relationships(
     Path(tenant_id): Path<String>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let items = state.registry_store.list_relationships(&tenant_id).await.map_err(ApiError::Internal)?;
+    let items = state
+        .registry_store
+        .list_relationships(&tenant_id)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(items)))
 }
 
@@ -423,7 +550,11 @@ async fn create_relationship(
     Json(mut payload): Json<Relationship>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_relationship(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_relationship(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok((axum::http::StatusCode::CREATED, Json(json!(item))))
 }
 
@@ -431,7 +562,11 @@ async fn get_relationship(
     Path((tenant_id, relationship_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let item = state.registry_store.get_relationship(&tenant_id, &relationship_id).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .get_relationship(&tenant_id, &relationship_id)
+        .await
+        .map_err(ApiError::Internal)?;
     match item {
         Some(i) => Ok(Json(json!(i))),
         None => Err(ApiError::NotFound(relationship_id)),
@@ -444,7 +579,11 @@ async fn patch_relationship(
     Json(mut payload): Json<Relationship>,
 ) -> ApiResult<Json<serde_json::Value>> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.registry_store.upsert_relationship(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .registry_store
+        .upsert_relationship(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(item)))
 }
 
@@ -452,7 +591,11 @@ async fn delete_relationship(
     Path((tenant_id, relationship_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<(axum::http::StatusCode, Json<serde_json::Value>)> {
-    let deleted = state.registry_store.delete_relationship(&tenant_id, &relationship_id).await.map_err(ApiError::Internal)?;
+    let deleted = state
+        .registry_store
+        .delete_relationship(&tenant_id, &relationship_id)
+        .await
+        .map_err(ApiError::Internal)?;
     if deleted {
         Ok((axum::http::StatusCode::NO_CONTENT, Json(json!({}))))
     } else {

@@ -38,9 +38,12 @@ pub use state::{evaluate_state, EnforcementState, EnforcementStatus, FreshnessCo
 
 #[derive(Debug, thiserror::Error)]
 pub enum SyncError {
-    #[error("fetch failed: {0}")] Fetch(String),
-    #[error("verify failed: {0}")] Verify(String),
-    #[error("activation failed: {0}")] Activation(String),
+    #[error("fetch failed: {0}")]
+    Fetch(String),
+    #[error("verify failed: {0}")]
+    Verify(String),
+    #[error("activation failed: {0}")]
+    Activation(String),
 }
 
 /// Outcome of one sync attempt.

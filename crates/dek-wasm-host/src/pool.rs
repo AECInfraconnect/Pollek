@@ -72,7 +72,11 @@ impl PluginWorkerPool {
         Ok(())
     }
 
-    pub async fn acquire(&self, request_id: String, acquire_timeout: Duration) -> Result<WorkerLease> {
+    pub async fn acquire(
+        &self,
+        request_id: String,
+        acquire_timeout: Duration,
+    ) -> Result<WorkerLease> {
         let permit = tokio::time::timeout(acquire_timeout, self.semaphore.clone().acquire_owned())
             .await
             .map_err(|_| anyhow::anyhow!("timeout acquiring plugin concurrency permit"))??;

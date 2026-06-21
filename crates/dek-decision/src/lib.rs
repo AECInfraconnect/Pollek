@@ -102,7 +102,10 @@ impl PolicyRouter {
         adapters: HashMap<String, Box<dyn PolicyAdapter>>,
         routes: Vec<PolicyRoute>,
     ) -> Self {
-        Self { adapters, _routes: routes }
+        Self {
+            adapters,
+            _routes: routes,
+        }
     }
 
     pub async fn evaluate(&self, request: &NormalizedEnforcementRequest) -> DecisionResult {

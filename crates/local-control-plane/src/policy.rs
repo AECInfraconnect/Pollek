@@ -1,4 +1,7 @@
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -36,7 +39,11 @@ async fn list_policies(
     Path(tenant_id): Path<String>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let items = state.policy_store.list_policies(&tenant_id).await.map_err(ApiError::Internal)?;
+    let items = state
+        .policy_store
+        .list_policies(&tenant_id)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(items)))
 }
 
@@ -46,7 +53,11 @@ async fn create_policy(
     Json(mut payload): Json<PolicyDraft>,
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.policy_store.upsert_policy(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .policy_store
+        .upsert_policy(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok((StatusCode::CREATED, Json(json!(item))))
 }
 
@@ -54,7 +65,11 @@ async fn get_policy(
     Path((tenant_id, policy_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let item = state.policy_store.get_policy(&tenant_id, &policy_id).await.map_err(ApiError::Internal)?;
+    let item = state
+        .policy_store
+        .get_policy(&tenant_id, &policy_id)
+        .await
+        .map_err(ApiError::Internal)?;
     match item {
         Some(i) => Ok(Json(json!(i))),
         None => Err(ApiError::NotFound(policy_id)),
@@ -67,7 +82,11 @@ async fn patch_policy(
     Json(mut payload): Json<PolicyDraft>,
 ) -> ApiResult<Json<serde_json::Value>> {
     payload.meta.tenant_id = tenant_id;
-    let item = state.policy_store.upsert_policy(payload).await.map_err(ApiError::Internal)?;
+    let item = state
+        .policy_store
+        .upsert_policy(payload)
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(Json(json!(item)))
 }
 
@@ -75,7 +94,11 @@ async fn delete_policy(
     Path((tenant_id, policy_id)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
-    let deleted = state.policy_store.delete_policy(&tenant_id, &policy_id).await.map_err(ApiError::Internal)?;
+    let deleted = state
+        .policy_store
+        .delete_policy(&tenant_id, &policy_id)
+        .await
+        .map_err(ApiError::Internal)?;
     if deleted {
         Ok((StatusCode::NO_CONTENT, Json(json!({}))))
     } else {

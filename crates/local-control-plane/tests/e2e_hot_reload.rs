@@ -10,11 +10,7 @@ async fn e2e_hot_reload_sse() {
     let client = Client::new();
 
     // Spawn a task to listen to SSE
-    let mut resp = client
-        .get(format!("{base}/v1/push"))
-        .send()
-        .await
-        .unwrap();
+    let mut resp = client.get(format!("{base}/v1/push")).send().await.unwrap();
 
     assert!(resp.status().is_success());
 
@@ -68,7 +64,7 @@ async fn e2e_hot_reload_sse() {
         .send()
         .await
         .unwrap();
-    
+
     assert!(published.status().is_success());
 
     // Now read the SSE stream to see if we got the bundle_id
@@ -82,7 +78,7 @@ async fn e2e_hot_reload_sse() {
             break;
         }
     }
-    
+
     // It should contain 'data: bundle-...'
     assert!(found, "SSE did not receive bundle push within 5 chunks");
 }

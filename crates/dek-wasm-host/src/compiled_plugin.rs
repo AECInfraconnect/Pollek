@@ -2,7 +2,8 @@ use crate::{config::WasmHostConfig, host_state::HostState, plugin_key::PluginKey
 use anyhow::{Context, Result};
 use std::sync::Arc;
 use wasmtime::{
-    Caller, Config, Engine, InstanceAllocationStrategy, InstancePre, Linker, Module, PoolingAllocationConfig,
+    Caller, Config, Engine, InstanceAllocationStrategy, InstancePre, Linker, Module,
+    PoolingAllocationConfig,
 };
 
 pub struct CompiledPlugin {
@@ -61,17 +62,13 @@ pub fn build_linker(engine: &Engine) -> Result<Linker<HostState>> {
     )?;
 
     // Example host import: get monotonic time.
-    linker.func_wrap(
-        "pollen_host",
-        "now_ms",
-        || -> i64 {
-            use std::time::{SystemTime, UNIX_EPOCH};
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as i64
-        },
-    )?;
+    linker.func_wrap("pollen_host", "now_ms", || -> i64 {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as i64
+    })?;
 
     Ok(linker)
 }

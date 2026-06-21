@@ -42,12 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let spool_file = std::path::Path::new("seg-demo.pds");
-    let mut writer = SegmentWriter::create(
-        spool_file,
-        "tnt_demo",
-        "dev_demo",
-        "seg_demo_001",
-    )?;
+    let mut writer = SegmentWriter::create(spool_file, "tnt_demo", "dev_demo", "seg_demo_001")?;
 
     println!("Appending encrypted event to {}...", spool_file.display());
     writer.append_event(&active_key, &event)?;

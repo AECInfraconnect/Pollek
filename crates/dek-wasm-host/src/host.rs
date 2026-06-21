@@ -68,7 +68,12 @@ impl WasmPluginHost {
         Ok(())
     }
 
-    pub async fn invoke(&self, pool_key: &str, request_id: String, input: &[u8]) -> Result<Vec<u8>> {
+    pub async fn invoke(
+        &self,
+        pool_key: &str,
+        request_id: String,
+        input: &[u8],
+    ) -> Result<Vec<u8>> {
         let pool = self
             .pools
             .get(pool_key)

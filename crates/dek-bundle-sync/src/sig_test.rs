@@ -4,7 +4,6 @@ use dek_control_plane_api::bundle::{
 };
 use serde_json::Value;
 
-
 #[test]
 fn test_serde_parity() {
     let manifest = PollenPolicyBundleManifestV2 {

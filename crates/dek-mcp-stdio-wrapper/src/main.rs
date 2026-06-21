@@ -160,8 +160,10 @@ async fn main() -> Result<()> {
         }
     }
 
-    let plugin_host = Arc::new(dek_wasm_host::WasmPluginHost::new(dek_wasm_host::WasmHostConfig::default())
-        .unwrap_or_else(|_| panic!("Failed to create WasmPluginHost")));
+    let plugin_host = Arc::new(
+        dek_wasm_host::WasmPluginHost::new(dek_wasm_host::WasmHostConfig::default())
+            .unwrap_or_else(|_| panic!("Failed to create WasmPluginHost")),
+    );
 
     for (name, p) in plugin_paths {
         if let Ok(bytes) = std::fs::read(&p) {
@@ -189,7 +191,10 @@ async fn main() -> Result<()> {
                 // In a full impl, we'd check `decision.obligations`. We will just run it if loaded.
                 let pool_key = "system:pii-redactor:1.0.0:dummy";
                 let input_bytes = serde_json::to_vec(&payload).unwrap_or_default();
-                if let Ok(redacted_bytes) = plugin_host_clone.invoke(pool_key, "auto".into(), &input_bytes).await {
+                if let Ok(redacted_bytes) = plugin_host_clone
+                    .invoke(pool_key, "auto".into(), &input_bytes)
+                    .await
+                {
                     if let Ok(redacted) = serde_json::from_slice(&redacted_bytes) {
                         payload = redacted;
                     }

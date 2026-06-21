@@ -52,11 +52,15 @@ impl AdmissionControl {
             Ok(p) => p,
             Err(_) => {
                 metrics::counter!("dek_admission_rejected_total",
-                    "scope" => "tenant", "tenant" => tenant.to_string()).increment(1);
+                    "scope" => "tenant", "tenant" => tenant.to_string())
+                .increment(1);
                 return None; // `g` drops here, releasing the global permit
             }
         };
-        Some(AdmitPermit { _global: g, _tenant: t })
+        Some(AdmitPermit {
+            _global: g,
+            _tenant: t,
+        })
     }
 
     pub fn available_global(&self) -> usize {

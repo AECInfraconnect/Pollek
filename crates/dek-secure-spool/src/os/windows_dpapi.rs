@@ -1,8 +1,12 @@
 use crate::key_manager::{KeyStoreError, OsKeyStore};
 use rand::{rngs::OsRng, RngCore};
-use std::{fs::{self, OpenOptions}, io::{Read, Write}, path::PathBuf};
+use std::{
+    fs::{self, OpenOptions},
+    io::{Read, Write},
+    path::PathBuf,
+};
 use windows::Win32::Security::Cryptography::{
-    CryptProtectData, CryptUnprotectData, CRYPT_INTEGER_BLOB, CRYPTPROTECT_LOCAL_MACHINE,
+    CryptProtectData, CryptUnprotectData, CRYPTPROTECT_LOCAL_MACHINE, CRYPT_INTEGER_BLOB,
 };
 
 pub struct WindowsDpapiStore {
@@ -34,9 +38,13 @@ impl WindowsDpapiStore {
             .map_err(|e| KeyStoreError::Os(e.to_string()))?;
         }
 
-        let result = unsafe { std::slice::from_raw_parts(data_out.pbData, data_out.cbData as usize) }.to_vec();
+        let result =
+            unsafe { std::slice::from_raw_parts(data_out.pbData, data_out.cbData as usize) }
+                .to_vec();
         unsafe {
-            windows::Win32::Foundation::LocalFree(windows::Win32::Foundation::HLOCAL(data_out.pbData as _));
+            windows::Win32::Foundation::LocalFree(windows::Win32::Foundation::HLOCAL(
+                data_out.pbData as _,
+            ));
         }
 
         Ok(result)
@@ -54,12 +62,16 @@ impl WindowsDpapiStore {
                 .map_err(|e| KeyStoreError::Os(e.to_string()))?;
         }
 
-        let result = unsafe { std::slice::from_raw_parts(data_out.pbData, data_out.cbData as usize) }.to_vec();
-        
+        let result =
+            unsafe { std::slice::from_raw_parts(data_out.pbData, data_out.cbData as usize) }
+                .to_vec();
+
         // Zero memory before freeing
         unsafe {
             std::ptr::write_bytes(data_out.pbData, 0, data_out.cbData as usize);
-            windows::Win32::Foundation::LocalFree(windows::Win32::Foundation::HLOCAL(data_out.pbData as _));
+            windows::Win32::Foundation::LocalFree(windows::Win32::Foundation::HLOCAL(
+                data_out.pbData as _,
+            ));
         }
 
         Ok(result)
@@ -69,9 +81,11 @@ impl WindowsDpapiStore {
 impl OsKeyStore for WindowsDpapiStore {
     fn load_or_create_master_key(&self) -> Result<[u8; 32], KeyStoreError> {
         if self.key_path.exists() {
-            let mut file = File::open(&self.key_path).map_err(|e| KeyStoreError::Os(e.to_string()))?;
+            let mut file =
+                File::open(&self.key_path).map_err(|e| KeyStoreError::Os(e.to_string()))?;
             let mut encrypted = Vec::new();
-            file.read_to_end(&mut encrypted).map_err(|e| KeyStoreError::Os(e.to_string()))?;
+            file.read_to_end(&mut encrypted)
+                .map_err(|e| KeyStoreError::Os(e.to_string()))?;
             let decrypted = self.unprotect(&encrypted)?;
             if decrypted.len() != 32 {
                 return Err(KeyStoreError::Invalid);
@@ -95,8 +109,10 @@ impl OsKeyStore for WindowsDpapiStore {
             .write(true)
             .open(&self.key_path)
             .map_err(|e| KeyStoreError::Os(e.to_string()))?;
-        file.write_all(&encrypted).map_err(|e| KeyStoreError::Os(e.to_string()))?;
-        file.sync_data().map_err(|e| KeyStoreError::Os(e.to_string()))?;
+        file.write_all(&encrypted)
+            .map_err(|e| KeyStoreError::Os(e.to_string()))?;
+        file.sync_data()
+            .map_err(|e| KeyStoreError::Os(e.to_string()))?;
 
         Ok(key)
     }
@@ -113,8 +129,10 @@ impl OsKeyStore for WindowsDpapiStore {
             .truncate(true)
             .open(&self.key_path)
             .map_err(|e| KeyStoreError::Os(e.to_string()))?;
-        file.write_all(&encrypted).map_err(|e| KeyStoreError::Os(e.to_string()))?;
-        file.sync_data().map_err(|e| KeyStoreError::Os(e.to_string()))?;
+        file.write_all(&encrypted)
+            .map_err(|e| KeyStoreError::Os(e.to_string()))?;
+        file.sync_data()
+            .map_err(|e| KeyStoreError::Os(e.to_string()))?;
 
         Ok(key)
     }
