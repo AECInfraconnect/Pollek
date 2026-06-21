@@ -361,7 +361,8 @@ async fn simulate_policy(
             }
             Err(e) => {
                 return Err(ApiError::Internal(anyhow::anyhow!(
-                    "Failed to parse Cedar policy: {}", e
+                    "Failed to parse Cedar policy: {}",
+                    e
                 )));
             }
         }
