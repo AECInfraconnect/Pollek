@@ -6,6 +6,10 @@ edition = "2021"
 [dependencies]
 dek-policy-runtime = { path = "../dek-policy-runtime" }
 dek-policy-router = { path = "../dek-policy-router" }
+dek-policy-syncer = { path = "../dek-policy-syncer" }
+dek-domain-schema = { path = "../dek-domain-schema" }
+dek-telemetry = { path = "../dek-telemetry" }
+metrics = "0.22"
 dek-cedar = { path = "../dek-cedar" }
 dek-openfga = { path = "../dek-openfga" }
 dek-mcp-normalizer = { path = "../dek-mcp-normalizer" }
@@ -27,8 +31,8 @@ notify = "8.2.0"
 base64 = "0.22"
 uuid = { version = "1.8", features = ["v4"] }
 chrono = "0.4"
-dek-telemetry = { path = "../dek-telemetry" }
-metrics = "0.22"
+
+
 metrics-exporter-prometheus = "0.13"
 
 dek-router-builder = { path = "../dek-router-builder" }

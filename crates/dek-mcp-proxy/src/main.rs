@@ -486,6 +486,23 @@ async fn handle_mcp_request(
 
     let start_time = std::time::Instant::now();
     // Evaluate against the Adaptive Policy Pipeline
+    // ── Phase 1: fail-safe freshness gate ──────────────────────────────
+    // ถ้า policy bundle stale/absent → DENY ทันที โดยไม่เรียก PDP (fail-closed).
+    if let Some(reason) = dek_policy_syncer::strict_deny_reason() {
+        metrics::counter!("dek_proxy_requests_total", "decision" => "deny").increment(1);
+        tracing::warn!(%reason, "request denied by freshness gate (strict-deny)");
+        // คืน decision deny ในรูปแบบเดียวกับ path ปกติ
+        let body = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": payload.get("id").unwrap_or(&serde_json::Value::Null),
+            "error": {
+                "code": -32000,
+                "message": format!("Access Denied: policy_stale_failsafe: {}", reason)
+            }
+        });
+        return (axum::http::StatusCode::FORBIDDEN, axum::Json(body)).into_response();
+    }
+    // ───────────────────────────────────────────────────────────────────
     let decision_result = snapshot.router.authorize(decision_input.clone()).await;
 
     let duration = start_time.elapsed().as_secs_f64();
@@ -602,6 +619,19 @@ async fn handle_authorize(
 ) -> Response {
     let snapshot = state.snapshot.load();
     let start_time = std::time::Instant::now();
+    // ── Phase 1: fail-safe freshness gate ──────────────────────────────
+    if let Some(reason) = dek_policy_syncer::strict_deny_reason() {
+        metrics::counter!("dek_proxy_requests_total", "decision" => "deny").increment(1);
+        tracing::warn!(%reason, "request denied by freshness gate (strict-deny)");
+        let body = serde_json::json!({
+            "allow": false,
+            "decision": "deny",
+            "reason": format!("policy_stale_failsafe: {}", reason),
+            "evaluator_id": "freshness_gate"
+        });
+        return (axum::http::StatusCode::FORBIDDEN, axum::Json(body)).into_response();
+    }
+    // ───────────────────────────────────────────────────────────────────
     let decision_result = snapshot.router.authorize(payload).await;
     let duration = start_time.elapsed().as_secs_f64();
     metrics::histogram!("dek_proxy_request_duration_seconds").record(duration);

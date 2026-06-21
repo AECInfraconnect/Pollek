@@ -192,13 +192,25 @@ impl Supervisor {
 
         // 2) Bundle sync + auto-update loop.
 
-        let bundle_handle = crate::bundle_loop::spawn_bundle_sync_task(
-            self.cancel.clone(),
+        use dek_policy_syncer::{PolicySyncer, FreshnessConfig};
+
+        let fresh_cfg = FreshnessConfig {
+            max_bundle_age_secs: 86400, // Default according to config
+            grace_secs: 600,
+        };
+        let tenant_id = self.bootstrap.tenant_id.clone().unwrap_or_else(|| "unknown_tenant".to_string());
+        let syncer = PolicySyncer::new(
             self.bundle_agent.clone(),
-            self.bundle_interval,
-            self.metrics_client.clone(),
+            Some(self.telemetry_sink.clone()),
+            fresh_cfg,
+            self.bootstrap.device_id.clone(),
+            tenant_id,
+            self.cloud_url.clone(),
             self.pinned_key.clone(),
-            reload_coordinator.clone(),
+        );
+        let bundle_handle = syncer.clone().spawn(
+            std::time::Duration::from_secs(self.bundle_interval),
+            self.cancel.clone(),
         );
 
         // 3) Probation finalize (only if an update is on trial). After services up.
@@ -258,7 +270,7 @@ impl Supervisor {
 
         let drain = async {
             let _ = ipc_handle.await;
-            let _ = bundle_handle.await;
+            let _ = bundle_handle;
             let _ = renew_handle.await;
         };
         if tokio::time::timeout(Duration::from_secs(15), drain)

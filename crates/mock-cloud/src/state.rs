@@ -63,6 +63,7 @@ pub struct AppState {
     pub entities: Arc<Mutex<HashMap<String, serde_json::Value>>>,
     pub resources: Arc<Mutex<HashMap<String, serde_json::Value>>>,
     pub relationships: Arc<Mutex<Vec<serde_json::Value>>>,
+    pub trusted_keys: Arc<Mutex<Vec<serde_json::Value>>>,
 }
 
 pub fn rand_hex(n_bytes: usize) -> String {

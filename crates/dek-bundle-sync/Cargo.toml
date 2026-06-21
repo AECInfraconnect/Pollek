@@ -20,5 +20,7 @@ jsonschema = "0.46.5"
 sha2 = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
 hex = "0.4"
+arc-swap = "1"
+thiserror = "1"
 [lints]
 workspace = true

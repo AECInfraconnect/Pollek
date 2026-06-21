@@ -2,6 +2,7 @@
 pub mod assertions;
 pub mod bundles;
 pub mod fixtures;
+pub mod keys;
 pub mod registry;
 pub mod scenarios;
 pub mod spire;
@@ -88,6 +89,15 @@ CwIDAQAB\n-----END PUBLIC KEY-----\n".to_string();
         entities: Arc::new(Mutex::new(HashMap::new())),
         resources: Arc::new(Mutex::new(HashMap::new())),
         relationships: Arc::new(Mutex::new(Vec::new())),
+        trusted_keys: Arc::new(Mutex::new(vec![
+            serde_json::json!({
+                "key_id": "bootstrap",
+                "public_b64": crate::bundle_pubkey_b64(),
+                "status": "active",
+                "not_before_unix": 0,
+                "not_after_unix": 0
+            })
+        ])),
     };
 
     // Populate default tenant
@@ -115,6 +125,7 @@ CwIDAQAB\n-----END PUBLIC KEY-----\n".to_string();
         .merge(tuf::router())
         .merge(telemetry::router())
         .merge(threats::router())
+        .merge(keys::router())
         .route(
             "/v1/tenants/:tenant_id/devices/:device_id/config",
             get(get_config),

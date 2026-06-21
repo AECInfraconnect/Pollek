@@ -19,6 +19,7 @@ Pollen DEK provides a centralized governance, telemetry, and metrics gathering s
 - **dek-keystore**: Cross-platform secure enclave abstraction leveraging OS-native keychain APIs (Windows DPAPI, macOS Keychain, Linux Secret Service).
 - **dek-openfga** and **dek-cedar**: Integrations for fine-grained authorization with external stores (OpenFGA) and Cedar policy engine.
 - **mock-cloud**: A deterministic, mock Pollen Cloud for development and integration testing.
+- **Key Rotation & Audit Trails**: Implements robust, fail-safe key rotation with `TrustedKeySet` and cryptographic audit logs using SHA-256 hash chains for SIEM integration.
 
 ## PEP Enforcement Model
 

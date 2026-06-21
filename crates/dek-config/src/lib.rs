@@ -177,6 +177,30 @@ pub enum EnterpriseProfile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncerConfig {
+    #[serde(default = "default_poll_interval")]
+    pub poll_interval_secs: i64,
+    #[serde(default = "default_max_bundle_age")]
+    pub max_bundle_age_secs: i64,
+    #[serde(default = "default_grace_secs")]
+    pub grace_secs: i64,
+}
+
+fn default_poll_interval() -> i64 { 60 }
+fn default_max_bundle_age() -> i64 { 86400 }
+fn default_grace_secs() -> i64 { 600 }
+
+impl Default for SyncerConfig {
+    fn default() -> Self {
+        Self {
+            poll_interval_secs: default_poll_interval(),
+            max_bundle_age_secs: default_max_bundle_age(),
+            grace_secs: default_grace_secs(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DekConfig {
     pub device_id: String,
     pub tenant_id: String,
@@ -189,6 +213,8 @@ pub struct DekConfig {
     pub activation_mode: ActivationMode,
     #[serde(default)]
     pub enterprise_profile: EnterpriseProfile,
+    #[serde(default)]
+    pub syncer: SyncerConfig,
     #[serde(default)]
     pub preflight_tests: Vec<PreflightTest>,
 }

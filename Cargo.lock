@@ -1626,6 +1626,7 @@ name = "dek-bundle-sync"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "arc-swap",
  "base64 0.22.1",
  "chrono",
  "dek-config",
@@ -1639,6 +1640,7 @@ dependencies = [
  "serde_jcs",
  "serde_json",
  "sha2 0.10.9",
+ "thiserror 1.0.69",
  "tokio",
  "tracing",
 ]
@@ -1717,6 +1719,7 @@ dependencies = [
  "dek-openfga",
  "dek-policy-router",
  "dek-policy-runtime",
+ "dek-policy-syncer",
  "dek-router-builder",
  "dek-spire-node",
  "dek-telemetry",
@@ -1824,6 +1827,7 @@ dependencies = [
  "dek-decision",
  "dek-policy-router",
  "dek-policy-runtime",
+ "dek-policy-syncer",
  "dek-router-builder",
  "metrics",
  "metrics-exporter-prometheus",
@@ -1885,10 +1889,12 @@ dependencies = [
  "dek-cedar",
  "dek-config",
  "dek-decision",
+ "dek-domain-schema",
  "dek-mcp-normalizer",
  "dek-openfga",
  "dek-policy-router",
  "dek-policy-runtime",
+ "dek-policy-syncer",
  "dek-router-builder",
  "dek-telemetry",
  "dek-wasm-host",
@@ -1992,6 +1998,27 @@ dependencies = [
  "tokio",
  "wasmtime",
  "wasmtime-wasi",
+]
+
+[[package]]
+name = "dek-policy-syncer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "dek-bundle-sync",
+ "dek-config",
+ "dek-telemetry",
+ "hex",
+ "metrics",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
 ]
 
 [[package]]

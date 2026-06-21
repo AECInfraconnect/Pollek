@@ -11,6 +11,7 @@ dek-config = { path = "../dek-config" }
 dek-agent-connector = { path = "../dek-agent-connector" }
 dek-updater = { path = "../dek-updater" }
 dek-bundle-sync = { path = "../dek-bundle-sync" }
+dek-policy-syncer = { path = "../dek-policy-syncer" }
 dek-keystore = { path = "../dek-keystore" }
 dek-ipc = { path = "../dek-ipc" }
 dek-ebpf-common = { path = "../dek-ebpf-common" }

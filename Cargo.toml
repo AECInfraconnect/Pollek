@@ -5,7 +5,8 @@ members = [
     "crates/dek-ext-authz",
     "crates/dek-router-builder",
     "crates/dek-updater",
-    "crates/dek-domain-schema"
+    "crates/dek-domain-schema",
+    "crates/dek-policy-syncer"
 ]
 exclude = [
     "crates/dek-ebpf-prog",

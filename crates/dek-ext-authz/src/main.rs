@@ -29,12 +29,35 @@ pub struct ExtAuthzService {
     device_id: String,
 }
 
+fn denied_check_response(reason: &str) -> CheckResponse {
+    let denied_response = DeniedHttpResponse {
+        status: Some(HttpStatus {
+            code: 403, // Forbidden
+        }),
+        headers: vec![],
+        body: reason.to_string(),
+    };
+    CheckResponse {
+        status: Some(EnvoyStatus {
+            code: 7, // PermissionDenied
+            message: reason.to_string(),
+            details: vec![],
+        }),
+        http_response: Some(HttpResponse::DeniedResponse(denied_response)),
+    }
+}
+
 #[tonic::async_trait]
 impl Authorization for ExtAuthzService {
     async fn check(
         &self,
         request: Request<CheckRequest>,
     ) -> Result<Response<CheckResponse>, Status> {
+        if let Some(reason) = dek_policy_syncer::strict_deny_reason() {
+            metrics::counter!("dek_proxy_requests_total", "decision" => "deny", "service" => "ext-authz").increment(1);
+            return Ok(tonic::Response::new(denied_check_response(&format!("policy_stale_failsafe: {reason}"))));
+        }
+
         let req = request.into_inner();
 
         // Extract HTTP attributes from envoy request
