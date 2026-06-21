@@ -37,7 +37,7 @@ const UDP_HDR_LEN: usize = 8;
 // ------------------------------- maps -------------------------------
 
 #[map]
-static VERDICT_MAP: LpmTrie<Ipv4LpmKey, PolicyVerdict> =
+static VERDICT_MAP: LpmTrie<u32, PolicyVerdict> =
     LpmTrie::with_max_entries(LPM_MAP_CAPACITY, 0);
 
 #[map]
@@ -136,7 +136,7 @@ fn try_capture(ctx: &SkBuffContext) -> Result<(), ()> {
             (*p).cgroup_id = bpf_get_current_cgroup_id();
             (*p).len = n as u16;
             // Bounded copy of the DNS payload into the event buffer.
-            let dst = &mut (*p).data[..n];
+            let dst = &mut (&mut (*p).data)[..n];
             if ctx.load_bytes(payload_off, dst).is_err() {
                 entry.discard(0);
                 return Err(());
@@ -202,7 +202,7 @@ fn try_dek_connect4(ctx: &SockAddrContext) -> Result<i32, ()> {
         verdict = *v;
     } else {
         // 2) LPM trie (IP/CIDR)
-        let key = Ipv4LpmKey { prefix_len: 32, ip: dest_ip };
+        let key = aya_ebpf::maps::lpm_trie::Key::new(32, dest_ip);
         if let Some(v) = unsafe { VERDICT_MAP.get(&key) } {
             verdict = *v;
         } else if let Some(v) = unsafe { PORTS_MAP.get(&dest_port) } {

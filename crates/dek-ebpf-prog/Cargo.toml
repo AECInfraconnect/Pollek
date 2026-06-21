@@ -1,9 +1,8 @@
 [package]
 name = "dek-ebpf-prog"
 version = "0.1.0"
-license.workspace = true
-edition = "2021"
 license = "Apache-2.0"
+edition = "2021"
 
 # IMPORTANT: this crate compiles to BPF bytecode, NOT a normal host binary.
 # Build with:
@@ -15,7 +14,7 @@ license = "Apache-2.0"
 # aya 0.13's BPF-side crate is `aya-ebpf` (renamed from `aya-bpf`). This fixes
 # the version mismatch with the `aya = "0.13"` userspace loader in dek-ebpfd.
 aya-ebpf = "0.1.1"
-aya-log-ebpf = "0.1.1"
+aya-log-ebpf = "0.1.0"
 dek-ebpf-common = { path = "../dek-ebpf-common" }
 network-types = "0.0.6"
 

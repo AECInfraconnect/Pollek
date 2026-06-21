@@ -51,9 +51,9 @@ jobs:
     - name: Install bpf-linker
       run: cargo install bpf-linker
     - name: Build eBPF Prog
-      run: cargo build -p dek-ebpf-prog --target bpfel-unknown-none -Z build-std=core
+      run: cargo build --manifest-path crates/dek-ebpf-prog/Cargo.toml --target bpfel-unknown-none -Z build-std=core
     - name: Build eBPF Daemon
-      run: cargo build -p dek-ebpfd --release
+      run: cargo build --manifest-path crates/dek-ebpfd/Cargo.toml --release
 
   wasm_build:
     name: WASM Plugin Build
@@ -65,6 +65,6 @@ jobs:
       with:
         targets: wasm32-wasip1
     - name: Build WASM Plugins
-      run: cargo build --target wasm32-wasip1 --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude dek-core
+      run: cargo build --target wasm32-wasip1 -p pii-redactor-plugin
 
 
