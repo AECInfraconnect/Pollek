@@ -61,6 +61,8 @@ pub fn bundle_pubkey_b64() -> String {
 struct Args {
     #[arg(long)]
     seed: Option<String>,
+    #[arg(long, default_value_t = false)]
+    dev_insecure_allow_no_client_cert: bool,
 }
 
 #[tokio::main]
@@ -179,7 +181,7 @@ CwIDAQAB\n-----END PUBLIC KEY-----\n".to_string();
         .with_state(state.clone());
 
     // ---- :43891 mTLS Config ----
-    let rustls_config_mtls = RustlsConfig::from_config(Arc::new(crate::mtls::build_mtls_config()?));
+    let rustls_config_mtls = RustlsConfig::from_config(Arc::new(crate::mtls::build_mtls_config(args.dev_insecure_allow_no_client_cert)?));
     let addr_mtls = SocketAddr::from(([127, 0, 0, 1], 43891));
 
     // ---- :43892 HTTPS Self-Signed Config ----

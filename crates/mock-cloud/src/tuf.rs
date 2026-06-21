@@ -69,7 +69,30 @@ async fn get_tuf_metadata(
             }),
             "root",
         ),
-        "targets.json" => (
+        "targets.json" => {
+            let routes_json = json!([
+                { "id": "route_tools_call", "priority": 100, "match_rule": { "method": "tools/call", "tool_category": null }, "pdp_required": ["openfga"] }
+            ]);
+            let manifest_json = json!({
+                "manifest_version": "1.0",
+                "bundle_id": "bnd-123",
+                "bundle_version": "1.0.0",
+                "bundle_generation": 1,
+                "tenant_id": "tenant-production-1",
+                "created_at": "2024-01-01T00:00:00Z",
+                "expires_at": "2025-01-01T00:00:00Z",
+                "activation_mode": "full",
+                "artifacts": []
+            });
+
+            use sha2::{Sha256, Digest};
+            let mut h1 = Sha256::new(); h1.update(serde_json::to_vec(&routes_json).unwrap());
+            let routes_hash = hex::encode(h1.finalize());
+
+            let mut h2 = Sha256::new(); h2.update(serde_json::to_vec(&manifest_json).unwrap());
+            let manifest_hash = hex::encode(h2.finalize());
+
+            (
             json!({
                 "signed": {
                     "_type": "targets",
@@ -79,13 +102,13 @@ async fn get_tuf_metadata(
                     "targets": {
                         "routes.json": {
                             "hashes": {
-                                "sha256": "mock_hash_routes"
+                                "sha256": routes_hash
                             },
                             "length": 1234
                         },
                         "bundle_manifest.json": {
                             "hashes": {
-                                "sha256": "mock_hash_manifest"
+                                "sha256": manifest_hash
                             },
                             "length": 5678
                         }
@@ -94,7 +117,8 @@ async fn get_tuf_metadata(
                 "signatures": []
             }),
             "targets",
-        ),
+            )
+        },
         "snapshot.json" => (
             json!({
                 "signed": {
@@ -137,7 +161,7 @@ async fn get_tuf_metadata(
         }
     };
 
-    let signed_bytes = serde_json::to_vec(&payload["signed"]).unwrap();
+    let signed_bytes = serde_jcs::to_vec(&payload["signed"]).unwrap();
     let signature = signing_key.sign(&signed_bytes);
 
     let mut response = payload;
@@ -154,30 +178,36 @@ async fn get_tuf_artifact(
     Path((_tenant_id, _device_id, hash)): Path<(String, String, String)>,
     State(_state): State<AppState>,
 ) -> impl IntoResponse {
-    match hash.as_str() {
-        "mock_hash_routes" => (
-            StatusCode::OK,
-            Json(json!([
-                { "id": "route_tools_call", "priority": 100, "match_rule": { "method": "tools/call", "tool_category": null }, "pdp_required": ["openfga"] }
-            ])),
-        ),
-        "mock_hash_manifest" => (
-            StatusCode::OK,
-            Json(json!({
-                "manifest_version": "1.0",
-                "bundle_id": "bnd-123",
-                "bundle_version": "1.0.0",
-                "bundle_generation": 1,
-                "tenant_id": "tenant-production-1",
-                "created_at": Utc::now().to_rfc3339(),
-                "expires_at": (Utc::now() + chrono::Duration::days(7)).to_rfc3339(),
-                "activation_mode": "full",
-                "artifacts": []
-            })),
-        ),
-        _ => (
+    let routes_json = json!([
+        { "id": "route_tools_call", "priority": 100, "match_rule": { "method": "tools/call", "tool_category": null }, "pdp_required": ["openfga"] }
+    ]);
+    let manifest_json = json!({
+        "manifest_version": "1.0",
+        "bundle_id": "bnd-123",
+        "bundle_version": "1.0.0",
+        "bundle_generation": 1,
+        "tenant_id": "tenant-production-1",
+        "created_at": "2024-01-01T00:00:00Z",
+        "expires_at": "2025-01-01T00:00:00Z",
+        "activation_mode": "full",
+        "artifacts": []
+    });
+
+    use sha2::{Sha256, Digest};
+    let mut h1 = Sha256::new(); h1.update(serde_json::to_vec(&routes_json).unwrap());
+    let routes_hash = hex::encode(h1.finalize());
+
+    let mut h2 = Sha256::new(); h2.update(serde_json::to_vec(&manifest_json).unwrap());
+    let manifest_hash = hex::encode(h2.finalize());
+
+    if hash == routes_hash {
+        (StatusCode::OK, Json(routes_json))
+    } else if hash == manifest_hash {
+        (StatusCode::OK, Json(manifest_json))
+    } else {
+        (
             StatusCode::NOT_FOUND,
             Json(json!({"error": "artifact not found"})),
-        ),
+        )
     }
 }

@@ -119,8 +119,8 @@ impl BundleSyncAgent {
             let now = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
 
-            let signed_bytes = serde_json::to_vec(&metadata["signed"])
-                .context("serialize signed payload")?;
+            let signed_bytes = serde_jcs::to_vec(&metadata["signed"])
+                .context("serialize signed payload using JCS")?;
             let sigs = parse_signatures(metadata.get("signatures").unwrap_or(&serde_json::Value::Null));
 
             let key_set = self.key_set.load();
@@ -193,8 +193,13 @@ impl BundleSyncAgent {
             hasher.update(&bytes);
             let computed_hash = hex::encode(hasher.finalize());
 
-            // We mock the hash comparison for this example if it's the mock hash
-            if !hash.starts_with("mock_hash") && computed_hash != hash {
+            // Check if mock hash bypass should be allowed
+            #[cfg(debug_assertions)]
+            let allow_mock = hash.starts_with("mock_hash");
+            #[cfg(not(debug_assertions))]
+            let allow_mock = false;
+
+            if !allow_mock && computed_hash != hash {
                 return Err(anyhow::anyhow!("Artifact hash mismatch for {}", filename));
             }
 
@@ -293,8 +298,8 @@ impl BundleSyncAgent {
 
         let body: serde_json::Value = res.json().await?;
         
-        let signed_bytes = serde_json::to_vec(&body["signed"])
-            .context("serialize signed network guardrails")?;
+        let signed_bytes = serde_jcs::to_vec(&body["signed"])
+            .context("serialize signed network guardrails using JCS")?;
         
         use crate::keys::{parse_signatures, VerifyOutcome};
         let sigs = parse_signatures(body.get("signatures").unwrap_or(&serde_json::Value::Null));

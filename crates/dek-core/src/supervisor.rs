@@ -111,10 +111,9 @@ impl Supervisor {
             client_key_override.as_deref(),
         )?);
         let telemetry_url = format!(
-            "{}/v1/tenants/{}/devices/{}/telemetry",
+            "{}/v1/tenants/{}/telemetry/events",
             cloud_url.trim_end_matches('/'),
-            tenant_id,
-            bootstrap.device_id
+            tenant_id
         );
         let data_dir = dek_config::paths::get_data_dir();
         let telemetry_sink = CloudTelemetrySink::new(

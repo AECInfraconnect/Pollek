@@ -187,7 +187,7 @@ async fn get_network_guardrails_artifact(
 ) -> impl IntoResponse {
     let rules: Vec<serde_json::Value> = state.network_rules.lock().unwrap().clone();
     let signed = serde_json::Value::Array(rules);
-    let signed_bytes = serde_json::to_vec(&signed).unwrap();
+    let signed_bytes = serde_jcs::to_vec(&signed).unwrap();
     let active_seed = state.active_seed.lock().unwrap();
     let sk = SigningKey::from_bytes(active_seed.as_slice().try_into().unwrap());
     let sig = sk.sign(&signed_bytes);
