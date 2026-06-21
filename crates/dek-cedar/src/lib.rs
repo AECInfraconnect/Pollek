@@ -45,7 +45,7 @@ impl CedarAdapter {
             Err(_) => return Ok(()), // Ignore schema errors if incomplete
         };
         let validator = cedar_policy::Validator::new(schema);
-        let result = validator.validate(&self.policy_set, cedar_policy::ValidationMode::Permissive);
+        let result = validator.validate(&self.policy_set, cedar_policy::ValidationMode::default());
         if !result.validation_passed() {
             let errs = result
                 .validation_errors()

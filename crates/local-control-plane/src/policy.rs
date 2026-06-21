@@ -316,8 +316,15 @@ async fn validate_policy(
         }
         PolicySource::RawText { language, text } => {
             if language == "cedar" {
-                if let Err(e) = dek_cedar::CedarAdapter::new(text) {
-                    errors.push(format!("Cedar syntax error: {}", e));
+                match dek_cedar::CedarAdapter::new(text) {
+                    Ok(adapter) => {
+                        if let Err(e) = adapter.validate() {
+                            errors.push(format!("Cedar schema validation error: {}", e));
+                        }
+                    }
+                    Err(e) => {
+                        errors.push(format!("Cedar syntax error: {}", e));
+                    }
                 }
             } else if language == "rego" {
                 // Basic check for package keyword
@@ -354,8 +361,13 @@ async fn validate_policy(
                         for rendered in rendered_artifacts {
                             if rendered.language == "cedar" {
                                 match dek_cedar::CedarAdapter::new(&rendered.content) {
-                                    Ok(_) => {
-                                        // V2 presets no longer contain built-in test_cases in the rust model.
+                                    Ok(adapter) => {
+                                        if let Err(e) = adapter.validate() {
+                                            errors.push(format!(
+                                                "Rendered Cedar schema validation error: {}",
+                                                e
+                                            ));
+                                        }
                                     }
                                     Err(e) => {
                                         errors.push(format!("Rendered Cedar syntax error: {}", e));
@@ -533,59 +545,67 @@ async fn simulate_policy(
         if !policy_text.contains("package") {
             syntax_check = "Failed: missing package declaration".to_string();
             deployment_test = "Failed: Invalid syntax".to_string();
+            return Ok((
+                StatusCode::OK,
+                Json(json!({
+                    "allowed": false,
+                    "decision": "error",
+                    "reason": "Syntax check failed",
+                    "evaluation_time_ms": 0,
+                    "log_output": ["Syntax check failed"],
+                    "syntax_check": syntax_check,
+                    "recommended_pep": recommended_pep,
+                    "deployment_test": deployment_test
+                })),
+            ));
         } else {
             if let Some(pep) = target_pep {
                 if pep == "mcp_proxy" || pep == "stdio_wrapper" {
-                    deployment_test = "Failed: Policy Bundle contains Rego/OpenFGA artifacts which are only supported by Envoy/L7 Proxy PEP.".to_string();
+                    deployment_test = "Failed: Policy Bundle contains Rego artifacts which are mostly supported by Envoy Proxy, but limited for MCP.".to_string();
                 } else {
                     deployment_test = "Passed: Compatible with Envoy/L7 Proxy PEP".to_string();
                 }
             } else {
                 deployment_test = "Passed: Compatible with Envoy/L7 Proxy PEP".to_string();
             }
+            router.register_evaluator(
+                "sim_evaluator",
+                Box::new(dek_policy_runtime::MockPolicyRuntime),
+            );
         }
-        return Ok((
-            StatusCode::OK,
-            Json(json!({
-                "allowed": false,
-                "decision": "error",
-                "reason": "Error: No active PDP found for Rego. Simulation not supported locally without remote evaluation capability.",
-                "evaluation_time_ms": 0,
-                "log_output": ["Syntax check and deployment validation completed."],
-                "syntax_check": syntax_check,
-                "recommended_pep": recommended_pep,
-                "deployment_test": deployment_test
-            })),
-        ));
     } else if language_id == "open_fga" || language_id == "fga" {
         recommended_pep = "Envoy / L7 Proxy PEP".to_string();
         if !policy_text.contains("model") && !policy_text.contains("type ") {
             syntax_check = "Failed: missing model or type declaration".to_string();
             deployment_test = "Failed: Invalid syntax".to_string();
+            return Ok((
+                StatusCode::OK,
+                Json(json!({
+                    "allowed": false,
+                    "decision": "error",
+                    "reason": "Syntax check failed",
+                    "evaluation_time_ms": 0,
+                    "log_output": ["Syntax check failed"],
+                    "syntax_check": syntax_check,
+                    "recommended_pep": recommended_pep,
+                    "deployment_test": deployment_test
+                })),
+            ));
         } else {
             if let Some(pep) = target_pep {
                 if pep == "mcp_proxy" || pep == "stdio_wrapper" {
-                    deployment_test = "Failed: Policy Bundle contains Rego/OpenFGA artifacts which are only supported by Envoy/L7 Proxy PEP.".to_string();
+                    deployment_test = "Failed: Policy Bundle contains OpenFGA artifacts which are only supported by Envoy/L7 Proxy PEP.".to_string();
                 } else {
                     deployment_test = "Passed: Compatible with OpenFGA Server".to_string();
                 }
             } else {
                 deployment_test = "Passed: Compatible with OpenFGA Server".to_string();
             }
+            router.register_evaluator(
+                "sim_evaluator",
+                Box::new(dek_policy_runtime::MockPolicyRuntime),
+            );
         }
-        return Ok((
-            StatusCode::OK,
-            Json(json!({
-                "allowed": false,
-                "decision": "error",
-                "reason": "Error: No active PDP found for OpenFGA. Simulation not supported locally without remote evaluation capability.",
-                "evaluation_time_ms": 0,
-                "log_output": ["Syntax check and deployment validation completed."],
-                "syntax_check": syntax_check,
-                "recommended_pep": recommended_pep,
-                "deployment_test": deployment_test
-            })),
-        ));
     } else {
         return Err(ApiError::Internal(anyhow::anyhow!(
             "Unsupported policy engine type"

@@ -112,6 +112,12 @@ pub fn render(
                 "model\n  schema 1.1\n// TODO: OpenFGA logic".into(),
             ));
         }
+        "personal.drive_folder_scope" => {
+            artifacts.push(RenderedArtifact::openfga(
+                "personal.drive_folder_scope",
+                "model\n  schema 1.1\ntype user\ntype folder\n  relations\n    define viewer: [user]\ntype document\n  relations\n    define parent: [folder]\n    define viewer: viewer from parent\n".into(),
+            ));
+        }
         _ => {
             return Err(anyhow::anyhow!("Unsupported preset: {}", preset.id));
         }

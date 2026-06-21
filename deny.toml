@@ -36,12 +36,8 @@ ignore = [
     "RUSTSEC-2026-0095",
     # owner: @maintainer, expiry: 2026-12-21, issue: TODO-create-github-issue, reason: TODO-assess-exploitability
     "RUSTSEC-2026-0096",
-    # owner: @maintainer, reason: rsa crate has no patch yet, only used in mock-cloud locally
-    "RUSTSEC-2023-0071",
-    # owner: @maintainer, reason: hickory-proto unpatched issue, used internally
-    "RUSTSEC-2026-0119",
-    # owner: @maintainer, reason: instant is unmaintained
-    "RUSTSEC-2024-0384",
-    # owner: @maintainer, reason: paste is unmaintained
-    "RUSTSEC-2024-0436",
+    # owner: @maintainer, reason: derivative is unmaintained, transitive from keyring/zbus, no patch available
+    "RUSTSEC-2024-0388",
+    # owner: @maintainer, reason: fxhash is unmaintained, transitive from wasmtime, no patch available
+    "RUSTSEC-2025-0057",
 ]

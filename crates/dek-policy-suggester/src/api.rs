@@ -17,6 +17,12 @@ pub fn generate_suggestions(
     engine.add_rule(Box::new(MockUnregisteredEgressRule {
         tenant_id: tenant.to_string(),
     }));
+    engine.add_rule(Box::new(MockPromptInjectionRule {
+        tenant_id: tenant.to_string(),
+    }));
+    engine.add_rule(Box::new(MockPiiRedactionRule {
+        tenant_id: tenant.to_string(),
+    }));
 
     engine.evaluate_all(events)
 }
@@ -92,21 +98,68 @@ impl crate::rules::SuggestionRule for MockUnregisteredEgressRule {
     }
 }
 
+struct MockPromptInjectionRule {
+    tenant_id: String,
+}
+
+impl crate::rules::SuggestionRule for MockPromptInjectionRule {
+    fn evaluate(&self, _events: &[AgentObservationEvent]) -> Result<Vec<PolicySuggestion>> {
+        Ok(vec![PolicySuggestion {
+            suggestion_id: format!("sug_{}", uuid::Uuid::new_v4()),
+            tenant_id: self.tenant_id.clone(),
+            target_agent_id: None,
+            target_resource_id: None,
+            target_tool_id: None,
+            suggestion_type: SuggestionType::DeployPromptInjectionGuard,
+            title: "Prompt Injection Detected".into(),
+            summary: "Multiple attempts matching prompt injection signatures detected. Suggest deploying Content Guard.".into(),
+            severity: SuggestionSeverity::High,
+            confidence: 0.85,
+            recommended_policy_type: SuggestedPolicyLanguage::Rego,
+            recommended_pep_type: "mcp_proxy".into(),
+            artifacts: vec![],
+            status: SuggestionStatus::Draft,
+            created_at: chrono::Utc::now().to_rfc3339(),
+        }])
+    }
+}
+
+struct MockPiiRedactionRule {
+    tenant_id: String,
+}
+
+impl crate::rules::SuggestionRule for MockPiiRedactionRule {
+    fn evaluate(&self, _events: &[AgentObservationEvent]) -> Result<Vec<PolicySuggestion>> {
+        Ok(vec![PolicySuggestion {
+            suggestion_id: format!("sug_{}", uuid::Uuid::new_v4()),
+            tenant_id: self.tenant_id.clone(),
+            target_agent_id: None,
+            target_resource_id: None,
+            target_tool_id: None,
+            suggestion_type: SuggestionType::DeployPiiRedaction,
+            title: "PII Egress Detected".into(),
+            summary: "Possible PII (Email/Phone) sent to external LLM. Suggest enabling PII Redaction preset.".into(),
+            severity: SuggestionSeverity::High,
+            confidence: 0.90,
+            recommended_policy_type: SuggestedPolicyLanguage::Rego,
+            recommended_pep_type: "http_gateway".into(),
+            artifacts: vec![],
+            status: SuggestionStatus::Draft,
+            created_at: chrono::Utc::now().to_rfc3339(),
+        }])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_generate_suggestions() -> Result<()> {
+    fn test_generate_suggestions() -> anyhow::Result<()> {
         let events = vec![];
         let suggestions = generate_suggestions("test_tenant", &[], &events)?;
-        // Because of MockCostSpikeRule returns nothing if total_cost < 25
-        // And MockUnregisteredEgressRule always returns 1
-        assert_eq!(suggestions.len(), 1);
-        assert!(matches!(
-            suggestions[0].suggestion_type,
-            SuggestionType::RestrictExternalLlmProvider
-        ));
+        // Cost > 25 condition fails, Unregistered returns 1, Injection returns 1, PII returns 1
+        assert_eq!(suggestions.len(), 3);
         Ok(())
     }
 }

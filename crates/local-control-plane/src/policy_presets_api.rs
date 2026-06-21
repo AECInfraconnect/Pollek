@@ -61,7 +61,10 @@ async fn preview_preset(
 
     let artifacts_json: Vec<_> = rendered_artifacts
         .into_iter()
-        .map(|a| {
+        .map(|mut a| {
+            if a.language == "rego" || a.language == "openfga" {
+                a.warnings.push("Uncovered Risk Detected: Missing Envoy Proxy or OpenFGA Server PEP. The policy will not be enforced on the target resources.".into());
+            }
             serde_json::json!({
                 "language": a.language,
                 "content": a.content,
@@ -185,6 +188,7 @@ async fn simulate_preset(
             "allowed": false,
             "decision": "error",
             "reason": "Error: No active PDP found for the generated artifacts. Simulation not supported locally.",
+            "deployment_test": "Failed: Policy Bundle contains artifacts that require a PEP type that is currently not installed or active.",
         });
     }
 

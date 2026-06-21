@@ -18,6 +18,7 @@ pub fn builtin_presets() -> Vec<PolicyPresetV2> {
         network_shadow_ai_external_llm_block(),
         mcp_high_risk_tool_approval(),
         mcp_tool_allowlist(),
+        personal_drive_folder_scope(),
     ]
 }
 
@@ -411,6 +412,34 @@ pub fn mcp_tool_allowlist() -> PolicyPresetV2 {
         supported_pep_types: vec![PepType::McpProxy],
         recommended_pep_types: vec![PepType::McpProxy],
         supported_control_modes: vec![ControlMode::Observe, ControlMode::Warn, ControlMode::Enforce, ControlMode::StrictDeny],
+        default_control_mode: ControlMode::Observe,
+        supported_policy_outputs: vec![PolicyOutputKind::OpenFgaModel],
+        parameters: vec![],
+        generated_artifacts: vec![ArtifactKind::PolicyDraft, ArtifactKind::PepBinding],
+        telemetry_requirements: vec![],
+        default_simulation_window: SimulationWindow::Last7Days,
+        safety_notes: vec![],
+    }
+}
+
+pub fn personal_drive_folder_scope() -> PolicyPresetV2 {
+    PolicyPresetV2 {
+        id: "personal.drive_folder_scope".into(),
+        version: "1.0.0".into(),
+        title: "Drive Folder Scope Delegation".into(),
+        short_description: "Restrict agents to specific Google Drive or local folders.".into(),
+        long_description: "Delegates resource access based on folder relationships in OpenFGA."
+            .into(),
+        category: PresetCategory::FileSystem,
+        risk_tags: vec![RiskTag::UnauthorizedAccess, RiskTag::DataExfiltration],
+        supported_pep_types: vec![PepType::McpProxy],
+        recommended_pep_types: vec![PepType::McpProxy],
+        supported_control_modes: vec![
+            ControlMode::Observe,
+            ControlMode::Warn,
+            ControlMode::Enforce,
+            ControlMode::StrictDeny,
+        ],
         default_control_mode: ControlMode::Observe,
         supported_policy_outputs: vec![PolicyOutputKind::OpenFgaModel],
         parameters: vec![],

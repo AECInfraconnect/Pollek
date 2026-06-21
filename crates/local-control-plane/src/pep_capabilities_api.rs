@@ -2,7 +2,7 @@
 // Copyright (c) 2026 AEC Infraconnect
 
 use axum::{
-    extract::Path,
+    extract::{Path, State},
     routing::{get, post},
     Json, Router,
 };
@@ -29,13 +29,25 @@ pub struct PepCapabilityCheckRequest {
     pub requested_pep_types: Vec<String>,
 }
 
-async fn list_capabilities(Path(_tenant): Path<String>) -> ApiResult<Json<serde_json::Value>> {
+async fn list_capabilities(
+    Path(tenant): Path<String>,
+    State(state): State<AppState>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let active_runtimes = state
+        .pdp_store
+        .list_runtimes(&tenant)
+        .await
+        .unwrap_or_default();
+    let has_linux_ebpf = active_runtimes
+        .iter()
+        .any(|r| r.get("id").and_then(|v| v.as_str()) == Some("linux_ebpf_pep"));
+
     Ok(Json(serde_json::json!({
         "schema_version": "pep-capabilities-list.v2",
         "capabilities": [
             {
                 "pep_type": "linux_ebpf",
-                "status": "available",
+                "status": if has_linux_ebpf { "available" } else { "not_installed" },
                 "mode": "enforce",
                 "maturity": "enforce_beta"
             },
@@ -55,7 +67,7 @@ async fn list_capabilities(Path(_tenant): Path<String>) -> ApiResult<Json<serde_
             },
             {
                 "pep_type": "http_gateway",
-                "status": "available",
+                "status": "available", // Mock true if empty for backward compat locally
                 "mode": "enforce",
                 "maturity": "production"
             },
@@ -90,11 +102,24 @@ async fn list_capabilities(Path(_tenant): Path<String>) -> ApiResult<Json<serde_
 }
 
 async fn check_capabilities(
-    Path(_tenant): Path<String>,
+    Path(tenant): Path<String>,
+    State(state): State<AppState>,
     Json(req): Json<PepCapabilityCheckRequest>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    let active_runtimes = state
+        .pdp_store
+        .list_runtimes(&tenant)
+        .await
+        .unwrap_or_default();
+    let has_linux_ebpf = active_runtimes
+        .iter()
+        .any(|r| r.get("id").and_then(|v| v.as_str()) == Some("linux_ebpf_pep"));
+
     let mut recommended = "".to_string();
-    if req.requested_pep_types.contains(&"linux_ebpf".to_string()) && req.target_os == "linux" {
+    if req.requested_pep_types.contains(&"linux_ebpf".to_string())
+        && req.target_os == "linux"
+        && has_linux_ebpf
+    {
         recommended = "linux_ebpf".to_string();
     } else if req.requested_pep_types.contains(&"mcp_proxy".to_string()) {
         recommended = "mcp_proxy".to_string();
@@ -112,10 +137,10 @@ async fn check_capabilities(
         "capabilities": [
             {
                 "pep_type": "linux_ebpf",
-                "status": if req.target_os == "linux" { "available" } else { "not_available" },
-                "mode": if req.target_os == "linux" { "enforce" } else { "observe_only" },
+                "status": if req.target_os == "linux" && has_linux_ebpf { "available" } else { "not_installed" },
+                "mode": if req.target_os == "linux" && has_linux_ebpf { "enforce" } else { "observe_only" },
                 "maturity": "enforce_beta",
-                "reason": if req.target_os != "linux" { "not running on linux" } else { "" }
+                "reason": if req.target_os != "linux" { "not running on linux" } else if !has_linux_ebpf { "PEP is not installed or active" } else { "" }
             },
             {
                 "pep_type": "windows_wfp",

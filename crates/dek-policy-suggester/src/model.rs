@@ -11,6 +11,8 @@ pub enum SuggestionType {
     RestrictMcpTool,
     CreateOpenFgaRelationshipGuard,
     CreateNetworkGuardrail,
+    DeployPromptInjectionGuard,
+    DeployPiiRedaction,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
