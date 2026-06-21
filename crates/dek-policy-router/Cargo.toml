@@ -12,6 +12,7 @@ dek-resilience = { path = "../dek-resilience" }
 dek-cedar = { path = "../dek-cedar" }
 dek-openfga = { path = "../dek-openfga" }
 dek-errors = { path = "../dek-errors" }
+dek-agent-binding = { path = "../dek-agent-binding" }
 serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true

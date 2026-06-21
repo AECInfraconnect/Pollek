@@ -1,0 +1,13 @@
+[package]
+name = "dek-fingerprint-defs"
+version = "1.0.0-beta.10"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+semver = "1.0"
+dek-bundle-sync = { path = "../dek-bundle-sync" }

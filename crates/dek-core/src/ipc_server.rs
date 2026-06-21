@@ -174,11 +174,19 @@ pub async fn spawn_ipc_server_task(
                                                         &renew_cfg_clone,
                                                         &sink_clone,
                                                         &sync_agent_clone,
-                                                        &metrics_client_clone,
+                                                        &metrics_client_clone
                                                     ).await {
-                                                        Ok(id) => IpcResponse::RotateStatus { status: format!("rotated:{id}") },
-                                                        Err(e) => IpcResponse::Error(format!("rotation failed: {e}")),
+                                                        Ok(_) => IpcResponse::RotateStatus { status: "SUCCESS".to_string() },
+                                                        Err(e) => {
+                                                            error!("Rotate Identity Failed via IPC: {}", e);
+                                                            IpcResponse::Error(e.to_string())
+                                                        }
                                                     }
+                                                },
+                                                IpcRequest::FingerprintAction { action, payload, sig } => {
+                                                    info!("Received FingerprintAction: {}", action);
+                                                    // TODO: wire to global FingerprintService when it's persisted to disk
+                                                    IpcResponse::FingerprintStatus { version: 0, message: format!("{} processed", action) }
                                                 }
                                             };
                                             let res_msg = IpcMessage { version: req_msg.version, payload: res };

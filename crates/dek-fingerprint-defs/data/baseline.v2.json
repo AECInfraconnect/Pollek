@@ -1,0 +1,207 @@
+{
+  "schema_version": "pollen.fingerprint_def.v2",
+  "definition_version": 20260621000,
+  "released_at": "2026-06-21T00:00:00Z",
+  "min_engine_version": "1.0.0",
+  "kind": "full",
+  "base_version": null,
+  "removed_ids": [],
+  "catalog_hash": "sha256:dummyhashforbaseline",
+  "signatures": [
+    {
+      "id": "claude_desktop",
+      "display_name": "Claude Desktop",
+      "agent_type": "desktop_agent",
+      "revision": 1,
+      "meta": {
+        "author": "pollen-threat-intel",
+        "description": "Anthropic Claude Desktop app with MCP support",
+        "references": ["https://anthropic.com/claude"],
+        "added_in": "20260621000",
+        "tags": ["desktop", "mcp-client"]
+      },
+      "process_names": ["Claude", "claude-desktop"],
+      "binary_hashes": [],
+      "config_paths": {
+        "macos": ["~/Library/Application Support/Claude/claude_desktop_config.json"],
+        "windows": ["%APPDATA%\\Claude\\claude_desktop_config.json"]
+      },
+      "config_parsers": ["claude_desktop_json"],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "process_and_config",
+      "control_strategies": ["mcp_stdio_wrapper", "observe_only"],
+      "risk_weight": 0.8
+    },
+    {
+      "id": "cursor",
+      "display_name": "Cursor IDE",
+      "agent_type": "ide",
+      "revision": 1,
+      "meta": {
+        "author": "pollen-threat-intel",
+        "description": "Cursor AI Code Editor",
+        "references": ["https://cursor.sh"],
+        "added_in": "20260621000",
+        "tags": ["ide", "mcp-client"]
+      },
+      "process_names": ["Cursor", "cursor"],
+      "binary_hashes": [],
+      "config_paths": {
+        "all": [".cursor/mcp.json"]
+      },
+      "config_parsers": ["cursor_json"],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "process_and_config",
+      "control_strategies": ["mcp_stdio_wrapper", "observe_only"],
+      "risk_weight": 0.7
+    },
+    {
+      "id": "vscode",
+      "display_name": "VS Code (with MCP)",
+      "agent_type": "ide",
+      "revision": 1,
+      "meta": {
+        "author": "pollen-threat-intel",
+        "description": "Visual Studio Code",
+        "references": ["https://code.visualstudio.com"],
+        "added_in": "20260621000",
+        "tags": ["ide", "mcp-client"]
+      },
+      "process_names": ["Code", "code"],
+      "binary_hashes": [],
+      "config_paths": {
+        "all": [".vscode/settings.json"]
+      },
+      "config_parsers": ["vscode_json"],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "process_and_config",
+      "control_strategies": ["mcp_stdio_wrapper", "observe_only"],
+      "risk_weight": 0.6
+    },
+    {
+      "id": "windsurf",
+      "display_name": "Windsurf IDE",
+      "agent_type": "ide",
+      "revision": 1,
+      "meta": {
+        "author": "pollen-threat-intel",
+        "description": "Codeium Windsurf IDE",
+        "references": ["https://codeium.com/windsurf"],
+        "added_in": "20260621000",
+        "tags": ["ide", "mcp-client"]
+      },
+      "process_names": ["Windsurf", "windsurf"],
+      "binary_hashes": [],
+      "config_paths": {
+        "all": ["~/.windsurf/config.json"]
+      },
+      "config_parsers": ["windsurf_json"],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "process_and_config",
+      "control_strategies": ["mcp_stdio_wrapper", "observe_only"],
+      "risk_weight": 0.7
+    },
+    {
+      "id": "cline",
+      "display_name": "Cline CLI",
+      "agent_type": "cli_agent",
+      "revision": 1,
+      "meta": {
+        "author": "pollen-threat-intel",
+        "description": "Cline CLI Agent",
+        "references": ["https://github.com/cline/cline"],
+        "added_in": "20260621000",
+        "tags": ["cli", "mcp-client"]
+      },
+      "process_names": ["cline", "node"],
+      "binary_hashes": [],
+      "config_paths": {
+        "all": ["~/.cline/config.json"]
+      },
+      "config_parsers": ["cline_json"],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "process_and_config",
+      "control_strategies": ["mcp_stdio_wrapper", "observe_only"],
+      "risk_weight": 0.7
+    },
+    {
+      "id": "claude_code",
+      "display_name": "Claude Code CLI",
+      "agent_type": "cli_agent",
+      "revision": 1,
+      "meta": {
+        "author": "pollen-threat-intel",
+        "description": "Anthropic Claude Code CLI tool",
+        "references": ["https://anthropic.com"],
+        "added_in": "20260621000",
+        "tags": ["cli", "mcp-client"]
+      },
+      "process_names": ["claude", "node"],
+      "binary_hashes": [],
+      "config_paths": {
+        "all": ["~/.claude.json"]
+      },
+      "config_parsers": ["claude_json"],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "process_and_config",
+      "control_strategies": ["mcp_stdio_wrapper", "observe_only"],
+      "risk_weight": 0.7
+    },
+    {
+      "id": "ollama",
+      "display_name": "Ollama Local Model Server",
+      "agent_type": "local_model",
+      "revision": 1,
+      "meta": {
+        "author": "pollen-threat-intel",
+        "description": "Ollama local LLM runner",
+        "references": ["https://ollama.com"],
+        "added_in": "20260621000",
+        "tags": ["local_model", "server"]
+      },
+      "process_names": ["ollama"],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "ports": [11434],
+      "port_probe": {
+        "kind": "openai_compat",
+        "path": "/api/tags"
+      },
+      "detection_logic": "process_or_config_with_port",
+      "control_strategies": ["network_egress_pep", "observe_only"],
+      "risk_weight": 0.5
+    },
+    {
+      "id": "lmstudio",
+      "display_name": "LM Studio Local Model Server",
+      "agent_type": "local_model",
+      "revision": 1,
+      "meta": {
+        "author": "pollen-threat-intel",
+        "description": "LM Studio local LLM runner",
+        "references": ["https://lmstudio.ai"],
+        "added_in": "20260621000",
+        "tags": ["local_model", "server"]
+      },
+      "process_names": ["lmstudio", "LM Studio"],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "ports": [1234],
+      "port_probe": {
+        "kind": "openai_compat",
+        "path": "/v1/models"
+      },
+      "detection_logic": "process_or_config_with_port",
+      "control_strategies": ["network_egress_pep", "observe_only"],
+      "risk_weight": 0.5
+    }
+  ]
+}

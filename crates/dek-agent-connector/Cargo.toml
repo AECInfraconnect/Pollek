@@ -10,6 +10,8 @@ edition = "2021"
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+dek-agent-binding = { path = "../dek-agent-binding" }
+dek-agent-observer = { path = "../dek-agent-observer" }
 
 [lints]
 workspace = true

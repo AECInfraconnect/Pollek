@@ -11,6 +11,8 @@ serde_json.workspace = true
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono.workspace = true
 thiserror.workspace = true
+anyhow.workspace = true
+dek-agent-binding = { path = "../dek-agent-binding" }
 
 [lints]
 workspace = true

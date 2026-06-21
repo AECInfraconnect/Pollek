@@ -1792,10 +1792,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "dek-agent-binding"
+version = "1.0.0-beta.10"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "dek-fingerprint-defs",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "dek-agent-connector"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dek-agent-binding",
+ "dek-agent-observer",
  "serde",
  "serde_json",
 ]
@@ -1826,7 +1842,9 @@ dependencies = [
 name = "dek-agent-observer"
 version = "1.0.0-beta.10"
 dependencies = [
+ "anyhow",
  "chrono",
+ "dek-agent-binding",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -1948,6 +1966,7 @@ dependencies = [
 name = "dek-control-plane-api"
 version = "0.1.0"
 dependencies = [
+ "axum 0.7.9",
  "pollen-contract",
  "schemars 0.8.22",
  "serde",
@@ -2140,6 +2159,19 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "dek-fingerprint-defs"
+version = "1.0.0-beta.10"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "dek-bundle-sync",
+ "semver",
+ "serde",
+ "serde_json",
+ "tracing",
 ]
 
 [[package]]
@@ -2394,6 +2426,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "criterion",
+ "dek-agent-binding",
  "dek-cedar",
  "dek-errors",
  "dek-openfga",

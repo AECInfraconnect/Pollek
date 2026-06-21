@@ -9,3 +9,4 @@ pub mod ingest;
 pub mod model;
 pub mod otel;
 pub mod trust;
+pub mod binding_store;

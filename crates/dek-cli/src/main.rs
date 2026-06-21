@@ -95,6 +95,32 @@ enum Commands {
         #[command(subcommand)]
         action: ProfileAction,
     },
+    /// Manage Fingerprint Definitions
+    Fingerprint {
+        #[command(subcommand)]
+        action: FingerprintCommands,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum FingerprintCommands {
+    /// Update definitions from cloud
+    Update,
+    /// View active definition status
+    Status,
+    /// Rollback definition to previous version
+    Rollback {
+        /// Version to rollback to (optional)
+        #[arg(long)]
+        version: Option<String>,
+    },
+    /// Import definition offline
+    Import {
+        #[arg(long)]
+        file: String,
+        #[arg(long)]
+        sig: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -138,6 +164,7 @@ enum AgentCommands {
 
 use futures::{SinkExt, StreamExt};
 use tokio_util::codec::{Framed, LinesCodec};
+
 
 async fn send_ipc_request(host: &str, port: u16, req_payload: IpcRequest) -> Result<IpcResponse> {
     let addr = format!("{}:{}", host, port);
@@ -422,6 +449,57 @@ async fn main() -> Result<()> {
             }
             ProfileAction::Show => service::profile::show_profile()?,
         },
+        Commands::Fingerprint { action } => {
+            match action {
+                FingerprintCommands::Update => {
+                    info!("Triggering fingerprint definition update...");
+                    match send_ipc_request(&cli.host, cli.port, IpcRequest::FingerprintAction { action: "update".to_string(), payload: None, sig: None }).await {
+                        Ok(IpcResponse::FingerprintStatus { version, message }) => {
+                            info!("Update triggered. New version: {} ({})", version, message);
+                        }
+                        Ok(IpcResponse::Error(e)) => error!("Error: {}", e),
+                        _ => error!("Unexpected response"),
+                    }
+                }
+                FingerprintCommands::Status => {
+                    info!("Fetching fingerprint definition status...");
+                    match send_ipc_request(&cli.host, cli.port, IpcRequest::FingerprintAction { action: "status".to_string(), payload: None, sig: None }).await {
+                        Ok(IpcResponse::FingerprintStatus { version, message }) => {
+                            info!("Fingerprint Version: {} ({})", version, message);
+                        }
+                        Ok(IpcResponse::Error(e)) => error!("Error: {}", e),
+                        _ => error!("Unexpected response"),
+                    }
+                }
+                FingerprintCommands::Rollback { version: _ } => {
+                    info!("Rolling back fingerprint definition...");
+                    match send_ipc_request(&cli.host, cli.port, IpcRequest::FingerprintAction { action: "rollback".to_string(), payload: None, sig: None }).await {
+                        Ok(IpcResponse::FingerprintStatus { version, message }) => {
+                            info!("Rolled back to Version: {} ({})", version, message);
+                        }
+                        Ok(IpcResponse::Error(e)) => error!("Error: {}", e),
+                        _ => error!("Unexpected response"),
+                    }
+                }
+                FingerprintCommands::Import { file, sig } => {
+                    info!("Importing fingerprint definition offline...");
+                    let payload = std::fs::read(&file).context("failed to read def file")?;
+                    let sig_content = std::fs::read_to_string(&sig).context("failed to read sig file")?;
+                    
+                    match send_ipc_request(&cli.host, cli.port, IpcRequest::FingerprintAction { 
+                        action: "import".to_string(), 
+                        payload: Some(payload), 
+                        sig: Some(sig_content) 
+                    }).await {
+                        Ok(IpcResponse::FingerprintStatus { version, message }) => {
+                            info!("Import successful. Active Version: {} ({})", version, message);
+                        }
+                        Ok(IpcResponse::Error(e)) => error!("Error: {}", e),
+                        _ => error!("Unexpected response"),
+                    }
+                }
+            }
+        }
     }
     Ok(())
 }

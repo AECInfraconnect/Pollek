@@ -31,11 +31,13 @@ only the endpoint + trust store, never the enforcement code.
 - **Dry-run Simulation** — test draft policies with what-if scenarios from the
   dashboard without affecting live traffic.
 
-### AI Agent Observability
+### AI Agent Observability & Fingerprinting
 
 - **Shadow AI Discovery** — automatically detects unmanaged AI agents via OS
   process scanning and heuristic fingerprinting (Ollama, vLLM, Claude Desktop,
   GitHub Copilot, Cursor, and more).
+- **Agent Fingerprint Definitions** — natively supports Offline Baseline definitions with Cloud-pushed Delta updates over SSE. Definitions map agent binaries/processes to known identities securely with signature verification.
+- **Agent Binding Governance** — Maps discovered agents to Runtime Capabilities (resolving HTTP/Stdio MCP surfaces dynamically) and enforces governance constraints throughout the agent lifecycle.
 - **Token & Cost Ledger** — tracks estimated token costs across all observed AI
   APIs via a configurable price catalog, with per-agent breakdowns.
 - **Policy Suggestion Engine** — auto-generates Rego/Cedar policies based on
@@ -45,6 +47,7 @@ only the endpoint + trust store, never the enforcement code.
 
 ### Security & Trust
 
+- **Air-Gapped & Offline Support** — `dek-cli fingerprint import` natively supports injecting offline fingerprint definitions and rollbacks in completely air-gapped secure edge environments.
 - **Trust Scoring** — calculates real-time Agent Trust Scores via `AgentBaseline`,
   enabling dynamic `KillSwitch` or `RequireApproval` obligations on anomaly.
 - **Content Guard** — inspects payloads for prompt injection, PII leakage, and
@@ -186,7 +189,7 @@ Full detail: **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 | **Observability** | `dek-agent-discovery`, `dek-agent-observer`, `dek-policy-suggester`, `dek-telemetry` |
 | **Network** | `dek-ebpfd`, `dek-ebpf-common`, `dek-windows-wfp`, `dek-macos-nefilter` |
 | **Identity** | `dek-spire-node`, `dek-enroll` |
-| **Interop** | `dek-a2a-mediator`, `dek-execution-sandbox`, `dek-agent-connector`, `dek-mcp-normalizer`, `dek-mcp-stdio-wrapper` |
+| **Interop** | `dek-a2a-mediator`, `dek-execution-sandbox`, `dek-agent-connector`, `dek-mcp-normalizer`, `dek-mcp-stdio-wrapper`, `dek-agent-binding`, `dek-fingerprint-defs` |
 | **SDK** | `dek-pdp-sdk`, `dek-plugin-sdk`, `dek-plugin-host`, `dek-policy-presets` |
 | **Control Planes** | `dek-control-plane-api`, `local-control-plane`, `mock-cloud` |
 

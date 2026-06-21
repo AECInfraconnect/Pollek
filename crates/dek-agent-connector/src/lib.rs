@@ -11,6 +11,7 @@ use std::path::PathBuf;
 pub struct AgentConfig {
     pub agent_id: String,
     pub path: PathBuf,
+    pub should_wrap: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,6 +69,7 @@ impl AgentConfigRewriter for ClaudeDesktopRewriter {
             Ok(vec![AgentConfig {
                 agent_id: "claude-desktop".into(),
                 path,
+                should_wrap: true, // In reality, fetch from binding store
             }])
         } else {
             Ok(vec![])
@@ -77,6 +79,16 @@ impl AgentConfigRewriter for ClaudeDesktopRewriter {
     fn plan_rewrite(&self, config: &AgentConfig) -> Result<RewritePlan> {
         let content = fs::read_to_string(&config.path)?;
         let mut json: Value = serde_json::from_str(&content)?;
+
+        if !config.should_wrap {
+            // Policy says no wrapping
+            return Ok(RewritePlan {
+                agent_id: config.agent_id.clone(),
+                original_path: config.path.clone(),
+                backup_path: self.backup_path(),
+                new_content: json,
+            });
+        }
 
         if let Some(mcp_servers) = json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
             for (server_id, server_config) in mcp_servers.iter_mut() {
