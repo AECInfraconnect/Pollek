@@ -24,9 +24,9 @@ use aya_ebpf::{
     programs::{SkBuffContext, SockAddrContext},
 };
 use dek_ebpf_common::{
-    DnsCaptureEvent, EgressEvent, Ipv4LpmKey, PolicyVerdict, CGROUP_MAP_CAPACITY,
-    DNS_PAYLOAD_MAX, LPM_MAP_CAPACITY, PORTS_MAP_CAPACITY,
-    DekIp4Key, DekDnsCacheValue, DekMetrics, DEK_DNS_CACHE_MAX_ENTRIES,
+    DekDnsCacheValue, DekIp4Key, DekMetrics, DnsCaptureEvent, EgressEvent, Ipv4LpmKey,
+    PolicyVerdict, CGROUP_MAP_CAPACITY, DEK_DNS_CACHE_MAX_ENTRIES, DNS_PAYLOAD_MAX,
+    LPM_MAP_CAPACITY, PORTS_MAP_CAPACITY,
 };
 
 const DNS_PORT: u16 = 53;
@@ -37,8 +37,7 @@ const UDP_HDR_LEN: usize = 8;
 // ------------------------------- maps -------------------------------
 
 #[map]
-static VERDICT_MAP: LpmTrie<u32, PolicyVerdict> =
-    LpmTrie::with_max_entries(LPM_MAP_CAPACITY, 0);
+static VERDICT_MAP: LpmTrie<u32, PolicyVerdict> = LpmTrie::with_max_entries(LPM_MAP_CAPACITY, 0);
 
 #[map]
 static PORTS_MAP: HashMap<u16, PolicyVerdict> = HashMap::with_max_entries(PORTS_MAP_CAPACITY, 0);
@@ -162,7 +161,10 @@ fn try_dek_connect4(ctx: &SockAddrContext) -> Result<i32, ()> {
     let cgroup_id = unsafe { bpf_get_current_cgroup_id() };
     let pid = (bpf_get_current_pid_tgid() >> 32) as u32;
 
-    let mut verdict = PolicyVerdict { allow: 1, log_event: 0 };
+    let mut verdict = PolicyVerdict {
+        allow: 1,
+        log_event: 0,
+    };
 
     // 0) DNS TTL Check using LRU MAP
     let dns_key = DekIp4Key {
@@ -234,4 +236,3 @@ fn try_dek_connect4(ctx: &SockAddrContext) -> Result<i32, ()> {
 fn panic(_info: &core::panic::PanicInfo) -> ! {
     unsafe { core::hint::unreachable_unchecked() }
 }
-
