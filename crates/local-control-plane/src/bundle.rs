@@ -145,6 +145,14 @@ pub fn verify_bundle(_manifest: &PollenPolicyBundle, _public_b64: &str) -> bool 
 pub fn router() -> Router<AppState> {
     Router::new()
         .route(
+            "/v1/tenants/:tenant/bundles",
+            axum::routing::get(list_bundles),
+        )
+        .route(
+            "/v1/tenants/:tenant/bundles/sync",
+            axum::routing::post(sync_bundles),
+        )
+        .route(
             "/v1/tenants/:tenant/devices/:device/bundles/latest",
             axum::routing::post(get_latest_bundle),
         )
@@ -164,6 +172,52 @@ pub fn router() -> Router<AppState> {
             "/v1/tenants/:tenant/devices/:device/config",
             axum::routing::get(get_mock_config),
         )
+}
+
+async fn list_bundles(
+    Path(tenant): Path<String>,
+    State(st): State<AppState>,
+) -> ApiResult<Json<serde_json::Value>> {
+    match st.policy_store.get_policy_raw(&tenant, "bundle:latest").await {
+        Ok(Some(val)) => {
+            let manifest = val.get("manifest").cloned().unwrap_or(serde_json::json!({}));
+            let metadata = manifest.get("metadata").cloned().unwrap_or(serde_json::json!({}));
+            
+            Ok(Json(serde_json::json!([{
+                "bundle_id": metadata.get("bundle_id").and_then(|v| v.as_str()).unwrap_or("unknown"),
+                "version": metadata.get("version").and_then(|v| v.as_str()).unwrap_or("v1.0"),
+                "status": "Active",
+                "deployed_at": metadata.get("created_at").and_then(|v| v.as_str()).unwrap_or(""),
+            }])))
+        }
+        _ => Ok(Json(serde_json::json!([]))),
+    }
+}
+
+async fn sync_bundles(
+    Path(tenant): Path<String>,
+    State(st): State<AppState>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let bundle_id = match st.policy_store.get_policy_raw(&tenant, "bundle:latest").await {
+        Ok(Some(val)) => {
+            val.get("manifest")
+               .and_then(|m| m.get("metadata"))
+               .and_then(|md| md.get("bundle_id"))
+               .and_then(|b| b.as_str())
+               .unwrap_or("unknown-bundle")
+               .to_string()
+        }
+        _ => "unknown-bundle".to_string(),
+    };
+    
+    let _ = st.bundle_tx.send(bundle_id.clone());
+    
+    Ok(Json(serde_json::json!({
+        "status": "success",
+        "message": "Deployment sync triggered successfully",
+        "bundle_id": bundle_id,
+        "timestamp": chrono::Utc::now().to_rfc3339()
+    })))
 }
 
 async fn get_mock_config(

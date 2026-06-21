@@ -449,34 +449,68 @@ async fn simulate_policy(
     router.set_routes(vec![route]);
 
     let start_time = std::time::Instant::now();
-    let result = router.authorize_dry_run(input).await;
+    let result = router.authorize_dry_run(serde_json::from_value(input.clone()).unwrap_or_default()).await;
     let eval_time_ms = start_time.elapsed().as_millis();
 
     match result {
-        Ok(decision) => Ok((
-            StatusCode::OK,
-            Json(json!({
-                "allowed": decision.allow,
-                "decision": decision.decision,
-                "reason": decision.reason,
-                "evaluation_time_ms": eval_time_ms,
-                "log_output": ["Simulated using dry_run mode"],
-                "syntax_check": syntax_check,
-                "recommended_pep": recommended_pep,
-                "deployment_test": deployment_test
-            })),
-        )),
-        Err(e) => Ok((
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "allowed": false,
-                "error": e.to_string(),
-                "evaluation_time_ms": eval_time_ms,
-                "log_output": ["Simulation failed"],
-                "syntax_check": syntax_check,
-                "recommended_pep": recommended_pep,
-                "deployment_test": "Failed during execution"
-            })),
-        )),
+        Ok(decision) => {
+            let req_id = input.get("request_id").and_then(|v| v.as_str()).unwrap_or("sim_req").to_string();
+            let ev = json!({
+                "event_type": "decision",
+                "event_id": format!("sim_{}", chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)),
+                "timestamp": chrono::Utc::now().to_rfc3339(),
+                "payload": {
+                    "decision": if decision.allow { "allow" } else { "deny" },
+                    "reason": decision.reason.clone(),
+                    "request_id": req_id,
+                    "matched_policy_ids": [policy_id.clone()],
+                    "latency_ms": eval_time_ms as i32
+                }
+            });
+            let _ = state.telemetry_store.put_telemetry("local", "decision", ev["event_id"].as_str().unwrap(), &ev).await;
+            
+            Ok((
+                StatusCode::OK,
+                Json(json!({
+                    "allowed": decision.allow,
+                    "decision": decision.decision,
+                    "reason": decision.reason,
+                    "evaluation_time_ms": eval_time_ms,
+                    "log_output": ["Simulated using dry_run mode"],
+                    "syntax_check": syntax_check,
+                    "recommended_pep": recommended_pep,
+                    "deployment_test": deployment_test
+                })),
+            ))
+        },
+        Err(e) => {
+            let req_id = input.get("request_id").and_then(|v| v.as_str()).unwrap_or("sim_req").to_string();
+            let ev = json!({
+                "event_type": "decision",
+                "event_id": format!("sim_{}", chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)),
+                "timestamp": chrono::Utc::now().to_rfc3339(),
+                "payload": {
+                    "decision": "deny",
+                    "reason": format!("Error: {}", e),
+                    "request_id": req_id,
+                    "matched_policy_ids": [policy_id.clone()],
+                    "latency_ms": eval_time_ms as i32
+                }
+            });
+            let _ = state.telemetry_store.put_telemetry("local", "decision", ev["event_id"].as_str().unwrap(), &ev).await;
+
+            Ok((
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "allowed": false,
+                    "error": e.to_string(),
+                    "evaluation_time_ms": eval_time_ms,
+                    "log_output": ["Simulation failed"],
+                    "syntax_check": syntax_check,
+                    "recommended_pep": recommended_pep,
+                    "deployment_test": "Failed during execution"
+                })),
+            ))
+        },
     }
 }

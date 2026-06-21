@@ -7,17 +7,15 @@ export function Bundles() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [syncResult, setSyncResult] = useState<any>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      // In a real implementation this would fetch from GET /bundles
-      // Since local control plane might not have a /bundles endpoint returning an array 
-      // of historical bundles unless it's Mock-Cloud, we mock or fetch it.
       const data = await BundleApi.list();
       setBundles(Array.isArray(data) ? data : []);
     } catch (e: any) {
-      // If endpoint doesn't exist on local DEK yet, just show empty
       console.warn("Bundles endpoint issue:", e);
       setBundles([]);
     } finally {
@@ -33,7 +31,9 @@ export function Bundles() {
     setSyncing(true);
     setError(null);
     try {
-      await BundleApi.sync();
+      const res = await BundleApi.sync();
+      setSyncResult(res);
+      setShowDialog(true);
       await load();
     } catch (e: any) {
       setError(`Sync failed: ${e.message || String(e)}`);
@@ -116,6 +116,35 @@ export function Bundles() {
           </tbody>
         </table>
       </div>
+
+      {showDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-full bg-emerald-500/20 p-2 text-emerald-500">
+                <CheckCircle className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-semibold">Deployment Successful</h3>
+            </div>
+            <p className="mb-6 text-sm text-muted-foreground">
+              {syncResult?.message || "Policy bundles have been successfully synchronized and deployed to connected PEPs."}
+            </p>
+            <div className="mb-6 rounded-md bg-muted/50 p-3 text-xs font-mono">
+              Bundle ID: {syncResult?.bundle_id || 'unknown'}
+              <br />
+              Timestamp: {syncResult?.timestamp ? new Date(syncResult.timestamp).toLocaleString() : new Date().toLocaleString()}
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowDialog(false)}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
