@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::RwLock;
 use tokio_retry::strategy::ExponentialBackoff;
 use tokio_retry::Retry;
 use tracing::{error, info, warn};
@@ -184,11 +183,18 @@ impl CloudTelemetrySink {
                     let c = bg_client.clone();
                     match c.post(&bg_url).json(&event).send().await {
                         Ok(res) if res.status().is_success() => Ok(()),
+                        Ok(res) if res.status().is_client_error() => {
+                            // Non-retryable error (e.g. 400 Bad Request)
+                            warn!("[Telemetry] Cloud rejected event (4xx). Status: {}", res.status());
+                            Err(anyhow::anyhow!("Non-retryable {}", res.status()))
+                        }
                         Ok(res) => {
-                            warn!("[Telemetry] Cloud rejected event. Status: {}", res.status());
-                            Err(anyhow::anyhow!("Status {}", res.status()))
+                            // Retryable error (e.g. 500 Internal Server Error)
+                            warn!("[Telemetry] Cloud rejected event (5xx). Status: {}", res.status());
+                            Err(anyhow::anyhow!("Retryable {}", res.status()))
                         }
                         Err(e) => {
+                            // Network error (retryable)
                             warn!("[Telemetry] Network error sending event: {}", e);
                             Err(e.into())
                         }
@@ -198,9 +204,16 @@ impl CloudTelemetrySink {
 
                 if res.is_ok() {
                     to_delete.push(id);
-                } else {
-                    // Stop processing batch on network failure, wait for next loop
-                    break;
+                } else if let Err(e) = res {
+                    let err_str = e.to_string();
+                    if err_str.contains("Non-retryable") {
+                        // Drop non-retryable event
+                        warn!("[Telemetry] Dropping non-retryable event id {}", id);
+                        to_delete.push(id);
+                    } else {
+                        // Stop processing batch on network/5xx failure, wait for next loop
+                        break;
+                    }
                 }
             }
 

@@ -20,5 +20,11 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 regex = "1.11"
 chrono = "0.4"
 metrics = "0.22"
+
+aes-gcm = "0.10"
+rand = "0.8"
+keyring = "2"
+hex = "0.4"
+
 [lints]
 workspace = true

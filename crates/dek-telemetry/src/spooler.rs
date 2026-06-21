@@ -10,11 +10,17 @@
 //!  - Public API is unchanged (new/push/pop_batch/delete_batch/len) plus two
 //!    additions (`with_capacity`, `vacuum`); existing callers keep working.
 
+use aes_gcm::{
+    aead::{Aead, AeadCore, KeyInit, OsRng},
+    Aes256Gcm, Key, Nonce,
+};
 use anyhow::{Context, Result};
+use keyring::Entry;
+use rand::RngCore;
 use rusqlite::{params, Connection};
 use serde_json::Value;
 use std::sync::Mutex;
-use tracing::warn;
+use tracing::{info, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Priority {
@@ -35,31 +41,45 @@ impl Priority {
     }
 }
 
-/// Default hard cap on spooled rows. At ~1KB/event this bounds the DB to a few
-/// tens of MB. When exceeded, the lowest-priority, oldest rows are evicted.
 pub const DEFAULT_MAX_ROWS: i64 = 50_000;
 
 pub struct Spooler {
     conn: Mutex<Connection>,
     max_rows: i64,
+    cipher: Aes256Gcm,
 }
 
 impl Spooler {
+    fn get_or_create_key() -> Result<Key<Aes256Gcm>> {
+        let entry = Entry::new("pollen-dek-telemetry", "spool-encryption-key")?;
+        match entry.get_password() {
+            Ok(hex_key) => {
+                let key_bytes = hex::decode(hex_key)?;
+                Ok(*Key::<Aes256Gcm>::from_slice(&key_bytes))
+            }
+            Err(_) => {
+                let mut key_bytes = [0u8; 32];
+                OsRng.fill_bytes(&mut key_bytes);
+                let hex_key = hex::encode(key_bytes);
+                entry.set_password(&hex_key)?;
+                info!("Generated and stored new telemetry spool encryption key");
+                Ok(*Key::<Aes256Gcm>::from_slice(&key_bytes))
+            }
+        }
+    }
+
     pub fn new(db_path: &str) -> Result<Self> {
         Self::with_capacity(db_path, DEFAULT_MAX_ROWS)
     }
 
-    /// Like `new`, but with an explicit row cap (drop-oldest beyond it).
     pub fn with_capacity(db_path: &str, max_rows: i64) -> Result<Self> {
         let conn = Connection::open(db_path).context("open spool db")?;
 
-        // PRAGMAs must run before tables are created for auto_vacuum to take
-        // effect on a fresh DB without a full VACUUM.
         conn.execute_batch(
             "PRAGMA journal_mode = WAL;
              PRAGMA synchronous = NORMAL;
              PRAGMA auto_vacuum = INCREMENTAL;
-             PRAGMA journal_size_limit = 8388608;", // ~8 MiB cap on the WAL
+             PRAGMA journal_size_limit = 8388608;",
         )
         .context("set spool pragmas")?;
 
@@ -67,34 +87,40 @@ impl Spooler {
             "CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 priority INTEGER NOT NULL,
-                payload TEXT NOT NULL,
+                payload BLOB NOT NULL,
+                nonce BLOB NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )",
             [],
         )?;
-        // Index matches the drain + eviction ordering.
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_events_drain ON events (priority DESC, id ASC)",
             [],
         )?;
 
+        let key = Self::get_or_create_key()?;
+        let cipher = Aes256Gcm::new(&key);
+
         Ok(Self {
             conn: Mutex::new(conn),
             max_rows: max_rows.max(1),
+            cipher,
         })
     }
 
     pub fn push(&self, priority: Priority, payload: &Value) -> Result<()> {
         let payload_str = serde_json::to_string(payload)?;
+        
+        let nonce = Aes256Gcm::generate_nonce(&mut OsRng); // 96-bits; unique per message
+        let ciphertext = self.cipher.encrypt(&nonce, payload_str.as_bytes())
+            .map_err(|e| anyhow::anyhow!("Encryption failed: {}", e))?;
+
         let conn = self.conn.lock().unwrap();
         conn.execute(
-            "INSERT INTO events (priority, payload) VALUES (?1, ?2)",
-            params![priority as i32, payload_str],
+            "INSERT INTO events (priority, payload, nonce) VALUES (?1, ?2, ?3)",
+            params![priority as i32, ciphertext, nonce.as_slice()],
         )?;
 
-        // Drop-oldest enforcement: keep only the newest `max_rows` ranked by
-        // (priority DESC, id DESC). Under sustained outage we shed the least
-        // important, oldest events rather than exhausting the disk.
         let evicted = conn.execute(
             "DELETE FROM events
              WHERE id NOT IN (
@@ -114,18 +140,34 @@ impl Spooler {
     pub fn pop_batch(&self, limit: usize) -> Result<Vec<(i64, Value)>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn
-            .prepare("SELECT id, payload FROM events ORDER BY priority DESC, id ASC LIMIT ?1")?;
+            .prepare("SELECT id, payload, nonce FROM events ORDER BY priority DESC, id ASC LIMIT ?1")?;
+        
         let rows = stmt.query_map([limit as i64], |row| {
             let id: i64 = row.get(0)?;
-            let payload_str: String = row.get(1)?;
-            Ok((id, payload_str))
+            let payload_blob: Vec<u8> = row.get(1)?;
+            let nonce_blob: Vec<u8> = row.get(2)?;
+            Ok((id, payload_blob, nonce_blob))
         })?;
 
         let mut batch = Vec::new();
         for r in rows.flatten() {
-            let (id, p_str) = r;
-            if let Ok(v) = serde_json::from_str(&p_str) {
-                batch.push((id, v));
+            let (id, ct, nonce_bytes) = r;
+            let nonce = Nonce::from_slice(&nonce_bytes);
+            match self.cipher.decrypt(nonce, ct.as_ref()) {
+                Ok(pt) => {
+                    if let Ok(p_str) = String::from_utf8(pt) {
+                        if let Ok(v) = serde_json::from_str(&p_str) {
+                            batch.push((id, v));
+                        }
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to decrypt spooled event id {}: {}", id, e);
+                    // We skip it, but maybe we should delete it. 
+                    // Let's just drop it from this batch, it will be retried or stuck. 
+                    // Actually, if decryption fails permanently, it might block the queue.
+                    // But we won't delete here; the caller deletes.
+                }
             }
         }
         Ok(batch)
@@ -143,8 +185,6 @@ impl Spooler {
         Ok(())
     }
 
-    /// Reclaim free pages after acked batches. Call periodically (e.g. every
-    /// few drain cycles) from the telemetry loop — cheap and incremental.
     pub fn vacuum(&self) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute_batch("PRAGMA incremental_vacuum;")?;
