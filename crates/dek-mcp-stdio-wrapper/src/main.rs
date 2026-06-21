@@ -100,6 +100,8 @@ async fn main() -> Result<()> {
         None,
         &telemetry_db.to_string_lossy(),
         None,
+        tenant_id.clone(),
+        bootstrap.device_id.clone(),
     )
     .ok();
 
