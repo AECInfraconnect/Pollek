@@ -1,0 +1,17 @@
+version: 1.0.0
+project-lifecycle:
+  status: "active"
+  bug-fixes-only: false
+  core-maintainers:
+    - "AECInfraconnect"
+security-contacts:
+  - type: "email"
+    value: "security@aecinfraconnect.com"
+security-testing:
+  - type: "fuzzing"
+    url: "https://github.com/AECInfraconnect/AntiG_Pollen_DEK/actions/workflows/fuzz.yml"
+  - type: "sast"
+    url: "https://github.com/AECInfraconnect/AntiG_Pollen_DEK/actions/workflows/clippy.yml"
+vulnerability-reporting:
+  accepts-vulnerability-reports: true
+  email: "security@aecinfraconnect.com"

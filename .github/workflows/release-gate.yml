@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*-beta*'
 
+permissions:
+  contents: read
+
 jobs:
   release-gate:
     name: v1.0.0-beta Release Gate
@@ -13,15 +16,15 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
           components: clippy, rustfmt
 
       - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
 
       - name: Clippy (Enforce unwrap/expect gate)
         run: cargo clippy --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin -- -D warnings -D clippy::unwrap_used -D clippy::expect_used
@@ -36,7 +39,7 @@ jobs:
         run: cargo bench -p dek-cedar
 
       - name: Install Security Tools
-        uses: cargo-bins/cargo-binstall@main
+        uses: cargo-bins/cargo-binstall@732870f031d2fb36309d0deaf36abcc704a7be65 # main
       - run: cargo binstall -y cargo-audit cargo-deny
 
       - name: Security Audit (cargo audit)

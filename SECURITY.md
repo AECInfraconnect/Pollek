@@ -8,7 +8,7 @@ Currently, the `main` branch and the latest `beta` release receive security upda
 
 Please do NOT report security vulnerabilities via public GitHub issues.
 
-Instead, please email <security@<your-cloud-domain>> with the details of the vulnerability. We will aim to respond within 48 hours.
+Instead, please email security@aecinfraconnect.com with the details of the vulnerability. We will aim to respond within 48 hours.
 
 ## Threat Model & Scope
 
