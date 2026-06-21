@@ -3,7 +3,7 @@
 
 use crate::error::{ApiError, ApiResult};
 use crate::state::AppState;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -28,6 +28,7 @@ pub struct SignedBundle {
     pub blobs: Vec<(String, Vec<u8>)>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn build_signed_bundle(
     signer: &LocalSigner,
     tenant_id: &str,
@@ -243,7 +244,7 @@ async fn get_manifest(
     match st.policy_store.get_policy_raw(&tenant, "bundle:latest").await {
         Ok(Some(val)) => Ok(Json(val)),
         Ok(None) => Err(ApiError::NotFound("bundle".into())),
-        Err(e) => Err(ApiError::Internal(e.into())),
+        Err(e) => Err(ApiError::Internal(e)),
     }
 }
 
@@ -273,6 +274,6 @@ async fn get_artifact(
     match st.policy_store.get_blob(&tenant, &path).await {
         Ok(Some(bytes)) => Ok((StatusCode::OK, bytes)),
         Ok(None) => Err(ApiError::NotFound("artifact".into())),
-        Err(e) => Err(ApiError::Internal(e.into())),
+        Err(e) => Err(ApiError::Internal(e)),
     }
 }

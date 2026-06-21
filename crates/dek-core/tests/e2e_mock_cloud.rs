@@ -11,5 +11,5 @@ async fn test_mock_cloud_e2e() {
 
     let simulated_delay = Duration::from_millis(10);
     tokio::time::sleep(simulated_delay).await;
-    assert!(true, "E2E mock cloud simulated flow passed");
+
 }

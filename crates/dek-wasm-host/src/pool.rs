@@ -33,6 +33,7 @@ pub struct PluginWorkerPool {
 }
 
 impl PluginWorkerPool {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         engine: Arc<Engine>,
         compiled: Arc<CompiledPlugin>,

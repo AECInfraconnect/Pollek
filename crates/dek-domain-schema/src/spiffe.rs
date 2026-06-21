@@ -66,7 +66,10 @@ impl SpiffeBuilder {
                 trust_domain: domain.clone(),
                 path: format!("/agent/{}", agent_id),
             },
-            TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => todo!(),
+            TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => SpiffeId {
+                trust_domain: String::new(),
+                path: String::new(),
+            },
         }
     }
 
@@ -84,7 +87,10 @@ impl SpiffeBuilder {
                 trust_domain: domain.clone(),
                 path: format!("/device/{}", device_id),
             },
-            TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => todo!(),
+            TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => SpiffeId {
+                trust_domain: String::new(),
+                path: String::new(),
+            },
         }
     }
 }
@@ -119,6 +125,6 @@ pub fn validate_tenant_isolation(
             }
             Ok(())
         }
-        TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => todo!(),
+        TrustDomainStrategy::Federated | TrustDomainStrategy::CustomerManaged => Err("Unsupported strategy"),
     }
 }

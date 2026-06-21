@@ -1,9 +1,7 @@
 use crate::{error::{ApiError, ApiResult}, state::AppState};
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{delete, get},
+    routing::get,
     Json, Router,
 };
 use dek_control_plane_api::registry::*;

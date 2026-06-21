@@ -1,3 +1,4 @@
+#![allow(clippy::panic)]
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
@@ -159,12 +160,23 @@ async fn main() -> Result<()> {
         }
     }
 
-    let plugin_host_res = dek_wasm_host::WasmtimePluginHost::new(plugin_paths);
-    let plugin_host = Arc::new(plugin_host_res.unwrap_or_else(|_| {
-        warn!("Failed to load WasmtimePluginHost. Redaction may be unavailable.");
-        dek_wasm_host::WasmtimePluginHost::new(std::collections::HashMap::new())
-            .unwrap_or_else(|_| panic!("Failed to create dummy WasmtimePluginHost"))
-    }));
+    let plugin_host = Arc::new(dek_wasm_host::WasmPluginHost::new(dek_wasm_host::WasmHostConfig::default())
+        .unwrap_or_else(|_| panic!("Failed to create WasmPluginHost")));
+
+    for (name, p) in plugin_paths {
+        if let Ok(bytes) = std::fs::read(&p) {
+            let key = dek_wasm_host::plugin_key::PluginKey {
+                tenant_id: "system".into(),
+                plugin_id: name.clone(),
+                version: "1.0.0".into(),
+                abi_version: "1".into(),
+                wasm_sha256: "dummy".into(),
+            };
+            if let Err(e) = plugin_host.load_plugin(key, &bytes).await {
+                warn!("Failed to load plugin {}: {}", p, e);
+            }
+        }
+    }
 
     // Task 2: Read child stdout and pipe to our stdout
     let mut child_stdout_reader = BufReader::new(child_stdout).lines();
@@ -172,12 +184,15 @@ async fn main() -> Result<()> {
     let plugin_host_clone = plugin_host.clone();
     tokio::spawn(async move {
         while let Ok(Some(line)) = child_stdout_reader.next_line().await {
-            use dek_wasm_host::PluginHost;
             if let Ok(mut payload) = serde_json::from_str::<Value>(&line) {
                 // Determine if we need to redact. For Phase 4, we assume redaction is an obligation.
                 // In a full impl, we'd check `decision.obligations`. We will just run it if loaded.
-                if let Ok(redacted) = plugin_host_clone.invoke("pii-redactor", payload.clone()) {
-                    payload = redacted;
+                let pool_key = "system:pii-redactor:1.0.0:dummy";
+                let input_bytes = serde_json::to_vec(&payload).unwrap_or_default();
+                if let Ok(redacted_bytes) = plugin_host_clone.invoke(pool_key, "auto".into(), &input_bytes).await {
+                    if let Ok(redacted) = serde_json::from_slice(&redacted_bytes) {
+                        payload = redacted;
+                    }
                 }
                 let _ = tx_out_clone.send(payload.to_string()).await;
             } else {

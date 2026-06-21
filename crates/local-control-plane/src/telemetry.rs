@@ -23,7 +23,6 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use dek_control_plane_api::telemetry::TelemetryEventEnvelope;
 use serde_json::json;
 
 pub fn router() -> Router<AppState> {

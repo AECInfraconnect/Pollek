@@ -11,7 +11,6 @@ use axum::{
 };
 use dek_activation::snapshot::RuntimeSnapshot;
 use dek_decision::{DecisionRequest, DecisionResponse};
-use serde_json::Value;
 use std::sync::Arc;
 use tracing::{error, info};
 

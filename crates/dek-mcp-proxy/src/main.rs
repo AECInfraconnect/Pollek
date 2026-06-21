@@ -15,7 +15,7 @@ use axum::{
 use dek_mcp_normalizer::{http::HttpTransportAdapter, TransportAdapter};
 use dek_openfga::OpenFgaAdapter;
 use dek_policy_router::PolicyRouter;
-use dek_wasm_host::{PluginHost, WasmtimePluginHost};
+use dek_wasm_host::WasmPluginHost;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -151,7 +151,19 @@ async fn main() -> Result<()> {
         }
     }
 
-    let plugin_host = Arc::new(WasmtimePluginHost::new(plugin_paths)?);
+    let plugin_host = Arc::new(WasmPluginHost::new(dek_wasm_host::WasmHostConfig::default())?);
+    for (name, p) in plugin_paths {
+        if let Ok(bytes) = std::fs::read(&p) {
+            let key = dek_wasm_host::PluginKey {
+                tenant_id: "default".into(),
+                plugin_id: name.clone(),
+                version: "1.0".into(),
+                wasm_sha256: "dev".into(),
+                abi_version: "v1".into(),
+            };
+            let _ = plugin_host.load_plugin(key, &bytes).await;
+        }
+    }
     let initial_prof = initial_metadata.enterprise_profile.clone();
     let initial_snapshot = RuntimeSnapshot::new(
         0,
@@ -677,12 +689,16 @@ async fn handle_mcp_request(
                 });
 
                 // Apply PII redaction plugin if required
-                if let Ok(redacted) = snapshot
+                if let Ok(redacted_bytes) = snapshot
                     .plugin_host
-                    .invoke("pii-redactor", final_response.clone())
+                    .invoke("default:pii-redactor:1.0:dev", uuid::Uuid::new_v4().to_string(), final_response.to_string().as_bytes()).await
                 {
                     info!("Applied PII redaction plugin successfully.");
-                    (StatusCode::OK, Json(redacted)).into_response()
+                    if let Ok(redacted_val) = serde_json::from_slice::<serde_json::Value>(&redacted_bytes) {
+                        (StatusCode::OK, Json(redacted_val)).into_response()
+                    } else {
+                        (StatusCode::OK, Json(final_response)).into_response()
+                    }
                 } else {
                     (StatusCode::OK, Json(final_response)).into_response()
                 }
@@ -811,9 +827,12 @@ async fn handle_filter_response(
 ) -> Response {
     let snapshot = state.snapshot.load();
     // Apply redaction plugin
-    if let Ok(redacted) = snapshot.plugin_host.invoke("pii-redactor", payload.clone()) {
-        (StatusCode::OK, Json(redacted)).into_response()
-    } else {
-        (StatusCode::OK, Json(payload)).into_response()
+    if let Ok(redacted_bytes) = snapshot.plugin_host.invoke("default:pii-redactor:1.0:dev", uuid::Uuid::new_v4().to_string(), payload.to_string().as_bytes()).await {
+        if let Ok(redacted_val) = serde_json::from_slice::<serde_json::Value>(&redacted_bytes) {
+            tracing::info!("Applied PII redaction successfully.");
+            return (StatusCode::OK, Json(redacted_val)).into_response();
+        }
     }
+    
+    (StatusCode::OK, Json(payload)).into_response()
 }

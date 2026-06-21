@@ -18,6 +18,13 @@ use tracing::{debug, warn};
 
 const CACHE_CAPACITY: u64 = 10_000;
 
+#[derive(Debug, thiserror::Error)]
+pub enum OpenFgaError {
+    #[error("connection failed: {0}")] Connection(String),
+    #[error("invalid model: {0}")] Model(String),
+    #[error("evaluation failed: {0}")] Eval(String),
+}
+
 pub struct OpenFgaAdapter {
     endpoint: String,
     store_id: String,
@@ -26,9 +33,9 @@ pub struct OpenFgaAdapter {
 }
 
 impl OpenFgaAdapter {
-    pub fn new(endpoint: &str, store_id: &str, mtls: Option<&MtlsConfig>) -> anyhow::Result<Self> {
+    pub fn new(endpoint: &str, store_id: &str, mtls: Option<&MtlsConfig>) -> Result<Self, OpenFgaError> {
         let client = if let Some(m) = mtls {
-            m.build_client(None)?
+            m.build_client(None).map_err(|e| OpenFgaError::Connection(e.to_string()))?
         } else {
             Client::new()
         };

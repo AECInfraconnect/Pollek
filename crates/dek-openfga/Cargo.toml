@@ -14,6 +14,7 @@ async-trait = "0.1.89"
 reqwest = { workspace = true, features = ["json"] }
 dek-config = { path = "../dek-config" }
 moka = { version = "0.12", features = ["future"] }
+thiserror = "2.0.18"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }

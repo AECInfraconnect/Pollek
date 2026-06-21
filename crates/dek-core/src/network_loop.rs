@@ -11,7 +11,6 @@
 //! Replaces the cfg-scattered inline task in supervisor.rs with one trait-based
 //! driver that covers all three platforms uniformly.
 
-use dek_domain_schema::capabilities::EnforcementLevel;
 use dek_domain_schema::network_guardrail::{
     CompiledNetworkRules, NetworkConditions, NetworkDestination, NetworkFallback,
     NetworkGuardrailEffect, NetworkTargets,
@@ -31,8 +30,6 @@ pub trait NetworkEnforcer: Send {
     fn fail_closed(&mut self) -> anyhow::Result<()>;
     /// Human-readable backend name for logs/metrics.
     fn backend(&self) -> &'static str;
-    /// The actual enforcement level capability of this backend (e.g. KernelEnforced vs RedirectAdvisory)
-    fn enforcement_level(&self) -> EnforcementLevel;
 }
 
 /// A synthesized deny-all rule used for fail-closed mode. The cloud control
@@ -100,10 +97,6 @@ pub mod wfp_backend {
         fn backend(&self) -> &'static str {
             "wfp"
         }
-        fn enforcement_level(&self) -> EnforcementLevel {
-            // WFP in user-mode is only a RedirectAdvisory until the driver is deployed
-            EnforcementLevel::RedirectAdvisory
-        }
     }
 }
 
@@ -140,10 +133,6 @@ pub mod nefilter_backend {
         }
         fn backend(&self) -> &'static str {
             "nefilter"
-        }
-        fn enforcement_level(&self) -> EnforcementLevel {
-            // macOS NEFilter in user-mode proxy is RedirectAdvisory
-            EnforcementLevel::RedirectAdvisory
         }
     }
 }
@@ -213,10 +202,6 @@ pub mod ebpf_backend {
         }
         fn backend(&self) -> &'static str {
             "ebpf"
-        }
-        fn enforcement_level(&self) -> EnforcementLevel {
-            // eBPF natively drops traffic in kernel plane
-            EnforcementLevel::KernelEnforced
         }
     }
 }

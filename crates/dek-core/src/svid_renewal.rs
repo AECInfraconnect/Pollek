@@ -16,7 +16,6 @@ use anyhow::{Context, Result};
 use dek_bundle_sync::BundleSyncAgent;
 use dek_config::MtlsConfig;
 use dek_telemetry::CloudTelemetrySink;
-use std::sync::atomic::AtomicI64;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;

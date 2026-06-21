@@ -15,7 +15,7 @@ impl WindowsDpapiStore {
     }
 
     fn protect(&self, data: &[u8]) -> Result<Vec<u8>, KeyStoreError> {
-        let mut data_in = CRYPT_INTEGER_BLOB {
+        let data_in = CRYPT_INTEGER_BLOB {
             cbData: data.len() as u32,
             pbData: data.as_ptr() as *mut _,
         };
@@ -23,7 +23,7 @@ impl WindowsDpapiStore {
 
         unsafe {
             CryptProtectData(
-                &mut data_in,
+                &data_in,
                 windows::core::w!("Pollen DEK spool master key"),
                 None,
                 None,
@@ -43,14 +43,14 @@ impl WindowsDpapiStore {
     }
 
     fn unprotect(&self, data: &[u8]) -> Result<Vec<u8>, KeyStoreError> {
-        let mut data_in = CRYPT_INTEGER_BLOB {
+        let data_in = CRYPT_INTEGER_BLOB {
             cbData: data.len() as u32,
             pbData: data.as_ptr() as *mut _,
         };
         let mut data_out = CRYPT_INTEGER_BLOB::default();
 
         unsafe {
-            CryptUnprotectData(&mut data_in, None, None, None, None, 0, &mut data_out)
+            CryptUnprotectData(&data_in, None, None, None, None, 0, &mut data_out)
                 .map_err(|e| KeyStoreError::Os(e.to_string()))?;
         }
 

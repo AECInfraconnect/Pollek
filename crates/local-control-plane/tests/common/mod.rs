@@ -12,6 +12,7 @@ use dek_control_plane_api::identity::ControlPlaneIdentity;
 
 pub struct LocalControlPlaneHarness {
     pub base_url: String,
+    #[allow(dead_code)]
     pub api_token: String,
     // Keep tempdir alive
     _tempdir: tempfile::TempDir,

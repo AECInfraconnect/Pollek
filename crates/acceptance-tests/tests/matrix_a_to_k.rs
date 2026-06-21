@@ -72,7 +72,14 @@ async fn wait_https(url: &str, tries: u32) -> Result<()> {
 async fn setup() -> Result<Proc> {
     assert!(
         Command::new("cargo")
-            .args(["build", "--workspace"])
+            .args([
+                "build",
+                "--workspace",
+                "--exclude", "dek-ebpf-prog",
+                "--exclude", "dek-ebpfd",
+                "--exclude", "pii_redactor",
+                "--exclude", "pii-redactor",
+            ])
             .status()
             .await?
             .success(),
@@ -114,7 +121,7 @@ async fn enroll_and_start_core() -> Result<Proc> {
         .context("enroll")?;
     anyhow::ensure!(status.success(), "enrollment failed");
 
-    let mut core = Command::new(bin("dek-core"))
+    let core = Command::new(bin("dek-core"))
         .env("DEK_CONFIG_DIR", &tmp_config)
         .env("DEK_DATA_DIR", &tmp_data)
         .env("DEK_BUNDLE_SYNC_INTERVAL", "2")
@@ -213,7 +220,7 @@ async fn acceptance_matrix_a_to_k() -> Result<()> {
         .await;
     // DEK_BUNDLE_SYNC_INTERVAL is 2s, wait a bit so it triggers fallback
     sleep(Duration::from_secs(5)).await;
-    let (status, allow, _) = authorize(&pep, &allow_req).await?;
+    let (_status, allow, _) = authorize(&pep, &allow_req).await?;
     // Note: strict-deny when stale exceeds max grace period or network fails
     // We just verify it enforces strict-deny (allow == false) and doesn't crash
     assert!(
@@ -228,7 +235,7 @@ async fn acceptance_matrix_a_to_k() -> Result<()> {
         .send()
         .await;
     sleep(Duration::from_secs(4)).await;
-    let (status, allow, _) = authorize(&pep, &allow_req).await?;
+    let (_status, allow, _) = authorize(&pep, &allow_req).await?;
     assert!(
         allow,
         "D: PEP should recover to active state and allow requests"
@@ -286,7 +293,7 @@ async fn acceptance_matrix_a_to_k() -> Result<()> {
         .send()
         .await;
     sleep(Duration::from_secs(5)).await;
-    let (status, allow, _) = authorize(&pep, &allow_req).await?;
+    let (_status, allow, _) = authorize(&pep, &allow_req).await?;
     assert!(
         !allow,
         "H: PDP circuit breaker handles outage gracefully and fails-closed"
@@ -356,7 +363,7 @@ async fn acceptance_matrix_a_to_k() -> Result<()> {
         .await;
     sleep(Duration::from_secs(4)).await;
 
-    let (status, allow, err_code) = authorize(&pep, &allow_req).await?;
+    let (_status, allow, err_code) = authorize(&pep, &allow_req).await?;
     assert!(!allow, "K: Request should not be allowed directly");
     assert_eq!(
         err_code,
@@ -371,7 +378,7 @@ async fn acceptance_matrix_a_to_k() -> Result<()> {
         .await;
     sleep(Duration::from_secs(4)).await;
 
-    let (status, allow, _) = authorize(&pep, &allow_req).await?;
+    let (_status, allow, _) = authorize(&pep, &allow_req).await?;
     assert!(allow, "K: Request should be allowed after approval");
 
     Ok(())

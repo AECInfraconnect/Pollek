@@ -64,6 +64,7 @@ impl<T> RwLockExt<T> for RwLock<T> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::panic)]
     #![allow(clippy::unwrap_used)]
     use super::*;
     use std::sync::Arc;

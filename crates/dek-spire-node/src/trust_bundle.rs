@@ -122,6 +122,7 @@ pub fn spawn_trust_bundle_poller(
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
     use super::*;
 
     #[test]

@@ -30,6 +30,8 @@ Control Plane** or **Pollen Cloud** — over one shared contract.
 - `dek-policy-syncer` — bundle sync (poll + SSE push), enforcement-state machine (Active / GracePeriod / StrictDeny), fail-closed freshness gate.
 - `dek-bundle-sync` — TUF-lite fetch + signature verification (chain of trust).
 - `dek-activation` — atomic bundle activation, hydration, LKG fallback.
+- `dek-auth` — authentication and session handling primitives used by MCP proxy and activation.
+- `dek-secure-spool` — durable disk-backed queueing for telemetry and audit events before shipping.
 
 **Decision / PEP**
 - `dek-mcp-proxy` — MCP authorize endpoint; emits decision telemetry; obligations (require_approval / step_up_mfa).
@@ -37,6 +39,7 @@ Control Plane** or **Pollen Cloud** — over one shared contract.
 - `dek-policy-runtime` — `PolicyRuntime` trait + Wasmtime runtime.
 - Adapters: `dek-cedar`, `dek-openfga`, OPA via Wasm — built on `dek-pdp-sdk`, feature-gated by `dek-router-builder`.
 - `dek-plugin-sdk` / `dek-plugin-host` — transform plugins (e.g. `dek-pii-wasm`).
+- `dek-resilience` — circuit breakers, admission control, and system overload protections.
 
 **Network enforcement (OS)**
 - `dek-ebpfd` (+ `dek-ebpf-prog`, `dek-ebpf-common`) — Linux eBPF cgroup enforcement (kernel).

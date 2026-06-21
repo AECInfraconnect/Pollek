@@ -36,6 +36,13 @@ use tracing::{error, info, warn};
 
 pub use state::{evaluate_state, EnforcementState, EnforcementStatus, FreshnessConfig};
 
+#[derive(Debug, thiserror::Error)]
+pub enum SyncError {
+    #[error("fetch failed: {0}")] Fetch(String),
+    #[error("verify failed: {0}")] Verify(String),
+    #[error("activation failed: {0}")] Activation(String),
+}
+
 /// Outcome of one sync attempt.
 #[derive(Debug, Clone)]
 pub enum SyncOutcome {
@@ -69,6 +76,7 @@ pub struct PolicySyncer {
 }
 
 impl PolicySyncer {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         bundle_agent: Arc<BundleSyncAgent>,
         telemetry: Option<Arc<CloudTelemetrySink>>,

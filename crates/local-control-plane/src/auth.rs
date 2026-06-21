@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use axum::{
     extract::{Request, State},
     http::{header::AUTHORIZATION, StatusCode},
@@ -8,7 +8,6 @@ use axum::{
 use rand::RngCore;
 use std::fs;
 use std::path::Path;
-use std::sync::Arc;
 
 pub fn load_or_create_token(data_dir: &Path) -> Result<String> {
     let token_path = data_dir.join("api_token");

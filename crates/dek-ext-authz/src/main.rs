@@ -13,6 +13,7 @@ pub mod envoy {
 
 use dek_config::BootstrapConfig;
 use dek_policy_router::PolicyRouter;
+use dek_resilience::admission::AdmissionControl;
 use envoy::service::auth::v3::authorization_server::{Authorization, AuthorizationServer};
 use envoy::service::auth::v3::Status as EnvoyStatus;
 use envoy::service::auth::v3::{
@@ -30,6 +31,7 @@ pub struct ExtAuthzService {
     router: Arc<RwLock<PolicyRouter>>,
     tenant_id: String,
     device_id: String,
+    admission: Arc<AdmissionControl>,
 }
 
 fn denied_check_response(reason: &str) -> CheckResponse {
@@ -62,6 +64,15 @@ impl Authorization for ExtAuthzService {
                 "policy_stale_failsafe: {reason}"
             ))));
         }
+
+        let _permit = match self.admission.try_admit(&self.tenant_id) {
+            Some(p) => p,
+            None => {
+                metrics::counter!("dek_proxy_requests_total", "decision" => "deny",
+                    "reason" => "overloaded", "tenant" => self.tenant_id.clone()).increment(1);
+                return Ok(tonic::Response::new(denied_check_response("overloaded_backpressure")));
+            }
+        };
 
         let req = request.into_inner();
 
@@ -220,10 +231,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let addr = "[::1]:50051".parse()?;
+    
+    let scale_config = dek_config::ScaleConfig::default(); // Could be loaded from bundle
+    let admission = AdmissionControl::new(scale_config.max_concurrent, scale_config.max_concurrent_per_tenant);
+
     let service = ExtAuthzService {
         router: Arc::new(RwLock::new(router)),
         tenant_id: bootstrap.tenant_id.unwrap_or_else(|| "default".into()),
         device_id: bootstrap.device_id,
+        admission,
     };
 
     info!("Envoy ext_authz gRPC listening on {}", addr);

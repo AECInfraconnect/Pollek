@@ -22,6 +22,6 @@ criterion = { version = "0.5", features = ["async_tokio"] }
 tokio = { workspace = true, features = ["full", "rt", "macros"] }
 serde_json = { workspace = true }
 
-[[bench]]
-name = "authorize_bench"
-harness = false
+
+
+

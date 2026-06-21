@@ -17,6 +17,7 @@ dek-config = { path = "../dek-config" }
 dek-router-builder = { path = "../dek-router-builder" }
 dek-activation = { path = "../dek-activation" }
 dek-decision = { path = "../dek-decision" }
+dek-resilience = { path = "../dek-resilience" }
 uuid = { version = "1.10", features = ["v4"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
@@ -29,4 +30,3 @@ protoc-bin-vendored = "3.0.0"
 
 [lints]
 workspace = true
-

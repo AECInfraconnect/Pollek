@@ -363,7 +363,7 @@ impl BundleSyncAgent {
 
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs() as i64;
         let key_set = self.key_set.load();
 
@@ -535,6 +535,7 @@ mod tests {
             device_id: "device".to_string(),
             key_set: std::sync::Arc::new(arc_swap::ArcSwap::from_pointee(key_set)),
             client: RwLock::new(reqwest::Client::new()),
+            api_token: None,
         }
     }
 

@@ -1,3 +1,4 @@
+#![allow(clippy::panic)]
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
@@ -19,8 +20,8 @@ impl ReloadCoordinator {
     pub fn new() -> Self {
         let initial_router = std::sync::Arc::new(dek_policy_router::PolicyRouter::new());
         let initial_plugin_host = std::sync::Arc::new(
-            dek_wasm_host::WasmtimePluginHost::new(std::collections::HashMap::new())
-                .unwrap_or_else(|_| panic!("Failed to init dummy WasmtimePluginHost")),
+            dek_wasm_host::WasmPluginHost::new(dek_wasm_host::WasmHostConfig::default())
+                .unwrap_or_else(|_| panic!("Failed to init dummy WasmPluginHost")),
         );
         let initial_snapshot = RuntimeSnapshot::new(
             0,

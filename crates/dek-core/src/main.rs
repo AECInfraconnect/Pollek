@@ -5,13 +5,13 @@
 #![deny(clippy::unwrap_used, clippy::expect_used)]
 
 mod api;
-mod bundle_loop;
+
 mod ebpf;
 mod ipc_client;
 mod ipc_server;
 mod kernel_guard;
 mod keystore_migration;
-mod metrics_push;
+
 mod network_loop;
 mod probation;
 mod reload_coordinator;
@@ -19,7 +19,7 @@ mod service_integration;
 mod supervisor;
 mod svid_renewal;
 mod svid_renewal_failclosed;
-mod updater;
+
 
 fn main() -> anyhow::Result<()> {
     #[cfg(windows)]

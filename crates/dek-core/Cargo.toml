@@ -8,21 +8,21 @@ description = "Pollen DEK Supervisor and Agent"
 
 [dependencies]
 dek-config = { path = "../dek-config" }
-dek-agent-connector = { path = "../dek-agent-connector" }
+
 dek-bundle-sync = { path = "../dek-bundle-sync" }
 dek-policy-syncer = { path = "../dek-policy-syncer" }
-dek-metrics = { path = "../dek-metrics" }
-dek-resilience = { path = "../dek-resilience" }
+
+
 dek-domain-schema = { path = "../dek-domain-schema" }
 dek-keystore = { path = "../dek-keystore" }
 dek-ipc = { path = "../dek-ipc" }
-dek-ebpf-common = { path = "../dek-ebpf-common" }
+
 dek-ebpfd = { path = "../dek-ebpfd" }
 dek-wasm-host = { path = "../dek-wasm-host" }
 dek-policy-router = { path = "../dek-policy-router" }
-dek-openfga = { path = "../dek-openfga" }
-dek-cedar = { path = "../dek-cedar" }
-dek-router-builder = { path = "../dek-router-builder" }
+
+
+
 dek-telemetry = { path = "../dek-telemetry" }
 dek-activation = { path = "../dek-activation" }
 dek-spire-node = { path = "../dek-spire-node" }
@@ -36,15 +36,15 @@ serde_json.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
-tokio-retry = "0.3"
+
 metrics = "0.22"
-metrics-exporter-prometheus = "0.13"
+
 futures = "0.3"
 uuid = { version = "1.23.1", features = ["v4"] }
 reqwest = { workspace = true, features = ["rustls-tls"] }
 self-replace = "1.5.0"
-ed25519-dalek = "2.2.0"
-base64 = "0.22.1"
+
+
 serde = { workspace = true, features = ["derive"] }
 x509-parser = "0.16"
 dek-enforcement-api = { path = "../dek-enforcement-api" }
@@ -62,7 +62,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 x509-parser = "0.16"
 dek-pdp-sdk = { workspace = true }
-dek-resilience = { path = "../dek-resilience" }
+
 
 [target.'cfg(windows)'.dependencies]
 windows-service = "0.7"

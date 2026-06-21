@@ -41,7 +41,7 @@ pub fn build_engine(cfg: &WasmHostConfig) -> Result<Engine> {
         config.cache_config_load_default()?;
     }
 
-    Ok(Engine::new(&config)?)
+    Engine::new(&config)
 }
 
 pub fn build_linker(engine: &Engine) -> Result<Linker<HostState>> {

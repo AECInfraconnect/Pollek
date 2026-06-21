@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
+
+#![allow(clippy::print_stdout, clippy::print_stderr)]
 // Copyright (c) 2026 AEC Infraconnect
 
 use anyhow::{Context, Result};

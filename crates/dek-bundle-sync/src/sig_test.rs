@@ -1,12 +1,13 @@
+#![allow(clippy::unwrap_used)]
 use dek_control_plane_api::bundle::{
     ActivationStrategy, BundleArtifactV2, PollenPolicyBundleManifestV2,
 };
 use serde_json::Value;
-use std::collections::BTreeMap;
+
 
 #[test]
 fn test_serde_parity() {
-    let mut manifest = PollenPolicyBundleManifestV2 {
+    let manifest = PollenPolicyBundleManifestV2 {
         schema_version: "2.0".to_string(),
         bundle_version: "v1".to_string(),
         bundle_id: "bundle-local-1".to_string(),

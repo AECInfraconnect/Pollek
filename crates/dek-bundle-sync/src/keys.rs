@@ -12,7 +12,7 @@
 //! with dek-policy-syncer (which orchestrates distribution/rotation on top).
 
 use anyhow::{Context, Result};
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use ed25519_dalek::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

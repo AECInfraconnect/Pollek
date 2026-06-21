@@ -94,7 +94,7 @@ pub trait PolicyAdapter: Send + Sync {
 
 pub struct PolicyRouter {
     adapters: HashMap<String, Box<dyn PolicyAdapter>>,
-    routes: Vec<PolicyRoute>,
+    _routes: Vec<PolicyRoute>,
 }
 
 impl PolicyRouter {
@@ -102,18 +102,18 @@ impl PolicyRouter {
         adapters: HashMap<String, Box<dyn PolicyAdapter>>,
         routes: Vec<PolicyRoute>,
     ) -> Self {
-        Self { adapters, routes }
+        Self { adapters, _routes: routes }
     }
 
     pub async fn evaluate(&self, request: &NormalizedEnforcementRequest) -> DecisionResult {
         let mut adapter_results = Vec::new();
         let mut final_decision = DecisionEffect::Allow;
         let mut final_reason = String::new();
-        let mut matched_route_id = String::from("default_allow");
+        let matched_route_id = String::from("default_allow");
 
         // Simple evaluation logic: AND across all required adapters in the first matched route.
         // For demonstration, we just evaluate all adapters.
-        for (id, adapter) in &self.adapters {
+        for adapter in self.adapters.values() {
             if let Ok(res) = adapter.evaluate(request).await {
                 if matches!(res.decision, DecisionEffect::Deny) {
                     final_decision = DecisionEffect::Deny;

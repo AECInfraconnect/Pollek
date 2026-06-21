@@ -2,7 +2,6 @@
 name = "dek-resilience"
 version = "0.1.0"
 edition = "2021"
-license.workspace = true
 
 # SaaS-scale primitives shared by the PEP processes (proxy, ext-authz):
 #  - CircuitBreaker: wrap a PDP/evaluator; open on repeated failure -> fail-closed
@@ -18,4 +17,3 @@ tracing = "0.1"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full", "test-util"] }
-

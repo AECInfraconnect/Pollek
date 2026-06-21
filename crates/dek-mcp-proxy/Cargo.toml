@@ -45,4 +45,3 @@ hyper-util = { version = "0.1", features = ["tokio"] }
 
 [lints]
 workspace = true
-

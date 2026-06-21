@@ -451,7 +451,7 @@ async fn openid_configuration() -> impl IntoResponse {
     }))
 }
 
-async fn jwks_json(State(state): State<AppState>) -> impl IntoResponse {
+async fn jwks_json(State(_state): State<AppState>) -> impl IntoResponse {
     // Generate a dummy JWK representation of the RSA public key
     // In reality, you'd extract the e and n from the PEM, but for mock, we just return a stub structure
     Json(serde_json::json!({

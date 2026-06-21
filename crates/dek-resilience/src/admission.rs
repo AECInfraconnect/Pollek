@@ -1,6 +1,3 @@
-// SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2026 AEC Infraconnect
-
 //! admission.rs — global + per-tenant concurrency limiting (backpressure).
 //!
 //! Bounds in-flight requests so a burst (or one noisy tenant) can't exhaust
@@ -33,7 +30,7 @@ impl AdmissionControl {
     }
 
     fn tenant_sem(&self, tenant: &str) -> Arc<Semaphore> {
-        let mut map = self.tenants.lock().unwrap_or_else(|e| e.into_inner());
+        let mut map = self.tenants.lock().unwrap();
         map.entry(tenant.to_string())
             .or_insert_with(|| Arc::new(Semaphore::new(self.per_tenant_limit)))
             .clone()
@@ -55,15 +52,11 @@ impl AdmissionControl {
             Ok(p) => p,
             Err(_) => {
                 metrics::counter!("dek_admission_rejected_total",
-                    "scope" => "tenant", "tenant" => tenant.to_string())
-                .increment(1);
+                    "scope" => "tenant", "tenant" => tenant.to_string()).increment(1);
                 return None; // `g` drops here, releasing the global permit
             }
         };
-        Some(AdmitPermit {
-            _global: g,
-            _tenant: t,
-        })
+        Some(AdmitPermit { _global: g, _tenant: t })
     }
 
     pub fn available_global(&self) -> usize {

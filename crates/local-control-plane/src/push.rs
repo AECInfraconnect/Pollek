@@ -4,7 +4,6 @@ use axum::{
 };
 use futures_util::stream::Stream;
 use std::convert::Infallible;
-use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::interval;
 use tokio_stream::wrappers::BroadcastStream;

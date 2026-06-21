@@ -75,7 +75,7 @@ impl SegmentWriter {
 
         let encrypted = key
             .encrypt_record(aad, &plaintext)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            .map_err(io::Error::other)?;
 
         let frame = serde_json::to_vec(&encrypted)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;

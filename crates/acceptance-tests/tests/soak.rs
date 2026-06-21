@@ -75,7 +75,7 @@ async fn setup_mock_cloud() -> Result<Proc> {
         .status()
         .await;
 
-    let mut mock = Command::new(bin("mock-cloud"))
+    let mock = Command::new(bin("mock-cloud"))
         .current_dir(workspace_dir())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -104,7 +104,7 @@ async fn enroll_and_start_core() -> Result<Proc> {
         .context("enroll")?;
     anyhow::ensure!(status.success(), "enrollment failed");
 
-    let mut core = Command::new(bin("dek-core"))
+    let core = Command::new(bin("dek-core"))
         .env("DEK_CONFIG_DIR", &tmp_config)
         .env("DEK_DATA_DIR", &tmp_data)
         .env("DEK_BUNDLE_SYNC_INTERVAL", "2")

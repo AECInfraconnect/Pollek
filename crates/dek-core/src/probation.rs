@@ -34,9 +34,6 @@ pub struct ProbationMarker {
     pub backup_path: String,
     #[serde(default)]
     pub target_version: String,
-    #[serde(default)]
-    #[allow(dead_code)]
-    pub timestamp: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -94,7 +91,6 @@ impl ProbationMarker {
         Self {
             backup_path: String::new(),
             target_version: "unknown".into(),
-            timestamp: 0,
         }
     }
 }
