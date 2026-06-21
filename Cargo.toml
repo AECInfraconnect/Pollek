@@ -10,7 +10,8 @@ members = [
     "crates/dek-policy-presets"
 ]
 exclude = [
-    "crates/dek-ebpf-prog"
+    "crates/dek-ebpf-prog",
+    "fuzz"
 ]
 resolver = "2"
 
