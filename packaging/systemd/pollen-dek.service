@@ -64,3 +64,4 @@ Type=oneshot
 ExecStart=/usr/local/bin/dekctl rollback
 # Give it room but don't hang forever.
 TimeoutStartSec=60
+
