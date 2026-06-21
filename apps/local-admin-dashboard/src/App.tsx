@@ -18,6 +18,7 @@ import { AutoDiscovery } from "./pages/AutoDiscovery";
 import { ShadowAI } from "./pages/ShadowAI";
 import { PolicySuggestions } from "./pages/PolicySuggestions";
 import { CostLedger } from "./pages/CostLedger";
+import { PolicyPresets } from "./pages/PolicyPresets";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="relationships" element={<Relationships />} />
           <Route path="blackbox-ai" element={<BlackboxAI />} />
           <Route path="policies" element={<Policies />} />
+          <Route path="policy-presets" element={<PolicyPresets />} />
           <Route path="simulator" element={<Simulator />} />
           <Route path="bundles" element={<Bundles />} />
           <Route path="audit" element={<DecisionLogs />} />

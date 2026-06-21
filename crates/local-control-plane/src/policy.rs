@@ -562,8 +562,8 @@ async fn simulate_policy(
             StatusCode::OK,
             Json(json!({
                 "allowed": false,
-                "decision": "Not Evaluated",
-                "reason": "Rego engine dry-run is not yet fully implemented locally.",
+                "decision": "error",
+                "reason": "Error: No active PDP found for Rego. Simulation not supported locally without remote evaluation capability.",
                 "evaluation_time_ms": 0,
                 "log_output": ["Syntax check and deployment validation completed."],
                 "syntax_check": syntax_check,
@@ -573,8 +573,8 @@ async fn simulate_policy(
         ));
     } else if language_id == "open_fga" || language_id == "fga" {
         recommended_pep = "Envoy / L7 Proxy PEP".to_string();
-        if !policy_text.contains("model") {
-            syntax_check = "Failed: missing model declaration".to_string();
+        if !policy_text.contains("model") && !policy_text.contains("type ") {
+            syntax_check = "Failed: missing model or type declaration".to_string();
             deployment_test = "Failed: Invalid syntax".to_string();
         } else {
             if let Some(pep) = target_pep {
@@ -591,8 +591,8 @@ async fn simulate_policy(
             StatusCode::OK,
             Json(json!({
                 "allowed": false,
-                "decision": "Not Evaluated",
-                "reason": "OpenFGA engine dry-run is not yet fully implemented locally.",
+                "decision": "error",
+                "reason": "Error: No active PDP found for OpenFGA. Simulation not supported locally without remote evaluation capability.",
                 "evaluation_time_ms": 0,
                 "log_output": ["Syntax check and deployment validation completed."],
                 "syntax_check": syntax_check,

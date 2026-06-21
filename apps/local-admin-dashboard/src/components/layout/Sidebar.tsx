@@ -28,6 +28,7 @@ const navigation = [
   { name: "Entities", href: "/entities", icon: UserCircle },
   { name: "Relationships", href: "/relationships", icon: Network },
   { name: "Policy Enforcer", href: "/policies", icon: FileKey },
+  { name: "Policy Presets", href: "/policy-presets", icon: FileKey },
   { name: "Simulator", href: "/simulator", icon: Activity },
   { name: "Bundles & Deployments", href: "/bundles", icon: Server },
   { name: "Audit & Telemetry", href: "/audit", icon: Activity },

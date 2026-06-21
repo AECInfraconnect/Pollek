@@ -280,6 +280,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tenants/{tenant_id}/pep-capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PepCapabilitiesApi_listCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/pep-capabilities/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PepCapabilitiesApi_checkCapabilities"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/policy-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PolicyPresetsApi_listPresets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/policy-presets/{preset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PolicyPresetsApi_getPreset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/policy-presets/{preset_id}/create-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PolicyPresetsApi_createDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/policy-presets/{preset_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PolicyPresetsApi_previewPreset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/policy-presets/{preset_id}/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PolicyPresetsApi_simulatePreset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tenants/{tenant_id}/policy-suggestions": {
         parameters: {
             query?: never;
@@ -322,6 +434,22 @@ export interface paths {
         get: operations["PolicySuggestionsApi_getSuggestion"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PolicySuggestionsApi_approve"];
         delete?: never;
         options?: never;
         head?: never;
@@ -511,6 +639,18 @@ export interface components {
         CostLedgerListResponse: {
             items: components["schemas"]["CostLedgerEntry"][];
         };
+        CostSummaryResponse: {
+            /** @enum {string} */
+            schema_version: "cost-summary.v1";
+            tenant_id: string;
+            period: string;
+            /** Format: float */
+            total_estimated_cost_usd: number;
+            /** Format: int64 */
+            total_tokens: number;
+            provider_breakdown: Record<string, never>;
+            agent_breakdown: Record<string, never>;
+        };
         DiscoveryCandidate: {
             candidate_id: string;
             tenant_id: string;
@@ -555,7 +695,7 @@ export interface components {
         PolicyArtifact: {
             name: string;
             content: string;
-            language: string;
+            language: components["schemas"]["SuggestedPolicyLanguage"];
         };
         PolicyCoverageSummary: {
             status: string;
@@ -572,16 +712,16 @@ export interface components {
             target_agent_id?: string;
             target_resource_id?: string;
             target_tool_id?: string;
-            suggestion_type: string;
+            suggestion_type: components["schemas"]["SuggestionType"];
             title: string;
             summary: string;
-            severity: string;
+            severity: components["schemas"]["SuggestionSeverity"];
             /** Format: float */
             confidence: number;
-            recommended_policy_type: string;
+            recommended_policy_type: components["schemas"]["SuggestedPolicyLanguage"];
             recommended_pep_type: string;
             artifacts: components["schemas"]["PolicyArtifact"][];
-            status: string;
+            status: components["schemas"]["SuggestionStatus"];
             created_at: string;
         };
         PolicySuggestionListResponse: {
@@ -638,6 +778,14 @@ export interface components {
             previous_descriptor_hash?: string;
             drift_status: string;
         };
+        /** @enum {string} */
+        SuggestedPolicyLanguage: "Rego" | "Cedar" | "OpenFga";
+        /** @enum {string} */
+        SuggestionSeverity: "Low" | "Medium" | "High" | "Critical";
+        /** @enum {string} */
+        SuggestionStatus: "Draft" | "Suggested" | "Approved" | "Dismissed" | "Applied";
+        /** @enum {string} */
+        SuggestionType: "RestrictMcpTool" | "RequireApprovalForSensitiveResource" | "RegisterShadowAgent" | "EnforceCostBudget" | "RestrictExternalLlmProvider";
         TelemetryBatchRequest: {
             /** @enum {string} */
             schema_version: "telemetry-batch.v1";
@@ -1093,7 +1241,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CostLedgerListResponse"];
+                    "application/json": components["schemas"]["CostSummaryResponse"];
                 };
             };
             /** @description An unexpected error response. */
@@ -1267,6 +1415,243 @@ export interface operations {
             };
         };
     };
+    PepCapabilitiesApi_listCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    PepCapabilitiesApi_checkCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    PolicyPresetsApi_listPresets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    PolicyPresetsApi_getPreset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+                preset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    PolicyPresetsApi_createDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+                preset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    PolicyPresetsApi_previewPreset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+                preset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    PolicyPresetsApi_simulatePreset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+                preset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
     PolicySuggestionsApi_listSuggestions: {
         parameters: {
             query?: never;
@@ -1347,6 +1732,36 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PolicySuggestion"];
                 };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    PolicySuggestionsApi_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+                suggestion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description There is no content to send for this request, but the headers may be useful. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description An unexpected error response. */
             default: {

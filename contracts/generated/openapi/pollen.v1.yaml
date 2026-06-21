@@ -14,6 +14,8 @@ tags:
   - name: Registry
   - name: Observation
   - name: PolicySuggestions
+  - name: PolicyPresets
+  - name: PepCapabilities
   - name: A2A Mediator
 paths:
   /.well-known/pollen-contract:
@@ -326,7 +328,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CostLedgerListResponse'
+                $ref: '#/components/schemas/CostSummaryResponse'
         default:
           description: An unexpected error response.
           content:
@@ -474,6 +476,207 @@ paths:
                 $ref: '#/components/schemas/PollenError'
       tags:
         - Observation
+  /v1/tenants/{tenant_id}/pep-capabilities:
+    get:
+      operationId: PepCapabilitiesApi_listCapabilities
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PepCapabilities
+  /v1/tenants/{tenant_id}/pep-capabilities/check:
+    post:
+      operationId: PepCapabilitiesApi_checkCapabilities
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PepCapabilities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {}
+  /v1/tenants/{tenant_id}/policy-presets:
+    get:
+      operationId: PolicyPresetsApi_listPresets
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicyPresets
+  /v1/tenants/{tenant_id}/policy-presets/{preset_id}:
+    get:
+      operationId: PolicyPresetsApi_getPreset
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: preset_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicyPresets
+  /v1/tenants/{tenant_id}/policy-presets/{preset_id}/create-draft:
+    post:
+      operationId: PolicyPresetsApi_createDraft
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: preset_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicyPresets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {}
+  /v1/tenants/{tenant_id}/policy-presets/{preset_id}/preview:
+    post:
+      operationId: PolicyPresetsApi_previewPreset
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: preset_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicyPresets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {}
+  /v1/tenants/{tenant_id}/policy-presets/{preset_id}/simulate:
+    post:
+      operationId: PolicyPresetsApi_simulatePreset
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: preset_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema: {}
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicyPresets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {}
   /v1/tenants/{tenant_id}/policy-suggestions:
     get:
       operationId: PolicySuggestionsApi_listSuggestions
@@ -539,6 +742,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicySuggestion'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - PolicySuggestions
+  /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/approve:
+    post:
+      operationId: PolicySuggestionsApi_approve
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: suggestion_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
         default:
           description: An unexpected error response.
           content:
@@ -995,6 +1223,41 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CostLedgerEntry'
+    CostSummaryResponse:
+      type: object
+      required:
+        - schema_version
+        - tenant_id
+        - period
+        - total_estimated_cost_usd
+        - total_tokens
+        - provider_breakdown
+        - agent_breakdown
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - cost-summary.v1
+        tenant_id:
+          type: string
+        period:
+          type: string
+        total_estimated_cost_usd:
+          type: number
+          format: float
+        total_tokens:
+          type: integer
+          format: int64
+        provider_breakdown:
+          type: object
+          unevaluatedProperties:
+            type: number
+            format: float
+        agent_breakdown:
+          type: object
+          unevaluatedProperties:
+            type: number
+            format: float
     DiscoveryCandidate:
       type: object
       required:
@@ -1126,7 +1389,7 @@ components:
         content:
           type: string
         language:
-          type: string
+          $ref: '#/components/schemas/SuggestedPolicyLanguage'
     PolicyCoverageSummary:
       type: object
       required:
@@ -1179,18 +1442,18 @@ components:
         target_tool_id:
           type: string
         suggestion_type:
-          type: string
+          $ref: '#/components/schemas/SuggestionType'
         title:
           type: string
         summary:
           type: string
         severity:
-          type: string
+          $ref: '#/components/schemas/SuggestionSeverity'
         confidence:
           type: number
           format: float
         recommended_policy_type:
-          type: string
+          $ref: '#/components/schemas/SuggestedPolicyLanguage'
         recommended_pep_type:
           type: string
         artifacts:
@@ -1198,7 +1461,7 @@ components:
           items:
             $ref: '#/components/schemas/PolicyArtifact'
         status:
-          type: string
+          $ref: '#/components/schemas/SuggestionStatus'
         created_at:
           type: string
     PolicySuggestionListResponse:
@@ -1356,6 +1619,35 @@ components:
           type: string
         drift_status:
           type: string
+    SuggestedPolicyLanguage:
+      type: string
+      enum:
+        - Rego
+        - Cedar
+        - OpenFga
+    SuggestionSeverity:
+      type: string
+      enum:
+        - Low
+        - Medium
+        - High
+        - Critical
+    SuggestionStatus:
+      type: string
+      enum:
+        - Draft
+        - Suggested
+        - Approved
+        - Dismissed
+        - Applied
+    SuggestionType:
+      type: string
+      enum:
+        - RestrictMcpTool
+        - RequireApprovalForSensitiveResource
+        - RegisterShadowAgent
+        - EnforceCostBudget
+        - RestrictExternalLlmProvider
     TelemetryBatchRequest:
       type: object
       required:

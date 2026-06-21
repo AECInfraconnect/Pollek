@@ -139,6 +139,13 @@ export class ControlPlaneClient {
     return this.fetchApi('/policy-suggestions/generate', { method: 'POST' });
   }
 
+  // Presets
+  async listPresets(): Promise<unknown> { return this.fetchApi('/policy-presets'); }
+  async previewPreset(id: string, params: unknown): Promise<unknown> { return this.fetchApi(`/policy-presets/${id}/preview`, { method: 'POST', body: JSON.stringify(params) }); }
+  async createDraftFromPreset(id: string, params: unknown): Promise<unknown> { return this.fetchApi(`/policy-presets/${id}/create-draft`, { method: 'POST', body: JSON.stringify(params) }); }
+  async simulatePreset(id: string, payload: unknown): Promise<unknown> { return this.fetchApi(`/policy-presets/${id}/simulate`, { method: 'POST', body: JSON.stringify(payload) }); }
+  async checkPepCapabilities(req: unknown): Promise<unknown> { return this.fetchApi('/pep-capabilities/check', { method: 'POST', body: JSON.stringify(req) }); }
+
   // Cost
   async getCostSummary(): Promise<unknown> {
     return this.fetchApi('/observations/costs');
@@ -190,6 +197,11 @@ export const PolicyApi = {
   delete: (policyId: string) => defaultClient.deletePolicy(policyId),
   publish: (policyId: string) => defaultClient.publishPolicy(policyId),
   simulate: (policyId: string, req: SimulationRequest) => defaultClient.simulatePolicy(policyId, req),
+  listPresets: () => defaultClient.listPresets(),
+  previewPreset: (id: string, params: unknown) => defaultClient.previewPreset(id, params),
+  createDraftFromPreset: (id: string, params: unknown) => defaultClient.createDraftFromPreset(id, params),
+  simulatePreset: (id: string, payload: unknown) => defaultClient.simulatePreset(id, payload),
+  checkPepCapabilities: (req: unknown) => defaultClient.checkPepCapabilities(req),
 };
 
 export const BundleApi = {
