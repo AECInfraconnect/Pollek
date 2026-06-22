@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AEC Infraconnect
 
 #![allow(unsafe_code)]
+#![allow(clippy::expect_used)]
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
