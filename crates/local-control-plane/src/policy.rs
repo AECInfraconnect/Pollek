@@ -176,6 +176,7 @@ async fn publish_policy(
                     selected_pep_types: vec![],
                     dry_run_first: false,
                     control_mode: dek_policy_presets::model::ControlMode::Enforce, // Defaults to Enforce if not present
+                    pdp_route: None,
                 };
                 if let Ok(rendered_artifacts) = dek_policy_presets::render::render(&preset, &req) {
                     for rendered in rendered_artifacts {
@@ -355,6 +356,7 @@ async fn validate_policy(
                     selected_pep_types: vec![],
                     dry_run_first: true,
                     control_mode: dek_policy_presets::model::ControlMode::Observe,
+                    pdp_route: None,
                 };
                 match dek_policy_presets::render::render(&preset, &req) {
                     Ok(rendered_artifacts) => {
