@@ -27,13 +27,9 @@ test_bootstrap.json
 .cargo/config.toml
 ~ $ *  
  
-POLLEN_DEK_RELEASE_READINESS_PLAN.md
+# Workspace instruction files
+POLLEN_*.md
+Pollen_*.md
 AI_INSTRUCTIONS.md
-POLLEN_CLOUD_DEK_SPEC.md
-POLLEN_DEK_EDGE_DEVELOPMENT_PLAN.md
-Pollen_Contract_Hub_Implementation_Plan.md
-Pollen_DEK_Repo_Release_Readiness_Implementation_Plan.md
-POLLEN_DEK_CI_LOG_DEEP_DIVE.md
-Pollen_DEK_Full_System_Implementation_Plan_Deep_Research_*.md
 
 pollen-local.db
