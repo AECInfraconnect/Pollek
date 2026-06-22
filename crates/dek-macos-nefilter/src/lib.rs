@@ -39,7 +39,8 @@ impl NeFilterClient {
 }
 
 impl dek_enforcement_api::NetworkEnforcer for NeFilterClient {
-    fn apply_rules(&self, _rules: &CompiledNetworkRules) -> Result<()> {
+    #[allow(unused_variables)]
+    fn apply_rules(&self, rules: &CompiledNetworkRules) -> Result<()> {
         if !self.connected {
             return Ok(());
         }
