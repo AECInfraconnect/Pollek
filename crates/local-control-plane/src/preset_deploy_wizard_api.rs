@@ -168,7 +168,7 @@ async fn execute_deployment(
         .put_telemetry(
             &tenant,
             "policy_deployment",
-            event["event_id"].as_str().unwrap(),
+            event["event_id"].as_str().unwrap_or(""),
             &event,
         )
         .await;

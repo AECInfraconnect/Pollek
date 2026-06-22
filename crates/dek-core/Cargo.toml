@@ -79,6 +79,7 @@ dek-windows-wfp = { path = "../dek-windows-wfp" }
 sd-notify = "0.4.1"
 libc = "0.2"
 dek-ebpfd = { path = "../dek-ebpfd" }
+dek-ebpf-common = { path = "../dek-ebpf-common" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 dek-macos-nefilter = { path = "../dek-macos-nefilter" }

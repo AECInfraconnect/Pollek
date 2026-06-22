@@ -6,7 +6,6 @@ use axum::{
     Json,
 };
 use std::fs;
-use std::path::PathBuf;
 
 pub async fn do_apply_binding(binding_id: &str) -> Result<(), String> {
     let mock_config_dir = std::env::temp_dir().join(".pollen_dek").join("mcp_configs");
@@ -26,10 +25,9 @@ pub async fn do_apply_binding(binding_id: &str) -> Result<(), String> {
                 }
             }
         });
-        let _ = fs::write(
-            &original_file,
-            serde_json::to_string_pretty(&initial_config).unwrap(),
-        );
+        let backup_content = serde_json::to_string_pretty(&initial_config)
+            .map_err(|e| format!("Failed to serialize config backup: {}", e))?;
+        let _ = fs::write(&original_file, backup_content);
     }
 
     // Create backup
@@ -77,7 +75,7 @@ pub async fn do_apply_binding(binding_id: &str) -> Result<(), String> {
             }
             let _ = fs::write(
                 &original_file,
-                serde_json::to_string_pretty(&config).unwrap(),
+                serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?,
             );
         }
     }

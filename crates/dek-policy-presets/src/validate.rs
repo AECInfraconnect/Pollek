@@ -15,25 +15,17 @@ pub fn validate_params(
 
         if let Some(val) = params.get(&param_def.key) {
             match param_def.value_type {
-                PresetValueType::String => {
-                    if !val.is_string() {
-                        anyhow::bail!("Parameter '{}' must be a string", param_def.key);
-                    }
+                PresetValueType::String if !val.is_string() => {
+                    anyhow::bail!("Parameter '{}' must be a string", param_def.key);
                 }
-                PresetValueType::Integer => {
-                    if !val.is_i64() {
-                        anyhow::bail!("Parameter '{}' must be an integer", param_def.key);
-                    }
+                PresetValueType::Integer if !val.is_i64() => {
+                    anyhow::bail!("Parameter '{}' must be an integer", param_def.key);
                 }
-                PresetValueType::Float => {
-                    if !val.is_f64() && !val.is_i64() {
-                        anyhow::bail!("Parameter '{}' must be a float", param_def.key);
-                    }
+                PresetValueType::Float if !val.is_f64() && !val.is_i64() => {
+                    anyhow::bail!("Parameter '{}' must be a float", param_def.key);
                 }
-                PresetValueType::Boolean => {
-                    if !val.is_boolean() {
-                        anyhow::bail!("Parameter '{}' must be a boolean", param_def.key);
-                    }
+                PresetValueType::Boolean if !val.is_boolean() => {
+                    anyhow::bail!("Parameter '{}' must be a boolean", param_def.key);
                 }
                 PresetValueType::StringList
                 | PresetValueType::PathList
@@ -41,10 +33,8 @@ pub fn validate_params(
                 | PresetValueType::ProviderList
                 | PresetValueType::AgentSelector
                 | PresetValueType::ToolSelector
-                | PresetValueType::ResourceSelector => {
-                    if !val.is_array() {
-                        anyhow::bail!("Parameter '{}' must be an array", param_def.key);
-                    }
+                | PresetValueType::ResourceSelector if !val.is_array() => {
+                    anyhow::bail!("Parameter '{}' must be an array", param_def.key);
                 }
                 _ => {} // Other validations can be added later
             }

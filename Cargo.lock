@@ -1996,6 +1996,7 @@ dependencies = [
  "dek-config",
  "dek-decision",
  "dek-domain-schema",
+ "dek-ebpf-common",
  "dek-ebpfd",
  "dek-enforcement-api",
  "dek-ipc",
