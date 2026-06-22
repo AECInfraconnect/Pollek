@@ -4,8 +4,10 @@
 
 use anyhow::Result;
 use dek_domain_schema::CompiledNetworkRules;
+#[allow(unused_imports)]
 use dek_enforcement_api::NetworkEnforcer;
 use std::sync::Arc;
+#[allow(unused_imports)]
 use tracing::{info, warn};
 
 pub fn probe_available() -> bool {
@@ -15,6 +17,7 @@ pub fn probe_available() -> bool {
     return false;
 }
 
+#[allow(dead_code)]
 pub struct NeFilterClient {
     connected: bool,
     socket_path: String,
@@ -36,7 +39,7 @@ impl NeFilterClient {
 }
 
 impl dek_enforcement_api::NetworkEnforcer for NeFilterClient {
-    fn apply_rules(&self, rules: &CompiledNetworkRules) -> Result<()> {
+    fn apply_rules(&self, _rules: &CompiledNetworkRules) -> Result<()> {
         if !self.connected {
             return Ok(());
         }

@@ -155,7 +155,7 @@ impl Supervisor {
         let active_network_rules = Arc::new(RwLock::new(Vec::<
             dek_domain_schema::network_guardrail::CompiledNetworkRules,
         >::new()));
-        let active_rules_for_dns = active_network_rules.clone();
+        let _active_rules_for_dns = active_network_rules.clone();
 
         let (dns_tx, mut dns_rx) = tokio::sync::mpsc::channel::<crate::ebpf::DnsObservation>(1024);
         let sink = telemetry_sink.clone();

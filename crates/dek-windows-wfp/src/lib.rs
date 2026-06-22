@@ -30,6 +30,8 @@ pub fn probe_available() -> bool {
 }
 
 #[derive(Default)]
+#[allow(dead_code)]
+#[allow(clippy::all)]
 pub struct WfpFilterManager {
     is_active: bool,
     #[cfg(windows)]
@@ -86,8 +88,10 @@ impl WfpFilterManager {
             });
         }
 
-        let mut filter = FWPM_FILTER0::default();
-        filter.layerKey = FWPM_LAYER_ALE_AUTH_CONNECT_V4;
+        let mut filter = FWPM_FILTER0 {
+            layerKey: FWPM_LAYER_ALE_AUTH_CONNECT_V4,
+            ..Default::default()
+        };
         filter.action.r#type = FWP_ACTION_BLOCK;
 
         filter.weight = FWP_VALUE0 {
@@ -112,6 +116,7 @@ impl WfpFilterManager {
         Ok(filter_id)
     }
 
+    #[allow(dead_code)]
     #[cfg(windows)]
     fn add_app_filter(&self, app_path: &str, action: u32, weight: u8) -> Result<u64> {
         use std::ptr;
@@ -162,8 +167,10 @@ impl WfpFilterManager {
             },
         };
 
-        let mut filter = FWPM_FILTER0::default();
-        filter.layerKey = FWPM_LAYER_ALE_AUTH_CONNECT_V4;
+        let mut filter = FWPM_FILTER0 {
+            layerKey: FWPM_LAYER_ALE_AUTH_CONNECT_V4,
+            ..Default::default()
+        };
         filter.action.r#type = FWP_ACTION_TYPE(action);
         filter.weight = FWP_VALUE0 {
             r#type: FWP_UINT8 as FWP_DATA_TYPE,
