@@ -99,8 +99,9 @@ export function PresetWizard({
       const res = await DeploymentApi.preview(req);
       setPreview(res);
       nextStep();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert("Failed to generate preview: " + (e.message || String(e)));
     } finally {
       setLoading(false);
     }
@@ -122,8 +123,9 @@ export function PresetWizard({
       const res = await DeploymentApi.simulate(req);
       setSimResult(res);
       nextStep();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert("Failed to simulate: " + (e.message || String(e)));
     } finally {
       setLoading(false);
     }
@@ -144,8 +146,9 @@ export function PresetWizard({
       };
       await DeploymentApi.deploy(req);
       nextStep();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert("Failed to deploy: " + (e.message || String(e)));
     } finally {
       setLoading(false);
     }

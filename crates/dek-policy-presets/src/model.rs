@@ -175,7 +175,13 @@ pub struct DeployPresetRequest {
     pub targets: PresetTargets,
     #[serde(default)]
     pub params: BTreeMap<String, serde_json::Value>,
+    #[serde(default = "default_true")]
     pub dry_run_first: bool,
+    pub pdp_route: Option<String>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default)]
