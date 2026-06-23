@@ -224,6 +224,9 @@ impl SqliteStore {
         let db_path = db_url
             .strip_prefix("sqlite://")
             .unwrap_or(db_url)
+            .split('?')
+            .next()
+            .unwrap_or("")
             .to_string();
         let conn = tokio::task::spawn_blocking(move || -> Result<Connection> {
             let mut conn = if db_path == ":memory:" || db_path.is_empty() {

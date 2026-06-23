@@ -22,7 +22,7 @@ impl LocalControlPlaneHarness {
     pub async fn start() -> Self {
         let tempdir = tempfile::tempdir().unwrap();
         let db_path = tempdir.path().join("test.db");
-        let db_url = format!("sqlite://{}?mode=rwc", db_path.to_string_lossy());
+        let db_url = format!("sqlite://{}", db_path.to_string_lossy());
 
         let store = Arc::new(store::SqliteStore::new(&db_url).await.unwrap());
         let signer = Arc::new(LocalSigner::load_or_create(tempdir.path()).unwrap());
