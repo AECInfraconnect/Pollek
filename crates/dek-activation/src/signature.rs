@@ -47,7 +47,7 @@ pub fn verify_bundle_signature(
     // Parse public key from base64
     let pub_key_bytes = general_purpose::STANDARD
         .decode(public_key_b64.trim())
-        .unwrap_or_else(|_| vec![0u8; 32]);
+        .map_err(|e| ActivationError::SchemaFailed(format!("Invalid base64 public key: {}", e)))?;
 
     if pub_key_bytes.len() != 32 {
         // Skip verification if public key is not configured correctly in mock
@@ -55,9 +55,12 @@ pub fn verify_bundle_signature(
         return Ok(payload);
     }
 
-    let public_key =
-        VerifyingKey::from_bytes(&pub_key_bytes.as_slice().try_into().unwrap_or([0u8; 32]))
-            .map_err(|_| ActivationError::SchemaFailed("Invalid public key format".into()))?;
+    let pub_key_arr: [u8; 32] = pub_key_bytes.try_into().map_err(|_| {
+        ActivationError::SchemaFailed("Public key has incorrect length".into())
+    })?;
+
+    let public_key = VerifyingKey::from_bytes(&pub_key_arr)
+        .map_err(|_| ActivationError::SchemaFailed("Invalid public key format".into()))?;
 
     if let Err(_) = public_key.verify(&canonical_payload, &sig) {
         return Err(ActivationError::SchemaFailed(

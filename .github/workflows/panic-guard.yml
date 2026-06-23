@@ -1,0 +1,49 @@
+name: Panic Guard
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  check-panics:
+    name: No panics or unwraps in production code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check for panic, unwrap, expect, todo, unreachable
+        run: |
+          #!/bin/bash
+          set -e
+          
+          echo "Scanning for forbidden keywords in src directories..."
+          
+          # Find all Rust files in src/ directories (ignoring tests/ or bences/ or build.rs)
+          FILES=$(find . -type d \( -name "tests" -o -name "benches" -o -name "target" \) -prune -o -type f -name "*.rs" -path "*/src/*" -print | grep -v "build.rs")
+          
+          if [ -z "$FILES" ]; then
+            echo "No files to scan."
+            exit 0
+          fi
+          
+          # Search for forbidden patterns
+          # Patterns: panic!, unwrap(), expect(, todo!, unreachable!
+          # We use grep with line numbers and file names
+          VIOLATIONS=$(grep -nE "(\bpanic!|\bunwrap\(\)|\bexpect\(|\btodo!|\bunreachable!)" $FILES || true)
+          
+          # Filter out test modules `#[test]` or `#[cfg(test)]` block contents (basic check)
+          # A proper check would use clippy, but the requirement specifies a grep check.
+          # We'll ignore lines with `//` comments if they match.
+          
+          REAL_VIOLATIONS=$(echo "$VIOLATIONS" | grep -v "//" || true)
+          
+          if [ -n "$REAL_VIOLATIONS" ]; then
+            echo "::error::Found forbidden panic/unwrap/expect keywords in production code!"
+            echo "$REAL_VIOLATIONS"
+            exit 1
+          else
+            echo "No forbidden keywords found. Good job!"
+            exit 0
+          fi

@@ -134,23 +134,48 @@ impl Supervisor {
             client_key_override.as_deref(),
             bootstrap.local_api_token.clone(),
         )?);
-        let data_dir = dek_config::paths::get_data_dir();
-        let telemetry_sink = CloudTelemetrySink::new(
-            cloud_url.trim_end_matches('/'),
-            &bootstrap.mtls,
-            client_key_override.as_deref(),
-            &data_dir.join("telemetry.db").to_string_lossy(),
-            bootstrap.local_api_token.clone(),
-            tenant_id.to_string(),
-            bootstrap.device_id.clone(),
-        )
-        .await?;
+
         let metrics_client = Arc::new(RwLock::new(
             bootstrap
                 .mtls
                 .build_client(client_key_override.as_deref())
                 .context("build metrics mTLS client")?,
         ));
+
+        let key_dir = dek_config::paths::get_data_dir();
+        std::fs::create_dir_all(&key_dir)?;
+
+        #[cfg(windows)]
+        let store = dek_secure_spool::os::DefaultOsKeyStore::new(key_dir.join("secure_spool.key"));
+        #[cfg(target_os = "linux")]
+        let store = dek_secure_spool::os::DefaultOsKeyStore::new(key_dir.join("secure_spool.key"));
+        #[cfg(target_os = "macos")]
+        let store = dek_secure_spool::os::DefaultOsKeyStore::new(key_dir.join("secure_spool.key"));
+
+        let key_mgr = dek_secure_spool::key_manager::SpoolKeyManager::new(store);
+
+        let secure_spool_dir = key_dir.join("secure_spool");
+        std::fs::create_dir_all(&secure_spool_dir)?;
+
+        let spool = Arc::new(dek_secure_spool::Spool::new(
+            secure_spool_dir,
+            100 * 1024 * 1024, // 100MB max
+            Some(key_mgr),
+            bootstrap.tenant_id.clone().unwrap_or_else(|| "default".into()),
+            bootstrap.device_id.clone(),
+        ));
+
+        let spool_db_path = dek_config::paths::get_data_dir().join("telemetry.db");
+        let telemetry_sink = dek_telemetry::CloudTelemetrySink::new(
+            &cloud_url,
+            &bootstrap.mtls,
+            client_key_override.as_deref(),
+            &spool_db_path.to_string_lossy(),
+            bootstrap.local_api_token.clone(),
+            spool.clone(),
+        )
+        .await
+        .context("init telemetry sink")?;
 
         let active_network_rules = Arc::new(RwLock::new(Vec::<
             dek_domain_schema::network_guardrail::CompiledNetworkRules,
@@ -220,8 +245,6 @@ impl Supervisor {
                 }
             }
         });
-
-        let spool = Arc::new(dek_secure_spool::Spool::default());
 
         let _ebpf = crate::ebpf::load_and_attach(Some(dns_tx), Some(spool.clone())).await;
 

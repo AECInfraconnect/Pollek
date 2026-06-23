@@ -77,8 +77,7 @@ impl CloudTelemetrySink {
         client_key_override: Option<&[u8]>,
         db_path: &str,
         api_token: Option<String>,
-        tenant_id: String,
-        device_id: String,
+        spool: Arc<dek_secure_spool::Spool>,
     ) -> Result<Arc<Self>> {
         let reqwest_client = mtls.build_client(client_key_override)?;
         let client = Arc::new(tokio::sync::RwLock::new(reqwest_client.clone()));
@@ -96,13 +95,7 @@ impl CloudTelemetrySink {
                 dek_config::EnterpriseProfile::default(),
             )),
             api_token,
-            fallback: Arc::new(
-                tokio::task::spawn_blocking(move || {
-                    fallback_spool::SecureFallback::new(tenant_id, device_id)
-                })
-                .await
-                .map_err(|e| anyhow::anyhow!("spawn error: {}", e))??,
-            ),
+            fallback: Arc::new(fallback_spool::SecureFallback::new(spool)),
         });
 
         // Initialize OTLP Metrics Provider
@@ -280,13 +273,9 @@ impl CloudTelemetrySink {
                     Err(e) => {
                         if e.to_string().contains("Non-retryable") {
                             warn!(
-                                "[Telemetry] Cloud rejected batch (4xx). Spooling to secure fallback for endpoint {}",
+                                "[Telemetry] Cloud rejected batch (4xx). Dropping events for endpoint {}",
                                 suffix
                             );
-                            let events_to_fallback: Vec<serde_json::Value> = events.clone();
-                            if let Err(fe) = self.fallback.append_batch(events_to_fallback) {
-                                error!("[Telemetry] Failed to append to secure fallback: {}", fe);
-                            }
                             all_ok_ids.extend(ids);
                         } else {
                             warn!(

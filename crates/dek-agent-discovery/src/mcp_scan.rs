@@ -8,7 +8,11 @@ pub fn scan_mcp_configs() -> Result<Vec<DiscoveryEvidenceV2>> {
 
     if let Ok(configs) = crate::mcp_config::discover_mcp_configs(&paths) {
         for cfg in configs {
-            let data = serde_json::to_value(&cfg).unwrap_or_default();
+            let data = serde_json::to_value(&cfg).unwrap_or_else(|e| {
+                tracing::error!("Failed to serialize mcp_config scan data: {}", e);
+                metrics::counter!("pollek_discovery_serialize_drop_total", "source" => "mcp_config").increment(1);
+                serde_json::json!({})
+            });
             evidence.push(DiscoveryEvidenceV2 {
                 evidence_id: uuid::Uuid::new_v4().to_string(),
                 source: EvidenceSource::McpConfig,

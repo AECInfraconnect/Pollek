@@ -28,6 +28,7 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 futures = "0.3.32"
 glob = "0.3"
 dirs = "5.0"
+metrics = "0.24.6"
 
 [lints]
 workspace = true

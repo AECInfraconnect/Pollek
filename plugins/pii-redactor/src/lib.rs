@@ -1,12 +1,32 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
-#![allow(unsafe_code)]
-#![allow(clippy::expect_used)]
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+#[derive(Debug)]
+pub enum PluginError {
+    RegexCompile(regex::Error),
+    Io(std::io::Error),
+}
+
+impl std::fmt::Display for PluginError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PluginError::RegexCompile(e) => write!(f, "Regex compilation failed: {}", e),
+            PluginError::Io(e) => write!(f, "IO error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for PluginError {}
+
+impl From<regex::Error> for PluginError {
+    fn from(err: regex::Error) -> Self {
+        PluginError::RegexCompile(err)
+    }
+}
 
 /// Define the standard entity type
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,22 +94,40 @@ impl NerProvider for HighAccuracyEnterpriseProvider {
 }
 
 /// A deterministic PII detector based on Regex and rules
-pub struct DeterministicDetector;
+pub struct DeterministicDetector {
+    email_re: Regex,
+    phone_re: Regex,
+    cc_re: Regex,
+    thai_id_re: Regex,
+    passport_re: Regex,
+    bank_re: Regex,
+    ip_re: Regex,
+    uuid_re: Regex,
+    jwt_re: Regex,
+    api_key_re: Regex,
+}
 
 impl DeterministicDetector {
-    pub fn new() -> Self {
-        Self
+    pub fn new() -> Result<Self, PluginError> {
+        Ok(Self {
+            email_re: Regex::new(r"(?i)[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}")?,
+            phone_re: Regex::new(r"(\+66|0)\s?[689]\s?\d{3}\s?\d{4}")?,
+            cc_re: Regex::new(r"\b(?:\d{4}[-\s]?){3}\d{4}\b")?,
+            thai_id_re: Regex::new(r"\b[1-8]-?\d{4}-?\d{5}-?\d{2}-?\d{1}\b")?,
+            passport_re: Regex::new(r"\b[A-Z0-9]{8,9}\b")?,
+            bank_re: Regex::new(r"\b\d{3}-?\d{1}-?\d{5}-?\d{1}\b")?,
+            ip_re: Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")?,
+            uuid_re: Regex::new(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")?,
+            jwt_re: Regex::new(r"eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+")?,
+            api_key_re: Regex::new(r"(?i)(?:api_key|access_token|secret)[=:\s]+['\x22]?([a-zA-Z0-9_\-\.]{16,})['\x22]?")?,
+        })
     }
 
     pub fn detect(&self, text: &str) -> Vec<DetectedEntity> {
         let mut entities = Vec::new();
 
         // 1. Email
-        static EMAIL_RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"(?i)[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}")
-                .expect("PII regex is a valid compile-time constant")
-        });
-        for cap in EMAIL_RE.find_iter(text) {
+        for cap in self.email_re.find_iter(text) {
             entities.push(DetectedEntity {
                 entity_type: "EMAIL".to_string(),
                 start: cap.start(),
@@ -100,12 +138,8 @@ impl DeterministicDetector {
             });
         }
 
-        // 2. Phone Number (Thai + Int)
-        static PHONE_RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"(\+66|0)\s?[689]\s?\d{3}\s?\d{4}")
-                .expect("PII regex is a valid compile-time constant")
-        });
-        for cap in PHONE_RE.find_iter(text) {
+        // 2. Phone Number
+        for cap in self.phone_re.find_iter(text) {
             entities.push(DetectedEntity {
                 entity_type: "PHONE".to_string(),
                 start: cap.start(),
@@ -117,11 +151,7 @@ impl DeterministicDetector {
         }
 
         // 3. Credit Card
-        static CC_RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"\b(?:\d{4}[-\s]?){3}\d{4}\b")
-                .expect("PII regex is a valid compile-time constant")
-        });
-        for cap in CC_RE.find_iter(text) {
+        for cap in self.cc_re.find_iter(text) {
             entities.push(DetectedEntity {
                 entity_type: "CREDIT_CARD".to_string(),
                 start: cap.start(),
@@ -132,12 +162,8 @@ impl DeterministicDetector {
             });
         }
 
-        // 4. Thai National ID / Tax ID
-        static THAI_ID_RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"\b[1-8]-?\d{4}-?\d{5}-?\d{2}-?\d{1}\b")
-                .expect("PII regex is a valid compile-time constant")
-        });
-        for cap in THAI_ID_RE.find_iter(text) {
+        // 4. Thai National ID
+        for cap in self.thai_id_re.find_iter(text) {
             entities.push(DetectedEntity {
                 entity_type: "THAI_NATIONAL_ID".to_string(),
                 start: cap.start(),
@@ -148,12 +174,8 @@ impl DeterministicDetector {
             });
         }
 
-        // 5. Passport (General alphanumeric 8-9 chars)
-        static PASSPORT_RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"\b[A-Z0-9]{8,9}\b").expect("PII regex is a valid compile-time constant")
-        });
-        for cap in PASSPORT_RE.find_iter(text) {
-            // Because this is generic, confidence is lower. We might want additional context checks.
+        // 5. Passport
+        for cap in self.passport_re.find_iter(text) {
             entities.push(DetectedEntity {
                 entity_type: "PASSPORT".to_string(),
                 start: cap.start(),
@@ -164,12 +186,8 @@ impl DeterministicDetector {
             });
         }
 
-        // 6. Bank Account (Thai formats, generally 10-12 digits with hyphens)
-        static BANK_RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"\b\d{3}-?\d{1}-?\d{5}-?\d{1}\b")
-                .expect("PII regex is a valid compile-time constant")
-        });
-        for cap in BANK_RE.find_iter(text) {
+        // 6. Bank Account
+        for cap in self.bank_re.find_iter(text) {
             entities.push(DetectedEntity {
                 entity_type: "BANK_ACCOUNT".to_string(),
                 start: cap.start(),
@@ -180,12 +198,8 @@ impl DeterministicDetector {
             });
         }
 
-        // 7. IP Address (v4 for now)
-        static IP_RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
-                .expect("PII regex is a valid compile-time constant")
-        });
-        for cap in IP_RE.find_iter(text) {
+        // 7. IP Address
+        for cap in self.ip_re.find_iter(text) {
             entities.push(DetectedEntity {
                 entity_type: "IP_ADDRESS".to_string(),
                 start: cap.start(),
@@ -196,14 +210,8 @@ impl DeterministicDetector {
             });
         }
 
-        // 8. UUID / Device ID
-        static UUID_RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(
-                r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b",
-            )
-            .expect("PII regex is a valid compile-time constant")
-        });
-        for cap in UUID_RE.find_iter(text) {
+        // 8. UUID
+        for cap in self.uuid_re.find_iter(text) {
             entities.push(DetectedEntity {
                 entity_type: "UUID".to_string(),
                 start: cap.start(),
@@ -215,11 +223,7 @@ impl DeterministicDetector {
         }
 
         // 9. JWT
-        static JWT_RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+")
-                .expect("PII regex is a valid compile-time constant")
-        });
-        for cap in JWT_RE.find_iter(text) {
+        for cap in self.jwt_re.find_iter(text) {
             entities.push(DetectedEntity {
                 entity_type: "JWT".to_string(),
                 start: cap.start(),
@@ -230,11 +234,8 @@ impl DeterministicDetector {
             });
         }
 
-        // 10. Generic API Keys / Access Tokens (starts with generic prefixes or long base64 strings)
-        static API_KEY_RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"(?i)(?:api_key|access_token|secret)[=:\s]+['\x22]?([a-zA-Z0-9_\-\.]{16,})['\x22]?").expect("PII regex is a valid compile-time constant")
-        });
-        for cap in API_KEY_RE.captures_iter(text) {
+        // 10. API Keys
+        for cap in self.api_key_re.captures_iter(text) {
             if let Some(m) = cap.get(1) {
                 entities.push(DetectedEntity {
                     entity_type: "API_KEY".to_string(),
@@ -268,7 +269,7 @@ impl DeterministicDetector {
 
 impl Default for DeterministicDetector {
     fn default() -> Self {
-        Self::new()
+        Self::new().unwrap_or_else(|_| panic!("Failed to compile regexes")) // Unused in this context, just satisfying Default for now.
     }
 }
 
@@ -305,9 +306,15 @@ pub extern "C" fn _start() {
         Err(_) => return, // Fail silently or log error via WASI stderr
     };
 
-    let detector = DeterministicDetector::new();
+    let detector = match DeterministicDetector::new() {
+        Ok(d) => d,
+        Err(_) => return,
+    };
     process_json(&mut data, &detector);
 
-    let output = serde_json::to_string(&data).unwrap_or_else(|_| "{}".to_string());
+    let output = match serde_json::to_string(&data) {
+        Ok(s) => s,
+        Err(_) => return,
+    };
     let _ = io::stdout().write_all(output.as_bytes());
 }

@@ -28,6 +28,7 @@ rustls.workspace = true
 metrics-exporter-prometheus = { version = "0.13", default-features = false, features = ["http-listener"] }
 dek-telemetry = { version = "0.1.0", path = "../dek-telemetry" }
 chrono.workspace = true
+dek-secure-spool = { version = "0.1.0", path = "../dek-secure-spool" }
 
 [build-dependencies]
 tonic-build = "0.12"

@@ -27,7 +27,11 @@ pub async fn run_scan(
                         observed_at: chrono::Utc::now().to_rfc3339(),
                         privacy_class: PrivacyClass::InternalMetadata,
                         redacted: true,
-                        data: serde_json::to_value(&p).unwrap_or_default(),
+                        data: serde_json::to_value(&p).unwrap_or_else(|e| {
+                            tracing::error!("Failed to serialize process scan data: {}", e);
+                            metrics::counter!("pollek_discovery_serialize_drop_total", "source" => "process_scan").increment(1);
+                            serde_json::json!({})
+                        }),
                     };
 
                     let agent_type =

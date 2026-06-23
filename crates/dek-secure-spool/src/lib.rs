@@ -19,8 +19,12 @@ pub enum SpoolError {
     Io(#[from] std::io::Error),
     #[error("serialization failure: {0}")]
     Serde(#[from] serde_json::Error),
-    #[error("key manager error")]
+    #[error("key manager error: {0}")]
     KeyManager(String),
+    #[error("empty payload")]
+    EmptyPayload,
+    #[error("tampering detected")]
+    Tampered,
 }
 
 pub struct SpoolState {
@@ -28,6 +32,7 @@ pub struct SpoolState {
     current_segment_id: String,
     current_size: u64,
     last_hash: String,
+    seq: u64,
 }
 
 pub struct Spool {
@@ -70,19 +75,33 @@ impl Spool {
                 current_segment_id: "".to_string(),
                 current_size: 0,
                 last_hash: "GENESIS".to_string(),
+                seq: 0,
             }),
         }
     }
 
-    pub async fn enqueue(&self, data: Vec<u8>) -> std::result::Result<(), String> {
-        let prev_hash = {
-            let state = self.state.lock().await;
-            state.last_hash.clone()
+    pub async fn enqueue(&self, data: Vec<u8>) -> Result<(), SpoolError> {
+        if data.is_empty() {
+            return Err(SpoolError::EmptyPayload);
+        }
+
+        self.ensure_capacity().await?;
+
+        let key = if let Some(km) = &self.key_manager {
+            km.active_aead_key().map_err(|e| SpoolError::KeyManager(e.to_string()))?
+        } else {
+            return Err(SpoolError::KeyManager("No key manager provided".to_string()));
+        };
+
+        let (prev_hash, seq) = {
+            let mut state = self.state.lock().await;
+            state.seq += 1;
+            (state.last_hash.clone(), state.seq)
         };
 
         let payload_json = String::from_utf8(data.clone()).unwrap_or_default();
         let audit_entry = audit::AuditEntry::new(
-            0, // seq will be set by writer later ideally, or just 0 for demo
+            seq,
             chrono::Utc::now().to_rfc3339(),
             payload_json,
             &prev_hash,
@@ -94,19 +113,8 @@ impl Spool {
             tenant_id: self.tenant_id.clone(),
             device_id: self.device_id.clone(),
             event_type: "raw".to_string(),
-            timestamp_unix_ms: 0,
-            body: serde_json::to_value(&audit_entry).unwrap_or(serde_json::Value::Null),
-        };
-
-        if let Err(e) = self.ensure_capacity().await {
-            return Err(e.to_string());
-        }
-
-        let key = if let Some(km) = &self.key_manager {
-            km.active_aead_key().map_err(|e| e.to_string())?
-        } else {
-            // Dummy key for testing if no key manager provided
-            crypto::AeadKey::new("dummy", [0u8; 32])
+            timestamp_unix_ms: chrono::Utc::now().timestamp_millis(),
+            body: serde_json::to_value(&audit_entry).map_err(SpoolError::Serde)?,
         };
 
         let mut state = self.state.lock().await;
@@ -116,7 +124,7 @@ impl Spool {
             file_path.push(format!("{}.pds", segment_id));
 
             if !self.dir.exists() {
-                std::fs::create_dir_all(&self.dir).map_err(|e| e.to_string())?;
+                std::fs::create_dir_all(&self.dir)?;
             }
 
             let writer = segment::SegmentWriter::create(
@@ -124,18 +132,17 @@ impl Spool {
                 self.tenant_id.clone(),
                 self.device_id.clone(),
                 segment_id.clone(),
-            )
-            .map_err(|e| e.to_string())?;
+            )?;
             state.writer = Some(writer);
             state.current_segment_id = segment_id;
         }
 
         let writer = state.writer.as_mut().unwrap();
         writer
-            .append_event(&key, &event)
-            .map_err(|e| e.to_string())?;
+            .append_event(&key, &event)?;
 
         state.last_hash = audit_entry.entry_hash;
+        state.current_size += data.len() as u64;
 
         Ok(())
     }
@@ -170,7 +177,7 @@ impl Spool {
             km.active_aead_key()
                 .map_err(|e| SpoolError::KeyManager(e.to_string()))?
         } else {
-            crypto::AeadKey::new("dummy", [0u8; 32])
+            return Err(SpoolError::KeyManager("No key manager provided".to_string()));
         };
 
         let mut results = Vec::new();
@@ -203,9 +210,19 @@ impl Spool {
 
         // Ensure chain validity
         if !results.is_empty() {
-            results.sort_by_key(|e| e.timestamp.clone()); // Simplistic order for replay
+            results.sort_by_key(|e| e.seq); // Simplistic order for replay
             if audit::verify_chain(&results).is_err() {
-                // Log tamper detection or handle appropriately
+                // Quarantine segments
+                if let Ok(mut entries) = tokio::fs::read_dir(&self.dir).await {
+                    while let Ok(Some(entry)) = entries.next_entry().await {
+                        let path = entry.path();
+                        if path.extension().and_then(|s| s.to_str()) == Some("pds") {
+                            let new_path = path.with_extension("quarantine");
+                            let _ = tokio::fs::rename(path, new_path).await;
+                        }
+                    }
+                }
+                return Err(SpoolError::Tampered);
             }
         }
         Ok(results)
@@ -217,13 +234,24 @@ mod tests {
     use super::*;
     use std::fs;
 
+    struct DummyKeyStore;
+    impl crate::key_manager::OsKeyStore for DummyKeyStore {
+        fn load_or_create_master_key(&self) -> Result<[u8; 32], crate::key_manager::KeyStoreError> {
+            Ok([0u8; 32])
+        }
+        fn rotate_master_key(&self) -> Result<[u8; 32], crate::key_manager::KeyStoreError> {
+            Ok([0u8; 32])
+        }
+    }
+
     #[tokio::test]
     async fn test_spool_enqueue_and_replay() {
         let dir = std::env::temp_dir().join(format!("test_spool_{}", Uuid::new_v4()));
+        let km = key_manager::SpoolKeyManager::new(DummyKeyStore);
         let spool = Spool::new(
             dir.clone(),
             1024 * 1024,
-            None,
+            Some(km),
             "test".to_string(),
             "test".to_string(),
         );
@@ -242,10 +270,11 @@ mod tests {
     #[tokio::test]
     async fn test_spool_full() {
         let dir = std::env::temp_dir().join(format!("test_spool_{}", Uuid::new_v4()));
+        let km = key_manager::SpoolKeyManager::new(DummyKeyStore);
         let spool = Spool::new(
             dir.clone(),
             10,
-            None,
+            Some(km),
             "test".to_string(),
             "test".to_string(),
         ); // Very small limit

@@ -1,4 +1,3 @@
-#![allow(clippy::panic)]
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
@@ -99,9 +98,8 @@ async fn main() -> Result<()> {
         &bootstrap.mtls,
         None,
         &telemetry_db.to_string_lossy(),
-        None,
-        tenant_id.clone(),
-        bootstrap.device_id.clone(),
+        bootstrap.local_api_token.clone(),
+        std::sync::Arc::new(dek_secure_spool::Spool::default()),
     )
     .await
     .ok();
@@ -163,22 +161,27 @@ async fn main() -> Result<()> {
         }
     }
 
-    let plugin_host = Arc::new(
-        dek_wasm_host::WasmPluginHost::new(dek_wasm_host::WasmHostConfig::default())
-            .unwrap_or_else(|_| panic!("Failed to create WasmPluginHost")),
-    );
+    let plugin_host = match dek_wasm_host::WasmPluginHost::new(dek_wasm_host::WasmHostConfig::default()) {
+        Ok(h) => Some(Arc::new(h)),
+        Err(e) => {
+            tracing::error!(error = %e, "plugin host init failed; running WITHOUT transforms (deny/allow still enforced)");
+            None
+        }
+    };
 
-    for (name, p) in plugin_paths {
-        if let Ok(bytes) = std::fs::read(&p) {
-            let key = dek_wasm_host::plugin_key::PluginKey {
-                tenant_id: "system".into(),
-                plugin_id: name.clone(),
-                version: "1.0.0".into(),
-                abi_version: "1".into(),
-                wasm_sha256: "dummy".into(),
-            };
-            if let Err(e) = plugin_host.load_plugin(key, &bytes).await {
-                warn!("Failed to load plugin {}: {}", p, e);
+    if let Some(host) = &plugin_host {
+        for (name, p) in plugin_paths {
+            if let Ok(bytes) = std::fs::read(&p) {
+                let key = dek_wasm_host::plugin_key::PluginKey {
+                    tenant_id: "system".into(),
+                    plugin_id: name.clone(),
+                    version: "1.0.0".into(),
+                    abi_version: "1".into(),
+                    wasm_sha256: "dummy".into(),
+                };
+                if let Err(e) = host.load_plugin(key, &bytes).await {
+                    warn!("Failed to load plugin {}: {}", p, e);
+                }
             }
         }
     }
@@ -194,12 +197,15 @@ async fn main() -> Result<()> {
                 // In a full impl, we'd check `decision.obligations`. We will just run it if loaded.
                 let pool_key = "system:pii-redactor:1.0.0:dummy";
                 let input_bytes = serde_json::to_vec(&payload).unwrap_or_default();
-                if let Ok(redacted_bytes) = plugin_host_clone
-                    .invoke(pool_key, "auto".into(), &input_bytes, 100_000_000)
-                    .await
-                {
-                    if let Ok(redacted) = serde_json::from_slice(&redacted_bytes) {
-                        payload = redacted;
+                
+                if let Some(host) = &plugin_host_clone {
+                    if let Ok(redacted_bytes) = host
+                        .invoke(pool_key, "auto".into(), &input_bytes, 100_000_000)
+                        .await
+                    {
+                        if let Ok(redacted) = serde_json::from_slice(&redacted_bytes) {
+                            payload = redacted;
+                        }
                     }
                 }
                 let _ = tx_out_clone.send(payload.to_string()).await;

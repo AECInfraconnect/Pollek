@@ -8,6 +8,19 @@ edition = "2021"
 authors = ["Pollen DEK Team"]
 description = "Pollen DEK Supervisor and Agent"
 
+[features]
+default = ["full"]
+minimal = []
+desktop = ["os-enforcement"]
+gateway = ["os-enforcement"]
+full = ["desktop", "gateway"]
+os-enforcement = [
+    "dep:dek-windows-wfp",
+    "dep:dek-ebpfd",
+    "dep:dek-ebpf-common",
+    "dep:dek-macos-nefilter"
+]
+
 [dependencies]
 dek-config = { path = "../dek-config" }
 
@@ -35,7 +48,7 @@ dek-policy-presets = { path = "../dek-policy-presets" }
 dek-agent-observer = { path = "../dek-agent-observer" }
 axum = "0.7"
 arc-swap = "1.7"
-tokio.workspace = true
+tokio = { workspace = true, features = ["signal"] }
 tokio-util = { version = "0.7", features = ["codec"] }
 serde_json.workspace = true
 anyhow.workspace = true
@@ -76,16 +89,16 @@ dek-pdp-sdk = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-service = "0.8"
-dek-windows-wfp = { path = "../dek-windows-wfp" }
+dek-windows-wfp = { path = "../dek-windows-wfp", optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 sd-notify = "0.4.1"
 libc = "0.2"
-dek-ebpfd = { path = "../dek-ebpfd" }
-dek-ebpf-common = { path = "../dek-ebpf-common" }
+dek-ebpfd = { path = "../dek-ebpfd", optional = true }
+dek-ebpf-common = { path = "../dek-ebpf-common", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-dek-macos-nefilter = { path = "../dek-macos-nefilter" }
+dek-macos-nefilter = { path = "../dek-macos-nefilter", optional = true }
 
 [lints]
 workspace = true

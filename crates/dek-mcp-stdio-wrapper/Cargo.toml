@@ -30,6 +30,7 @@ dek-telemetry = { path = "../dek-telemetry" }
 dek-activation = { path = "../dek-activation" }
 dek-decision = { path = "../dek-decision" }
 chrono = "0.4"
+dek-secure-spool = { version = "0.1.0", path = "../dek-secure-spool" }
 
 [lints]
 workspace = true

@@ -34,6 +34,7 @@ pub trait NetworkEnforcer: Send {
 
 /// A synthesized deny-all rule used for fail-closed mode. The cloud control
 /// channel is exempted by the backend (WFP/NEFilter/eBPF keep the mTLS path).
+#[allow(dead_code)]
 fn deny_all_rule() -> CompiledNetworkRules {
     CompiledNetworkRules {
         policy_id: "failsafe-deny-all".to_string(),
@@ -66,7 +67,7 @@ fn deny_all_rule() -> CompiledNetworkRules {
 // ===========================================================================
 // Windows — WFP
 // ===========================================================================
-#[cfg(windows)]
+#[cfg(all(windows, feature = "os-enforcement"))]
 pub mod wfp_backend {
     use super::*;
     use dek_enforcement_api::NetworkEnforcer as ApiNetworkEnforcer;
@@ -103,7 +104,7 @@ pub mod wfp_backend {
 // ===========================================================================
 // macOS — NEFilter
 // ===========================================================================
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", feature = "os-enforcement"))]
 pub mod nefilter_backend {
     use super::*;
     use dek_enforcement_api::NetworkEnforcer as ApiNetworkEnforcer;
@@ -140,7 +141,7 @@ pub mod nefilter_backend {
 // ===========================================================================
 // Linux — eBPF (cgroup_skb egress map)
 // ===========================================================================
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "os-enforcement"))]
 pub mod ebpf_backend {
     use super::*;
     use dek_domain_schema::ebpf::{EbpfMapUpdate, UpdateSource};
@@ -213,19 +214,19 @@ pub fn platform_enforcer(
     _device_id: &str,
     _spool: Option<std::sync::Arc<dek_secure_spool::Spool>>,
 ) -> Option<Box<dyn NetworkEnforcer>> {
-    #[cfg(windows)]
+    #[cfg(all(windows, feature = "os-enforcement"))]
     {
         return wfp_backend::WfpEnforcer::new(_spool)
             .map(|e| Box::new(e) as Box<dyn NetworkEnforcer>)
             .ok();
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(all(target_os = "macos", feature = "os-enforcement"))]
     {
         return nefilter_backend::NeFilterEnforcer::new(_spool)
             .map(|e| Box::new(e) as Box<dyn NetworkEnforcer>)
             .ok();
     }
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", feature = "os-enforcement"))]
     {
         return Some(Box::new(ebpf_backend::EbpfEnforcer::new(
             _tenant_id.to_string(),

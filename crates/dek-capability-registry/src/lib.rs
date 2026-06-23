@@ -19,11 +19,20 @@ pub struct OsInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ControlLevel {
+    ObserveOnly,
+    Enforce,
+    Degraded,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PdpCapability {
     pub r#type: String,
     pub version: Option<String>,
     pub mode: Option<String>,
-    pub status: String,
+    pub control_level: ControlLevel,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -31,14 +40,14 @@ pub struct PepCapability {
     pub r#type: String,
     #[serde(default)]
     pub transports: Vec<String>,
-    pub status: String,
+    pub control_level: ControlLevel,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PluginCapability {
     pub id: String,
     pub abi: String,
-    pub status: String,
+    pub control_level: ControlLevel,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -90,9 +99,11 @@ impl CapabilityRegistry {
     }
 
     pub fn gather(&self) -> DeviceCapabilities {
+        let os_version = sysinfo::System::os_version().unwrap_or_else(|| "unknown".to_string());
+
         let os = OsInfo {
             r#type: std::env::consts::OS.to_string(),
-            version: "unknown".to_string(), // In a real impl, we query WMI/uname
+            version: os_version.clone(), // Query via sysinfo
             arch: std::env::consts::ARCH.to_string(),
         };
 
@@ -114,6 +125,19 @@ impl CapabilityRegistry {
             None
         };
 
+        let wfp_control_level = if std::env::consts::OS == "windows" {
+            let ver = os_version.as_str();
+            // Basic guard: require Windows 10/11
+            // Real probe would also check admin / driver signature here.
+            if ver.contains("Windows 10") || ver.contains("Windows 11") {
+                ControlLevel::Enforce
+            } else {
+                ControlLevel::ObserveOnly
+            }
+        } else {
+            ControlLevel::Unsupported
+        };
+
         DeviceCapabilities {
             device_id: self.device_id.clone(),
             dek_version: self.dek_version.clone(),
@@ -123,28 +147,30 @@ impl CapabilityRegistry {
                     r#type: "wasm".to_string(),
                     version: Some("wasmtime-24".to_string()),
                     mode: Some("sandbox".to_string()),
-                    status: "ready".to_string(),
+                    control_level: ControlLevel::Enforce,
                 },
                 PdpCapability {
                     r#type: "native".to_string(),
                     version: None,
                     mode: None,
-                    status: "ready".to_string(),
+                    control_level: ControlLevel::Enforce,
                 },
             ],
             pep: vec![
                 PepCapability {
                     r#type: "stdio".to_string(),
                     transports: vec!["mcp".to_string()],
-                    status: "ready".to_string(),
+                    control_level: ControlLevel::Enforce,
                 },
                 PepCapability {
                     r#type: "kernel".to_string(),
                     transports: vec![],
-                    status: if std::env::consts::OS == "windows" {
-                        "ready".to_string()
+                    control_level: if std::env::consts::OS == "windows" {
+                        wfp_control_level
+                    } else if std::env::consts::OS == "linux" || std::env::consts::OS == "macos" {
+                        ControlLevel::Enforce
                     } else {
-                        "unavailable".to_string()
+                        ControlLevel::Unsupported
                     },
                 },
             ],

@@ -3,14 +3,14 @@
 
 use tracing::{info, warn};
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "os-enforcement"))]
 pub type EbpfHandle = dek_ebpfd::EbpfHandle;
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "os-enforcement"))]
 pub type DnsObservation = dek_ebpfd::DnsObservation;
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(all(target_os = "linux", feature = "os-enforcement")))]
 pub struct EbpfHandle;
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(all(target_os = "linux", feature = "os-enforcement")))]
 pub struct DnsObservation {
     pub cgroup_id: u64,
     pub qname: String,
@@ -18,7 +18,7 @@ pub struct DnsObservation {
     pub is_response: bool,
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "os-enforcement"))]
 fn has_bpf_caps() -> bool {
     if let Ok(content) = std::fs::read_to_string("/proc/self/status") {
         for line in content.lines() {
@@ -36,7 +36,7 @@ fn has_bpf_caps() -> bool {
     false
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "os-enforcement"))]
 pub fn probe_ebpf_support() -> bool {
     // Basic checks for eBPF support on Linux:
     // 1. Check for CAP_BPF or CAP_SYS_ADMIN capabilities (Least-Privilege)
@@ -54,7 +54,7 @@ pub fn probe_ebpf_support() -> bool {
     has_caps && has_btf
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "os-enforcement"))]
 pub async fn load_and_attach(
     obs_tx: Option<tokio::sync::mpsc::Sender<DnsObservation>>,
     spool: Option<std::sync::Arc<dek_secure_spool::Spool>>,
@@ -76,7 +76,7 @@ pub async fn load_and_attach(
     }
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(all(target_os = "linux", feature = "os-enforcement")))]
 pub async fn load_and_attach(
     _obs_tx: Option<tokio::sync::mpsc::Sender<DnsObservation>>,
     _spool: Option<std::sync::Arc<dek_secure_spool::Spool>>,

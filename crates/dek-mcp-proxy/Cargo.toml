@@ -46,6 +46,7 @@ hyper-util = { version = "0.1", features = ["tokio"] }
 dek-agent-observer = { version = "1.0.0-beta.7", path = "../dek-agent-observer" }
 content-guard = { version = "1.0.0-beta.7", path = "../../plugins/content-guard" }
 dek-execution-sandbox = { path = "../dek-execution-sandbox" }
+dek-secure-spool = { version = "0.1.0", path = "../dek-secure-spool" }
 
 [lints]
 workspace = true
