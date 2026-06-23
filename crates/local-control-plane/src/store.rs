@@ -229,11 +229,12 @@ impl SqliteStore {
             .unwrap_or("")
             .to_string();
         let conn = tokio::task::spawn_blocking(move || -> Result<Connection> {
-            let mut conn = if db_path == ":memory:" || db_path == "sqlite::memory:" || db_path.is_empty() {
-                Connection::open_in_memory()?
-            } else {
-                Connection::open(&db_path)?
-            };
+            let mut conn =
+                if db_path == ":memory:" || db_path == "sqlite::memory:" || db_path.is_empty() {
+                    Connection::open_in_memory()?
+                } else {
+                    Connection::open(&db_path)?
+                };
 
             Self::run_migrations(&mut conn)?;
 
