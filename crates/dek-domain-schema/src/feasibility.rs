@@ -145,3 +145,34 @@ pub struct PolicyFeasibilityResult {
     pub technical_plan: Option<ControlMethodPlan>,
     pub confidence: f32,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RequiredCapabilityLevel {
+    Observe,
+    Warn,
+    Approval,
+    Enforce,
+    StrictDeny,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CapabilityRequirement {
+    pub method: ControlMethod,
+    pub minimum: RequiredCapabilityLevel,
+    pub optional: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PolicyPresetTemplate {
+    pub template_id: String,
+    pub display_name: LocalizedText,
+    pub description: LocalizedText,
+    pub intent: PolicyIntent,
+    pub supported_control_levels: Vec<ControlLevel>,
+    pub required_capabilities: Vec<CapabilityRequirement>,
+    pub preferred_methods: Vec<ControlMethod>,
+    pub fallback_allowed: bool,
+    pub default_for_desktop: bool,
+    pub default_for_enterprise: bool,
+}

@@ -48,6 +48,7 @@ impl LocalControlPlaneHarness {
                 tempdir.path().to_path_buf(),
                 None, // No verification needed in testing
             )),
+            latest_snapshot: Arc::new(tokio::sync::RwLock::new(None)),
         };
 
         let builder = metrics_exporter_prometheus::PrometheusBuilder::new();

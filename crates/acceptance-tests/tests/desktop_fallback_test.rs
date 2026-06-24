@@ -130,7 +130,10 @@ fn test_cursor_mcp_http_fallback() {
         requires_user_approval: false,
         confidence: 1.0,
         evidence: vec![],
-        user_message: LocalizedText { en: "".into(), th: "".into() },
+        user_message: LocalizedText {
+            en: "".into(),
+            th: "".into(),
+        },
         next_action: None,
     });
 
@@ -179,7 +182,10 @@ fn test_browser_ai_no_extension() {
         requires_user_approval: false,
         confidence: 0.0,
         evidence: vec![],
-        user_message: LocalizedText { en: "".into(), th: "".into() },
+        user_message: LocalizedText {
+            en: "".into(),
+            th: "".into(),
+        },
         next_action: None,
     });
 
@@ -210,7 +216,10 @@ fn test_windows_no_wfp() {
         requires_user_approval: true,
         confidence: 0.0,
         evidence: vec![],
-        user_message: LocalizedText { en: "".into(), th: "".into() },
+        user_message: LocalizedText {
+            en: "".into(),
+            th: "".into(),
+        },
         next_action: None,
     });
 
@@ -241,7 +250,10 @@ fn test_macos_network_extension_inactive() {
         requires_user_approval: true,
         confidence: 0.0,
         evidence: vec![],
-        user_message: LocalizedText { en: "".into(), th: "".into() },
+        user_message: LocalizedText {
+            en: "".into(),
+            th: "".into(),
+        },
         next_action: None,
     });
 

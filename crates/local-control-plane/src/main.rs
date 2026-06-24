@@ -1,4 +1,4 @@
-﻿use std::sync::atomic::AtomicU64;
+use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tracing::info;
@@ -65,6 +65,7 @@ async fn main() -> anyhow::Result<()> {
             cfg.data_dir.join("defs/active.json"),
             None,
         )),
+        latest_snapshot: Arc::new(tokio::sync::RwLock::new(None)),
     };
 
     // Spawn Anomaly Detector (P2)

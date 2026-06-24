@@ -22,4 +22,6 @@ pub struct AppState {
     pub bundle_tx: broadcast::Sender<String>,
     pub pdp_credentials: Arc<crate::pdp_credentials::PdpCredentialsStore>,
     pub def_store: Arc<dek_fingerprint_defs::loader::DefinitionStore>,
+    pub latest_snapshot:
+        Arc<tokio::sync::RwLock<Option<dek_capability_registry::LocalCapabilitySnapshot>>>,
 }
