@@ -2,7 +2,6 @@
 // Copyright (c) 2026 AEC Infraconnect
 
 use axum::{
-    extract::State,
     routing::{get, post},
     Json, Router,
 };

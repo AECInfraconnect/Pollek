@@ -115,8 +115,8 @@ pub async fn probe_mcp_tools(surface: &Surface) -> anyhow::Result<Vec<ToolCapabi
                 .stdout(Stdio::piped())
                 .spawn()?;
 
-            let mut stdin = child.stdin.take().expect("Failed to open stdin");
-            let stdout = child.stdout.take().expect("Failed to open stdout");
+            let mut stdin = child.stdin.take().ok_or_else(|| anyhow::anyhow!("Failed to open stdin"))?;
+            let stdout = child.stdout.take().ok_or_else(|| anyhow::anyhow!("Failed to open stdout"))?;
 
             // Send initialize request
             let init_req = serde_json::json!({

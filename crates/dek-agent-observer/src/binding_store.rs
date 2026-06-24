@@ -119,11 +119,6 @@ impl AgentBindingStore {
     }
 }
 
-#[allow(clippy::expect_used)]
-impl Default for AgentBindingStore {
-    fn default() -> Self {
-        Self::new_in_memory().expect("Failed to create in-memory binding store")
-    }
-}
+
 
 pub type SharedBindingStore = Arc<AgentBindingStore>;

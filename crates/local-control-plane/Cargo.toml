@@ -55,6 +55,7 @@ dek-errors = { version = "0.1.0", path = "../dek-errors" }
 dek-metrics = { path = "../dek-metrics" }
 metrics-exporter-prometheus = "0.13"
 dek-agent-binding = { version = "1.0.0-beta.10", path = "../dek-agent-binding" }
+serde_jcs = "0.2.0"
 
 [dev-dependencies]
 tempfile = "3.27.0"

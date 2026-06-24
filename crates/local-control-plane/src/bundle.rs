@@ -114,7 +114,7 @@ pub async fn build_signed_bundle(
         },
     };
 
-    let signed_bytes = serde_json::to_vec(&manifest)?;
+    let signed_bytes = serde_jcs::to_vec(&manifest).map_err(|e| anyhow::anyhow!("jcs: {}", e))?;
     let sig_b64 = _signer.sign_b64(&signed_bytes);
 
     let envelope = serde_json::json!({
@@ -362,7 +362,7 @@ async fn get_artifact(
 
     if sha == "network_guardrails.json" {
         let signed_bytes =
-            serde_json::to_vec(&serde_json::json!([])).map_err(|e| ApiError::Internal(e.into()))?;
+            serde_jcs::to_vec(&serde_json::json!([])).map_err(|e| ApiError::Internal(anyhow::anyhow!(e)))?;
         let sig_b64 = st.signer.sign_b64(&signed_bytes);
         let signed_payload = serde_json::json!({
             "signed": [],
