@@ -175,7 +175,27 @@ pub fn select_best_control_method(
 ) -> (ControlMethodPlan, PolicyFeasibilityStatus) {
     let mut sorted = candidates;
     sorted.sort_by_key(|(plan, _)| score_plan(req, plan));
-    sorted.pop().unwrap()
+    sorted.pop().unwrap_or_else(|| {
+        let observe_plan = ControlMethodPlan {
+            method: ControlMethod::ObserveOnly,
+            internal_pep: InternalPep::None,
+            internal_pdp: InternalPdp::Cloud,
+            enforceability: Enforceability {
+                can_observe: true,
+                can_warn: false,
+                can_require_approval: false,
+                can_enforce: false,
+                can_strict_deny: false,
+            },
+            reason_code: "no_methods_found".to_string(),
+            explanation: LocalizedText {
+                en: "No suitable control methods found.".into(),
+                th: "ไม่พบวิธีควบคุมที่เหมาะสม".into(),
+            },
+            diagnostics: vec![],
+        };
+        (observe_plan, PolicyFeasibilityStatus::Unknown)
+    })
 }
 
 pub fn build_feasibility_result(
@@ -185,12 +205,12 @@ pub fn build_feasibility_result(
 ) -> PolicyFeasibilityResult {
     let (plan, status) = candidate;
     let negotiation =
-        negotiate_control_level(req.requested_control_level.clone(), &plan.enforceability);
+        negotiate_control_level(req.requested_control_level, &plan.enforceability);
 
     PolicyFeasibilityResult {
         target,
         policy_intent: req.policy_intent.clone(),
-        requested_control_level: req.requested_control_level.clone(),
+        requested_control_level: req.requested_control_level,
         effective_control_level: negotiation.effective,
         status,
         user_summary: negotiation.reason,

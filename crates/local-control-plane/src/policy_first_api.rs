@@ -12,10 +12,6 @@ use dek_capability_registry::snapshot::{CapabilityStatus, ControlMethodCapabilit
 use dek_capability_registry::{CapabilityRegistry, LocalCapabilitySnapshot};
 use dek_deployment_planner::{FeasibilitySuggester, PolicySuggestionEngine, SuggestedPolicy};
 use dek_domain_schema::{
-    capability_inventory::{
-        AgentCapabilityInventory, AgentKind, McpSurface, McpTransportKind, ModelEndpointSurface,
-        TelemetryCapabilities,
-    },
     control_level::ControlLevel,
     deployment_session::{
         DeploymentScope, DeploymentSession, DeploymentSessionStatus, LocalizedText,
@@ -50,7 +46,7 @@ pub fn router() -> Router<AppState> {
         )
 }
 
-fn generate_real_snapshot() -> LocalCapabilitySnapshot {
+async fn generate_real_snapshot(st: &AppState) -> LocalCapabilitySnapshot {
     let registry = CapabilityRegistry::new("local".into(), "1.0".into());
     let dev_caps = registry.gather();
 
@@ -107,83 +103,8 @@ fn generate_real_snapshot() -> LocalCapabilitySnapshot {
         next_action: None,
     });
 
-    // Generate agents based on typical dev environment for demo/UX testing
-    let agents = vec![
-        AgentCapabilityInventory {
-            schema_version: "1".into(),
-            tenant_id: "local".into(),
-            device_id: "local".into(),
-            agent_id: "claude_desktop".into(),
-            candidate_id: None,
-            display_name: "Claude Desktop".into(),
-            agent_type: AgentKind::DesktopAgent,
-            trust_level: "High".into(),
-            confidence: 0.9,
-            risk_score: 5,
-            process: None,
-            config_surfaces: vec![],
-            mcp_surfaces: vec![McpSurface {
-                server_name: "claude-mcp".into(),
-                client_hint: "claude".into(),
-                transport: McpTransportKind::Stdio,
-                command_template: None,
-                endpoint_domain: None,
-                has_auth_header: false,
-                env_key_names: vec![],
-                tools_known: vec![],
-                resources_known: vec![],
-            }],
-            model_endpoints: vec![],
-            browser_surfaces: vec![],
-            file_surfaces: vec![],
-            network_surfaces: vec![],
-            supported_pep_bindings: vec![],
-            supported_pdp_routes: vec![],
-            telemetry_capabilities: TelemetryCapabilities {
-                emits_tool_logs: true,
-                emits_resource_logs: false,
-                emits_decision_logs: false,
-                emits_network_logs: false,
-                format: "json".into(),
-            },
-            last_scan_id: "".into(),
-            last_seen_at: "".into(),
-        },
-        AgentCapabilityInventory {
-            schema_version: "1".into(),
-            tenant_id: "local".into(),
-            device_id: "local".into(),
-            agent_id: "local_ollama".into(),
-            candidate_id: None,
-            display_name: "Ollama".into(),
-            agent_type: AgentKind::LocalModelServer,
-            trust_level: "High".into(),
-            confidence: 0.95,
-            risk_score: 1,
-            process: None,
-            config_surfaces: vec![],
-            mcp_surfaces: vec![],
-            model_endpoints: vec![ModelEndpointSurface {
-                endpoint_url: "http://127.0.0.1:11434".into(),
-                protocol: "http".into(),
-                models_known: vec![],
-            }],
-            browser_surfaces: vec![],
-            file_surfaces: vec![],
-            network_surfaces: vec![],
-            supported_pep_bindings: vec![],
-            supported_pdp_routes: vec![],
-            telemetry_capabilities: TelemetryCapabilities {
-                emits_tool_logs: false,
-                emits_resource_logs: false,
-                emits_decision_logs: false,
-                emits_network_logs: false,
-                format: "json".into(),
-            },
-            last_scan_id: "".into(),
-            last_seen_at: "".into(),
-        },
-    ];
+    // Fetch registered agents from the registry store
+    let agents = st.registry_store.list_agent_inventories("local").await.unwrap_or_default();
 
     LocalCapabilitySnapshot {
         snapshot_id: Uuid::new_v4().to_string(),
@@ -196,7 +117,7 @@ fn generate_real_snapshot() -> LocalCapabilitySnapshot {
 }
 
 async fn scan(State(st): State<AppState>) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
-    let snapshot = generate_real_snapshot();
+    let snapshot = generate_real_snapshot(&st).await;
     let mut lock = st.latest_snapshot.write().await;
     *lock = Some(snapshot);
 
@@ -213,7 +134,7 @@ async fn get_latest_snapshot(
     match &*lock {
         Some(snapshot) => Ok((StatusCode::OK, Json(snapshot.clone()))),
         None => {
-            let fresh = generate_real_snapshot();
+            let fresh = generate_real_snapshot(&st).await;
             Ok((StatusCode::OK, Json(fresh)))
         }
     }
@@ -225,7 +146,7 @@ async fn get_policy_suggestions(
     let lock = st.latest_snapshot.read().await;
     let snapshot = match &*lock {
         Some(s) => s.clone(),
-        None => generate_real_snapshot(),
+        None => generate_real_snapshot(&st).await,
     };
 
     let suggester = FeasibilitySuggester;
@@ -241,7 +162,7 @@ async fn evaluate_feasibility(
     let lock = st.latest_snapshot.read().await;
     let snapshot = match &*lock {
         Some(s) => s.clone(),
-        None => generate_real_snapshot(),
+        None => generate_real_snapshot(&st).await,
     };
 
     let result = dek_deployment_planner::evaluate_policy_feasibility(req, &snapshot);
