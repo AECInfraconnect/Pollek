@@ -3,20 +3,18 @@ export type LocalizedText = {
   th: string;
 };
 
-export enum DeploymentPhase {
-  AgentDiscovery = 'agent_discovery',
-  RoutePlanning = 'route_planning',
-  PepDeploy = 'pep_deploy',
-  Enforcement = 'enforcement',
-  Rollback = 'rollback',
-}
+export type DeploymentPhase =
+  | 'agent_discovery'
+  | 'route_planning'
+  | 'pep_deploy'
+  | 'enforcement'
+  | 'rollback';
 
-export enum EventStatus {
-  Info = 'info',
-  Success = 'success',
-  Warning = 'warning',
-  Error = 'error',
-}
+export type EventStatus =
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'error';
 
 export type UserActionKind = 'RequireAuth' | 'RequireApproval' | 'RequireConfig';
 
@@ -42,17 +40,16 @@ export type DeploymentEvent = {
   correlation_id: string;
 };
 
-export enum DeploymentSessionStatus {
-  Draft = 'draft',
-  Planning = 'planning',
-  Deploying = 'deploying',
-  WaitingForUserAction = 'waiting_for_user_action',
-  Active = 'active',
-  PartiallyActive = 'partially_active',
-  ActiveObserveOnly = 'active_observe_only',
-  Failed = 'failed',
-  RolledBack = 'rolled_back',
-}
+export type DeploymentSessionStatus =
+  | 'draft'
+  | 'planning'
+  | 'deploying'
+  | 'waiting_for_user_action'
+  | 'active'
+  | 'partially_active'
+  | 'active_observe_only'
+  | 'failed'
+  | 'rolled_back';
 
 export type EnforcementLayer =
   | 'browser_extension'

@@ -6,9 +6,8 @@ use dek_domain_schema::capabilities::{
 };
 use dek_domain_schema::control_level::ControlLevel;
 use dek_domain_schema::deployment_session::{
-    DeploymentSession, EnforcementLayer, FallbackPlan, LocalizedText,
-    ObservabilityPath, PdpEngine, PdpRouteMode, PdpSelection, PepSelection, RoutingPlan,
-    UserAction, UserMessage,
+    DeploymentSession, EnforcementLayer, FallbackPlan, LocalizedText, ObservabilityPath, PdpEngine,
+    PdpRouteMode, PdpSelection, PepSelection, RoutingPlan, UserAction, UserMessage,
 };
 
 #[derive(Debug)]
@@ -86,7 +85,9 @@ impl RoutePlanner {
         Ok(RoutingPlan {
             deployment_id: session.deployment_id.clone(),
             agent_id: match &session.target_scope {
-                dek_domain_schema::deployment_session::DeploymentScope::Agent { agent_id } => agent_id.clone(),
+                dek_domain_schema::deployment_session::DeploymentScope::Agent { agent_id } => {
+                    agent_id.clone()
+                }
                 _ => "unknown".into(), // Simplified
             },
             selected_pep: pep,
@@ -165,10 +166,16 @@ impl RoutePlanner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dek_domain_schema::capabilities::{CapabilityStatus, DeviceCapabilityReport, OsProfile, PdpCapabilityStatus, PepCapabilityStatus};
-    use dek_domain_schema::control_level::ControlLevel;
-    use dek_domain_schema::deployment_session::{DeploymentScope, DeploymentSession, DeploymentSessionStatus, EnforcementLayer, LocalizedText, PdpEngine};
     use chrono::Utc;
+    use dek_domain_schema::capabilities::{
+        CapabilityStatus, DeviceCapabilityReport, OsProfile, PdpCapabilityStatus,
+        PepCapabilityStatus,
+    };
+    use dek_domain_schema::control_level::ControlLevel;
+    use dek_domain_schema::deployment_session::{
+        DeploymentScope, DeploymentSession, DeploymentSessionStatus, EnforcementLayer,
+        LocalizedText, PdpEngine,
+    };
 
     fn make_session(level: ControlLevel) -> DeploymentSession {
         DeploymentSession {
@@ -176,7 +183,9 @@ mod tests {
             policy_id: "pol1".into(),
             policy_version: "v1".into(),
             requested_control_level: level,
-            target_scope: DeploymentScope::Agent { agent_id: "ag1".into() },
+            target_scope: DeploymentScope::Agent {
+                agent_id: "ag1".into(),
+            },
             status: DeploymentSessionStatus::Planning,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -185,15 +194,22 @@ mod tests {
     }
 
     fn make_text() -> LocalizedText {
-        LocalizedText { en: "test".into(), th: "ทดสอบ".into() }
+        LocalizedText {
+            en: "test".into(),
+            th: "ทดสอบ".into(),
+        }
     }
 
     #[test]
-    fn test_permutation_1_linux_ebpf_cedar_enforce() {
+    fn test_permutation_1_linux_ebpf_cedar_enforce() -> Result<(), RouteError> {
         let session = make_session(ControlLevel::Enforce);
         let caps = DeviceCapabilityReport {
             device_id: "d1".into(),
-            os: OsProfile { r#type: "linux".into(), version: "1".into(), arch: "x86".into() },
+            os: OsProfile {
+                r#type: "linux".into(),
+                version: "1".into(),
+                arch: "x86".into(),
+            },
             peps: vec![PepCapabilityStatus {
                 layer: EnforcementLayer::EbpfNetwork,
                 status: CapabilityStatus::Ready,
@@ -212,18 +228,23 @@ mod tests {
             scanned_at: Utc::now(),
         };
 
-        let plan = RoutePlanner::plan_route(&session, &caps).unwrap();
+        let plan = RoutePlanner::plan_route(&session, &caps)?;
         assert_eq!(plan.selected_pep.layer, EnforcementLayer::EbpfNetwork);
         assert_eq!(plan.selected_pdp.engine, PdpEngine::Cedar);
         assert_eq!(plan.effective_control_level, ControlLevel::Enforce);
+        Ok(())
     }
 
     #[test]
-    fn test_permutation_2_windows_wfp_observe() {
+    fn test_permutation_2_windows_wfp_observe() -> Result<(), RouteError> {
         let session = make_session(ControlLevel::Enforce);
         let caps = DeviceCapabilityReport {
             device_id: "d2".into(),
-            os: OsProfile { r#type: "windows".into(), version: "10".into(), arch: "x64".into() },
+            os: OsProfile {
+                r#type: "windows".into(),
+                version: "10".into(),
+                arch: "x64".into(),
+            },
             peps: vec![PepCapabilityStatus {
                 layer: EnforcementLayer::WindowsWfp,
                 status: CapabilityStatus::ReadyRequiresApproval,
@@ -242,17 +263,22 @@ mod tests {
             scanned_at: Utc::now(),
         };
 
-        let plan = RoutePlanner::plan_route(&session, &caps).unwrap();
+        let plan = RoutePlanner::plan_route(&session, &caps)?;
         assert_eq!(plan.selected_pep.layer, EnforcementLayer::WindowsWfp);
         assert_eq!(plan.effective_control_level, ControlLevel::Observe);
+        Ok(())
     }
 
     #[test]
-    fn test_permutation_3_macos_nefilter_missing_driver() {
+    fn test_permutation_3_macos_nefilter_missing_driver() -> Result<(), RouteError> {
         let session = make_session(ControlLevel::Enforce);
         let caps = DeviceCapabilityReport {
             device_id: "d3".into(),
-            os: OsProfile { r#type: "macos".into(), version: "14".into(), arch: "arm64".into() },
+            os: OsProfile {
+                r#type: "macos".into(),
+                version: "14".into(),
+                arch: "arm64".into(),
+            },
             peps: vec![PepCapabilityStatus {
                 layer: EnforcementLayer::MacosNetworkExtension,
                 status: CapabilityStatus::MissingDriver,
@@ -271,17 +297,25 @@ mod tests {
             scanned_at: Utc::now(),
         };
 
-        let plan = RoutePlanner::plan_route(&session, &caps).unwrap();
-        assert_eq!(plan.selected_pep.layer, EnforcementLayer::MacosNetworkExtension);
+        let plan = RoutePlanner::plan_route(&session, &caps)?;
+        assert_eq!(
+            plan.selected_pep.layer,
+            EnforcementLayer::MacosNetworkExtension
+        );
         assert_eq!(plan.effective_control_level, ControlLevel::Observe);
+        Ok(())
     }
 
     #[test]
-    fn test_permutation_4_cloud_fallback_pdp() {
+    fn test_permutation_4_cloud_fallback_pdp() -> Result<(), RouteError> {
         let session = make_session(ControlLevel::Enforce);
         let caps = DeviceCapabilityReport {
             device_id: "d4".into(),
-            os: OsProfile { r#type: "linux".into(), version: "1".into(), arch: "x86".into() },
+            os: OsProfile {
+                r#type: "linux".into(),
+                version: "1".into(),
+                arch: "x86".into(),
+            },
             peps: vec![PepCapabilityStatus {
                 layer: EnforcementLayer::EbpfNetwork,
                 status: CapabilityStatus::Ready,
@@ -300,18 +334,23 @@ mod tests {
             scanned_at: Utc::now(),
         };
 
-        let plan = RoutePlanner::plan_route(&session, &caps).unwrap();
+        let plan = RoutePlanner::plan_route(&session, &caps)?;
         assert_eq!(plan.selected_pep.layer, EnforcementLayer::EbpfNetwork);
         assert_eq!(plan.selected_pdp.engine, PdpEngine::Cloud);
         assert_eq!(plan.effective_control_level, ControlLevel::Enforce);
+        Ok(())
     }
 
     #[test]
-    fn test_permutation_5_mcp_proxy() {
+    fn test_permutation_5_mcp_proxy() -> Result<(), RouteError> {
         let session = make_session(ControlLevel::Enforce);
         let caps = DeviceCapabilityReport {
             device_id: "d5".into(),
-            os: OsProfile { r#type: "windows".into(), version: "10".into(), arch: "x64".into() },
+            os: OsProfile {
+                r#type: "windows".into(),
+                version: "10".into(),
+                arch: "x64".into(),
+            },
             peps: vec![PepCapabilityStatus {
                 layer: EnforcementLayer::McpProxy,
                 status: CapabilityStatus::Ready,
@@ -330,10 +369,11 @@ mod tests {
             scanned_at: Utc::now(),
         };
 
-        let plan = RoutePlanner::plan_route(&session, &caps).unwrap();
+        let plan = RoutePlanner::plan_route(&session, &caps)?;
         assert_eq!(plan.selected_pep.layer, EnforcementLayer::McpProxy);
         assert_eq!(plan.selected_pdp.engine, PdpEngine::Cedar);
         assert_eq!(plan.effective_control_level, ControlLevel::Enforce);
+        Ok(())
     }
 
     #[test]
@@ -341,7 +381,11 @@ mod tests {
         let session = make_session(ControlLevel::Observe);
         let caps = DeviceCapabilityReport {
             device_id: "d6".into(),
-            os: OsProfile { r#type: "linux".into(), version: "1".into(), arch: "x86".into() },
+            os: OsProfile {
+                r#type: "linux".into(),
+                version: "1".into(),
+                arch: "x86".into(),
+            },
             peps: vec![],
             pdps: vec![PdpCapabilityStatus {
                 engine: PdpEngine::Cedar,

@@ -16,8 +16,8 @@ pub mod context;
 pub mod engine;
 pub mod engine_plan;
 pub mod merge;
-pub mod route_matcher;
 pub mod message_catalog;
+pub mod route_matcher;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]

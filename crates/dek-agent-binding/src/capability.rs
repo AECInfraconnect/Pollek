@@ -43,7 +43,10 @@ pub struct EgressTarget {
     pub purpose: String,
 }
 
-pub fn capabilities_from_discovery(sig: &AgentSignatureV2, discovered_surfaces: Vec<Surface>) -> CapabilityDescriptor {
+pub fn capabilities_from_discovery(
+    sig: &AgentSignatureV2,
+    discovered_surfaces: Vec<Surface>,
+) -> CapabilityDescriptor {
     let mut surfaces: Vec<Surface> = sig
         .control_strategies
         .iter()

@@ -24,7 +24,9 @@ impl std::str::FromStr for ProfileMode {
             "local" => Ok(ProfileMode::Local),
             "cloud" => Ok(ProfileMode::Cloud),
             "sovereign" => Ok(ProfileMode::Sovereign),
-            other => anyhow::bail!("unknown profile mode '{other}' (expected 'local', 'cloud', or 'sovereign')"),
+            other => anyhow::bail!(
+                "unknown profile mode '{other}' (expected 'local', 'cloud', or 'sovereign')"
+            ),
         }
     }
 }

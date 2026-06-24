@@ -65,22 +65,16 @@ impl PepWarmCheck for McpStdioWrapperWarmCheck {
 pub async fn run_warm_check(plan: &RoutingPlan) -> Result<(), String> {
     match plan.selected_pep.layer {
         EnforcementLayer::McpProxy => {
-            McpProxyWarmCheck::new("http://127.0.0.1:4000".into()).warm_check(plan).await
+            McpProxyWarmCheck::new("http://127.0.0.1:4000".into())
+                .warm_check(plan)
+                .await
         }
-        EnforcementLayer::McpStdioWrapper => {
-            McpStdioWrapperWarmCheck.warm_check(plan).await
-        }
-        EnforcementLayer::EbpfNetwork => {
-            EbpfNetworkWarmCheck.warm_check(plan).await
-        }
-        EnforcementLayer::WindowsWfp => {
-            WindowsWfpWarmCheck.warm_check(plan).await
-        }
-        EnforcementLayer::MacosNetworkExtension => {
-            MacosNeFilterWarmCheck.warm_check(plan).await
-        }
-        EnforcementLayer::ObserveOnly | EnforcementLayer::HttpProxy | EnforcementLayer::BrowserExtension => {
-            Ok(())
-        }
+        EnforcementLayer::McpStdioWrapper => McpStdioWrapperWarmCheck.warm_check(plan).await,
+        EnforcementLayer::EbpfNetwork => EbpfNetworkWarmCheck.warm_check(plan).await,
+        EnforcementLayer::WindowsWfp => WindowsWfpWarmCheck.warm_check(plan).await,
+        EnforcementLayer::MacosNetworkExtension => MacosNeFilterWarmCheck.warm_check(plan).await,
+        EnforcementLayer::ObserveOnly
+        | EnforcementLayer::HttpProxy
+        | EnforcementLayer::BrowserExtension => Ok(()),
     }
 }

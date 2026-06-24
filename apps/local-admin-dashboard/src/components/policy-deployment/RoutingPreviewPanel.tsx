@@ -1,5 +1,5 @@
 import React from 'react';
-import { RoutingPlan } from '../../types/deployment';
+import type { RoutingPlan } from '../../types/deployment';
 
 interface Props {
   plan: RoutingPlan;

@@ -29,9 +29,18 @@ fn main() {
         ("policy.schema.json", schema_for!(Policy)),
         ("pep-deployment.schema.json", schema_for!(PepDeployment)),
         ("telemetry-event.schema.json", schema_for!(TelemetryEvent)),
-        ("deployment-session.schema.json", schema_for!(dek_domain_schema::DeploymentSession)),
-        ("deployment-event.schema.json", schema_for!(dek_domain_schema::DeploymentEvent)),
-        ("routing-plan.schema.json", schema_for!(dek_domain_schema::RoutingPlan)),
+        (
+            "deployment-session.schema.json",
+            schema_for!(dek_domain_schema::DeploymentSession),
+        ),
+        (
+            "deployment-event.schema.json",
+            schema_for!(dek_domain_schema::DeploymentEvent),
+        ),
+        (
+            "routing-plan.schema.json",
+            schema_for!(dek_domain_schema::RoutingPlan),
+        ),
     ];
 
     for (filename, schema) in schemas {

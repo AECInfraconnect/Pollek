@@ -3,6 +3,7 @@
 This guide will walk you through the process of setting up and running Pollen DEK.
 
 ## Prerequisites
+
 - Windows, macOS, or Linux.
 - Administrator / root privileges for installation.
 - (Optional) Docker for running local mock dependencies.
@@ -11,11 +12,13 @@ This guide will walk you through the process of setting up and running Pollen DE
 
 Run the installer script:
 For Windows (PowerShell as Administrator):
+
 ```powershell
 .\scripts\windows_install.ps1
 ```
 
 For Linux/macOS:
+
 ```bash
 sudo ./scripts/install.sh
 ```
@@ -29,11 +32,13 @@ pollen-dek wizard
 ```
 
 This will launch a local web UI where you can:
+
 1. Accept the EULA and Privacy Notice.
 2. Select your Deployment Profile (Sovereign Mode vs Cloud-Managed).
 3. Authorize the first scan of local AI agents.
 
 Alternatively, you can accept the agreements via the CLI:
+
 ```bash
 pollen-dek agree
 ```
@@ -51,12 +56,14 @@ This will configure the DEK to not send telemetry to the cloud and block egress 
 ## Verify Installation
 
 To check if the DEK is healthy and running:
+
 ```bash
 pollen-dek status
 pollen-dek health
 ```
 
 To run diagnostic checks on your environment:
+
 ```bash
 pollen-dek doctor
 ```

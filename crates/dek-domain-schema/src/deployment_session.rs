@@ -5,8 +5,8 @@ use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::control_level::ControlLevel;
 use crate::capabilities::CapabilityStatus;
+use crate::control_level::ControlLevel;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct DeploymentSession {

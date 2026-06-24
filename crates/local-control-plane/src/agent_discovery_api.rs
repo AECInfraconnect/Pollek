@@ -359,7 +359,14 @@ async fn register_candidate(
 
     // Create AgentBinding preserving discovered capabilities
     if let Some(sig_id) = &candidate.matched_signature_id {
-        if let Some(sig) = st.def_store.get().signatures.iter().find(|s| s.id == *sig_id).cloned() {
+        if let Some(sig) = st
+            .def_store
+            .get()
+            .signatures
+            .iter()
+            .find(|s| s.id == *sig_id)
+            .cloned()
+        {
             let mut surfaces = Vec::new();
             for mcp in &candidate.discovered_mcp_servers {
                 let s = match mcp.transport.as_str() {
@@ -384,9 +391,11 @@ async fn register_candidate(
                 &candidate.device_id,
                 surfaces,
             );
-            
-            let binding_val = serde_json::to_value(&binding).map_err(|e| ApiError::Internal(e.into()))?;
-            let _ = st.registry_store
+
+            let binding_val =
+                serde_json::to_value(&binding).map_err(|e| ApiError::Internal(e.into()))?;
+            let _ = st
+                .registry_store
                 .upsert_raw(&tenant, "agent_binding", &binding.binding_id, &binding_val)
                 .await;
         }

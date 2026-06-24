@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { RoutingPreviewPanel } from './RoutingPreviewPanel';
 import { AgentDeploymentTimeline } from './AgentDeploymentTimeline';
-import { DeploymentSession, DeploymentSessionStatus, DeploymentEvent, RoutingPlan } from '../../types/deployment';
+import type { DeploymentSession, DeploymentEvent } from '../../types/deployment';
 
 interface Props {
   session: DeploymentSession;
@@ -11,9 +11,9 @@ interface Props {
 }
 
 export const PolicyDeploymentWizard: React.FC<Props> = ({ session, events, onDeploy, onCancel }) => {
-  const isDraft = session.status === DeploymentSessionStatus.Draft;
-  const isPlanning = session.status === DeploymentSessionStatus.Planning;
-  const isActive = session.status === DeploymentSessionStatus.Active || session.status === DeploymentSessionStatus.PartiallyActive;
+  const isDraft = session.status === 'draft';
+  const isPlanning = session.status === 'planning';
+  const isActive = session.status === 'active' || session.status === 'partially_active';
 
   return (
     <div className="max-w-4xl mx-auto py-8">

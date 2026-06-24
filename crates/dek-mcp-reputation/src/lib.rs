@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use anyhow::{Context, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReputationEntry {

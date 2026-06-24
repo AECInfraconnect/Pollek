@@ -124,14 +124,16 @@ mod tests {
             let schema_json: Value = serde_json::from_str(&schema_str)?;
             let fixture_json: Value = serde_json::from_str(&fixture_str)?;
 
-            let compiled = jsonschema::validator_for(&schema_json).map_err(|_| "Invalid JSON schema")?;
+            let compiled =
+                jsonschema::validator_for(&schema_json).map_err(|_| "Invalid JSON schema")?;
             assert!(
                 compiled.is_valid(&fixture_json),
                 "Fixture {} failed validation against {}",
-                fixture_name, schema_name
+                fixture_name,
+                schema_name
             );
         }
-        
+
         Ok(())
     }
 }

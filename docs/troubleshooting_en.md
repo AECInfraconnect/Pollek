@@ -27,10 +27,10 @@
 **Symptom**: Network egress is not blocked despite policy.
 **Fix**: Verify Local Enforcement Kit is running with root privileges (`CAP_BPF` and `CAP_NET_ADMIN`). Check `dmesg` or `journalctl -u Pollek-Local Enforcement Kit` for BPF verifier errors.
 
-
 ## Preflight Doctor Checks
 
 If \pollen-dek doctor\ fails, review the check that failed. Common issues:
+
 - **WinDivert missing**: Re-run the installer as Administrator.
 - **Port 43889 in use**: Check \
 etstat -ano | findstr 43889\ and kill the conflicting process.

@@ -22,20 +22,14 @@ impl MessageCatalog {
             en: format!(
                 "POLLEK selected MCP Proxy for {agent_name} because this agent uses MCP over HTTP."
             ),
-            th: format!(
-                "ระบบเลือก MCP Proxy สำหรับ {agent_name} เพราะ Agent นี้ใช้ MCP ผ่าน HTTP"
-            ),
+            th: format!("ระบบเลือก MCP Proxy สำหรับ {agent_name} เพราะ Agent นี้ใช้ MCP ผ่าน HTTP"),
         }
     }
 
     pub fn pep_selected_network(agent_name: &str) -> LocalizedText {
         LocalizedText {
-            en: format!(
-                "Selected the OS network enforcement layer for {agent_name}."
-            ),
-            th: format!(
-                "เลือกชั้นควบคุม network ของ OS สำหรับ {agent_name}"
-            ),
+            en: format!("Selected the OS network enforcement layer for {agent_name}."),
+            th: format!("เลือกชั้นควบคุม network ของ OS สำหรับ {agent_name}"),
         }
     }
 
@@ -80,7 +74,8 @@ impl MessageCatalog {
 
     pub fn pdp_observe_only() -> LocalizedText {
         LocalizedText {
-            en: "Selected observe-only routing because no active enforcement layer is ready.".into(),
+            en: "Selected observe-only routing because no active enforcement layer is ready."
+                .into(),
             th: "เลือก observe-only routing เพราะยังไม่มี enforcement layer ที่พร้อมใช้งาน".into(),
         }
     }

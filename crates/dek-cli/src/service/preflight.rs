@@ -316,12 +316,19 @@ mod tests {
     #[test]
     fn test_check_optional_tool_missing() {
         // Assume 'non_existent_tool_12345' is not installed
-        let result = check_optional_tool("non_existent_tool_12345", "test description", "http://example.com");
+        let result = check_optional_tool(
+            "non_existent_tool_12345",
+            "test description",
+            "http://example.com",
+        );
         assert_eq!(result.id, "optional_tool");
         assert_eq!(result.status, CheckStatus::Warn);
         assert!(!result.blocking);
         assert!(result.remediation.is_some());
-        assert_eq!(result.remediation.unwrap().url.unwrap(), "http://example.com");
+        assert_eq!(
+            result.remediation.unwrap().url.unwrap(),
+            "http://example.com"
+        );
     }
 
     #[test]

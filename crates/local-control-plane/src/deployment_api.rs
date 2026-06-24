@@ -29,26 +29,46 @@ impl DeploymentEventSink for StoreEventSink {
         let store = self.store.clone();
         let tenant_id = self.tenant_id.clone();
         let payload = serde_json::to_value(&event).unwrap_or_default();
-        let _ = store.put_telemetry(&tenant_id, "deployment_event", &event.event_id, &payload).await;
+        let _ = store
+            .put_telemetry(&tenant_id, "deployment_event", &event.event_id, &payload)
+            .await;
         Ok(())
     }
 }
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route("/v1/tenants/:tenant/policies/:policy_id/deploy-plan", post(create_deploy_plan))
+        .route(
+            "/v1/tenants/:tenant/policies/:policy_id/deploy-plan",
+            post(create_deploy_plan),
+        )
         .route("/v1/tenants/:tenant/deployments", post(create_deployment))
-        .route("/v1/tenants/:tenant/deployments/:deployment_id", get(get_deployment))
-        .route("/v1/tenants/:tenant/deployments/:deployment_id/events", get(get_deployment_events))
+        .route(
+            "/v1/tenants/:tenant/deployments/:deployment_id",
+            get(get_deployment),
+        )
+        .route(
+            "/v1/tenants/:tenant/deployments/:deployment_id/events",
+            get(get_deployment_events),
+        )
         .route(
             "/v1/tenants/:tenant/deployments/:deployment_id/actions/:action_id/approve",
             post(approve_action),
         )
-        .route("/v1/tenants/:tenant/deployments/:deployment_id/retry", post(retry_deployment))
-        .route("/v1/tenants/:tenant/deployments/:deployment_id/rollback", post(rollback_deployment))
+        .route(
+            "/v1/tenants/:tenant/deployments/:deployment_id/retry",
+            post(retry_deployment),
+        )
+        .route(
+            "/v1/tenants/:tenant/deployments/:deployment_id/rollback",
+            post(rollback_deployment),
+        )
         .route("/v1/agents/:agent_id/timeline", get(get_agent_timeline))
         .route("/v1/capabilities/local", get(get_local_capabilities))
-        .route("/v1/enforcement-layers/status", get(get_enforcement_layers_status))
+        .route(
+            "/v1/enforcement-layers/status",
+            get(get_enforcement_layers_status),
+        )
         .route("/v1/system/profile", get(get_system_profile))
 }
 
@@ -77,15 +97,23 @@ async fn create_deploy_plan(
 }
 
 async fn get_system_profile() -> ApiResult<Json<serde_json::Value>> {
-    let path_str = dek_config::paths::get_bootstrap_path().to_string_lossy().into_owned();
-    let cfg = dek_config::BootstrapConfig::load_or_default(&path_str).unwrap_or_else(|_| dek_config::BootstrapConfig {
-        device_id: "unknown".into(),
-        mtls: dek_config::MtlsConfig { client_cert_path: "".into(), client_key_path: "".into(), root_ca_path: "".into() },
-        pinned_bundle_public_key: "".into(),
-        cloud_url: "http://127.0.0.1:3000".into(),
-        spiffe_id: None,
-        tenant_id: Some("local".into()),
-        local_api_token: None,
+    let path_str = dek_config::paths::get_bootstrap_path()
+        .to_string_lossy()
+        .into_owned();
+    let cfg = dek_config::BootstrapConfig::load_or_default(&path_str).unwrap_or_else(|_| {
+        dek_config::BootstrapConfig {
+            device_id: "unknown".into(),
+            mtls: dek_config::MtlsConfig {
+                client_cert_path: "".into(),
+                client_key_path: "".into(),
+                root_ca_path: "".into(),
+            },
+            pinned_bundle_public_key: "".into(),
+            cloud_url: "http://127.0.0.1:3000".into(),
+            spiffe_id: None,
+            tenant_id: Some("local".into()),
+            local_api_token: None,
+        }
     });
 
     let mode = match cfg.tenant_id.as_deref() {
@@ -118,7 +146,7 @@ async fn create_deployment(
         tenant_id: tenant.clone(),
     });
     let orchestrator = DeploymentOrchestrator::new(sink.clone());
-    
+
     // Perform warm check
     let device_caps = dek_capability_registry::detect::detect_pep_capabilities();
     let caps_report = dek_domain_schema::capabilities::DeviceCapabilityReport {
@@ -151,7 +179,9 @@ async fn create_deployment(
         scanned_at: chrono::Utc::now(),
     };
 
-    if let Ok(_plan) = dek_policy_router::route_planner::RoutePlanner::plan_route(&session, &caps_report) {
+    if let Ok(_plan) =
+        dek_policy_router::route_planner::RoutePlanner::plan_route(&session, &caps_report)
+    {
         sink.emit(DeploymentEvent {
             event_id: Uuid::new_v4().to_string(),
             deployment_id: session.deployment_id.clone(),
@@ -172,23 +202,31 @@ async fn create_deployment(
             user_action: None,
             created_at: chrono::Utc::now(),
             correlation_id: session.deployment_id.clone(),
-        }).await.unwrap_or_default();
+        })
+        .await
+        .unwrap_or_default();
 
         // Simulate warm check
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         let warm_check_ok = true;
-        
+
         if !warm_check_ok {
-            orchestrator.transition(&mut session, DeploymentSessionStatus::Failed).await
+            orchestrator
+                .transition(&mut session, DeploymentSessionStatus::Failed)
+                .await
                 .map_err(|e| ApiError::Internal(anyhow::anyhow!(e)))?;
             return Err(ApiError::Internal(anyhow::anyhow!("Warm check failed")));
         }
     }
 
-    orchestrator.transition(&mut session, DeploymentSessionStatus::Active).await
+    orchestrator
+        .transition(&mut session, DeploymentSessionStatus::Active)
+        .await
         .map_err(|e| ApiError::Internal(anyhow::anyhow!(e)))?;
 
-    Ok(Json(serde_json::json!({ "deployment_id": session.deployment_id, "status": "Active" })))
+    Ok(Json(
+        serde_json::json!({ "deployment_id": session.deployment_id, "status": "Active" }),
+    ))
 }
 
 async fn get_deployment(
@@ -253,18 +291,14 @@ async fn get_agent_timeline(
     })))
 }
 
-async fn get_local_capabilities(
-    State(_st): State<AppState>,
-) -> ApiResult<Json<Value>> {
+async fn get_local_capabilities(State(_st): State<AppState>) -> ApiResult<Json<Value>> {
     let caps = dek_capability_registry::detect::detect_pep_capabilities();
     Ok(Json(serde_json::json!({
         "peps": caps
     })))
 }
 
-async fn get_enforcement_layers_status(
-    State(_st): State<AppState>,
-) -> ApiResult<Json<Value>> {
+async fn get_enforcement_layers_status(State(_st): State<AppState>) -> ApiResult<Json<Value>> {
     let caps = dek_capability_registry::detect::detect_pep_capabilities();
     Ok(Json(serde_json::json!({
         "layers": caps
