@@ -15,6 +15,7 @@ pub struct AppState {
     pub telemetry_store: Arc<dyn store::TelemetryStore>,
     pub pdp_store: Arc<dyn store::PdpStore>,
     pub observability_store: Arc<dyn store::ObservabilityStore>,
+    pub deployment_store: Arc<dyn store::DeploymentStore>,
     pub signer: Arc<LocalSigner>,
     pub build_number: Arc<AtomicU64>,
     pub api_token: String,

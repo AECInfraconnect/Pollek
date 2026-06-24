@@ -30,46 +30,31 @@ impl DeploymentEventSink for MemoryEventSink {
 }
 
 pub struct StoreEventSink {
-    // In a real implementation, this would hold database pool and telemetry spool references.
-}
-
-impl Default for StoreEventSink {
-    fn default() -> Self {
-        Self::new()
-    }
+    store: std::sync::Arc<dyn crate::store::DeploymentStore>,
 }
 
 impl StoreEventSink {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(store: std::sync::Arc<dyn crate::store::DeploymentStore>) -> Self {
+        Self { store }
     }
 }
 
 impl DeploymentEventSink for StoreEventSink {
     async fn emit(&self, event: DeploymentEvent) -> anyhow::Result<()> {
-        // Pseudo-code for secure telemetry and timeline integration:
-        // 1. Write to local event store (SQLite) for the timeline view.
-        // 2. Write to secure telemetry spool for cloud/admin sync.
-
-        // Ensure correlation ID, policy ID, and agent/entity IDs are present.
-        let _correlation_id = &event.correlation_id;
-        let _policy_id = &event.policy_id;
-        let _agent_id = &event.agent_id;
-
-        // Emitting to local log
         tracing::debug!("Emitting deployment event: {:?}", event.event_id);
-
+        self.store.insert_deployment_event(event).await?;
         Ok(())
     }
 }
 
 pub struct DeploymentOrchestrator<T: DeploymentEventSink> {
     event_sink: std::sync::Arc<T>,
+    store: std::sync::Arc<dyn crate::store::DeploymentStore>,
 }
 
 impl<T: DeploymentEventSink> DeploymentOrchestrator<T> {
-    pub fn new(event_sink: std::sync::Arc<T>) -> Self {
-        Self { event_sink }
+    pub fn new(event_sink: std::sync::Arc<T>, store: std::sync::Arc<dyn crate::store::DeploymentStore>) -> Self {
+        Self { event_sink, store }
     }
 
     pub async fn transition(
@@ -122,6 +107,7 @@ impl<T: DeploymentEventSink> DeploymentOrchestrator<T> {
         };
 
         self.event_sink.emit(event).await?;
+        self.store.upsert_deployment_session(session.clone()).await?;
         Ok(())
     }
 }

@@ -204,8 +204,7 @@ pub fn build_feasibility_result(
     candidate: (ControlMethodPlan, PolicyFeasibilityStatus),
 ) -> PolicyFeasibilityResult {
     let (plan, status) = candidate;
-    let negotiation =
-        negotiate_control_level(req.requested_control_level, &plan.enforceability);
+    let negotiation = negotiate_control_level(req.requested_control_level, &plan.enforceability);
 
     PolicyFeasibilityResult {
         target,

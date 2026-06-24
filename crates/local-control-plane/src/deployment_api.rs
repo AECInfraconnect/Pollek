@@ -145,7 +145,7 @@ async fn create_deployment(
         store: st.telemetry_store.clone(),
         tenant_id: tenant.clone(),
     });
-    let orchestrator = DeploymentOrchestrator::new(sink.clone());
+    let orchestrator = DeploymentOrchestrator::new(sink.clone(), st.deployment_store.clone());
 
     // Perform warm check
     let device_caps = dek_capability_registry::detect::detect_pep_capabilities();
