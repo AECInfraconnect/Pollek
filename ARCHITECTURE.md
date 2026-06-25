@@ -5,6 +5,33 @@ Decision Point (PDP)**, built as a multi-crate workspace. It enforces signed
 policy bundles produced by a control plane — either the local-first **Local
 Control Plane** or **Pollek Cloud** — over one shared contract.
 
+## Local Flow (Policy-First / PEP-Transparent)
+The core workflow on the desktop is designed so the user never configures a PEP directly. The process flows through the Control Plane and Enforcement API seamlessly:
+
+```mermaid
+sequenceDiagram
+    participant UI as Dashboard
+    participant Disc as Agent Discovery
+    participant Plan as Deployment Planner
+    participant PEP as Local PEP (eBPF/WFP/MCP)
+    
+    UI->>Disc: 1. Start Scan Session
+    Disc-->>UI: DiscoveredAgentCandidateV2 (with suggested bindings)
+    UI->>Plan: 2. Feasibility Check (want: Enforce)
+    Plan-->>UI: PolicyFeasibilityResult (achievable level + capability gaps)
+    UI->>Plan: 3. Create Deployment Session
+    Plan->>PEP: 4. Warm Check (verify method actually works)
+    PEP-->>Plan: WarmCheckResult (Ok/Degraded/Failed)
+    Plan-->>UI: Status: Active (or ObserveOnly if degraded)
+```
+
+1. **Scan Session**: Discovers agents (via eBPF/WFP/session readers) and resolves identities.
+2. **Capability Snapshot**: Checks the system's capabilities (e.g., is WFP available? is it elevated?).
+3. **Feasibility**: Compares the user's desired `ControlLevel` with what the PEP can actually do.
+4. **Deployment Session**: A state machine that safely transitions the policy to the PEP.
+5. **Warm Check**: Tests if the PEP is actually healthy (e.g. dummy MCP ping) before marking `Active`.
+6. **Observe**: If enforcement fails, it explicitly degrades to `ObserveOnly` rather than silently failing.
+
 ## Dual-mode design
 
 |            | Local (OSS)                     | Cloud (commercial)                           |

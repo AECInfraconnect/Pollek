@@ -6,6 +6,14 @@
 - พื้นที่จัดเก็บ: ว่าง 100MB
 - สิทธิ์: ต้องการสิทธิ์ Administrator/root
 
+> **หมายเหตุสำหรับ Simple Mode**: หากคุณใช้งาน Pollek ใน **Simple Mode** คุณ**ไม่ต้อง**ตั้งค่า PEP (เช่น eBPF หรือ WFP) ที่ซับซ้อนใดๆ ระบบจะจัดการเรื่อง Enforcement ให้ทำงานอัตโนมัติตาม OS และสิทธิ์ที่คุณมีอย่างแนบเนียน
+
+## Preflight Check
+รันเครื่องมือ doctor ก่อนทำการติดตั้งเพื่อตรวจสอบว่าระบบของคุณรองรับหรือไม่:
+```bash
+pollek-dekctl doctor
+```
+
 ## การติดตั้งบน Windows
 
 1. ดาวน์โหลด `Pollek-dek-x86_64-pc-windows-msvc.msi` จากหน้า GitHub Releases

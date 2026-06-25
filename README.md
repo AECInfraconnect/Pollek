@@ -11,6 +11,13 @@
 
 It is an Apache-2.0 runtime that **enforces and observes AI-agent, MCP, API, and tool-call activity at the desktop/edge**. It runs **fully locally** with the built-in Local Admin Dashboard, or connects to **Pollek Cloud** (commercial) for managed multi-tenant policy, observability, and compliance. The Local Enforcement Kit speaks **one contract** to both — switching targets changes only the endpoint + trust store, never the enforcement code.
 
+### Policy-First / PEP-Transparent Philosophy
+Pollek is designed for humans. Users simply state their **Policy** (e.g., "Block PII to external agents"), select the **Agent**, and choose the **Control Level** (Observe, Enforce, etc.). Pollek automatically discovers the best underlying **PEP (Policy Enforcement Point)**—whether that's eBPF on Linux, WFP on Windows, or MCP Stdio wrapping—and applies the rule transparently. Users never have to manually configure complex routing or networking.
+
+### 3 Operating Modes
+1. **Simple Mode**: Focuses strictly on Data Protection and Agent Management. PEP configuration is fully hidden and auto-managed.
+2. **Enterprise Mode**: Unlocks all capabilities (Simulator, Advanced Auditing, Policy Suggestions, Entities) for power users and administrators.
+3. **Cloud Mode**: Connects to Pollek Cloud for centralized policy distribution and compliance reporting across an organization.
 ---
 
 ## Features
@@ -87,6 +94,12 @@ The **Local Admin Dashboard** (React/Vite) provides 20+ pages for full control:
 ---
 
 ## Quickstart
+
+### 3-Step Quickstart (Scan → Protect → Timeline)
+The core workflow of Pollek is straightforward:
+1. **Scan**: Run Auto-Discovery to automatically find hidden (Shadow) AI agents on your machine.
+2. **Protect**: Deploy a Policy Preset (e.g., PII Redaction) to the discovered agent.
+3. **Timeline**: View the agent's real-time activity and blocked events in its Timeline.
 
 ### Local mode (single machine, no Cloud)
 
