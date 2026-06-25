@@ -53,7 +53,8 @@ pub fn read_session_bytes(path: &Path) -> Result<Vec<u8>> {
 /// path to Firefox sessionstore
 pub fn firefox_session_paths() -> Vec<PathBuf> {
     let mut out = vec![];
-    let _home = dirs::home_dir();
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    let home = dirs::home_dir();
     let profiles_roots: Vec<PathBuf> = {
         #[cfg(target_os = "windows")]
         {
