@@ -2,8 +2,8 @@
 // Copyright (c) 2026 AEC Infraconnect
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use crate::deployment_session::LocalizedText;
 use crate::feasibility::RequiredUserAction;
@@ -58,11 +58,11 @@ pub enum EventStatus {
     Skipped,
 }
 
-
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use chrono::Utc;
+
     #[test]
     fn test_user_event_serde() {
         let json = r#"{"event_id":"1","correlation_id":"2","category":"discovery","status":"succeeded","title":{"en":"T","th":"T"},"detail":{"en":"D","th":"D"},"created_at":"2026-06-25T00:00:00Z"}"#;

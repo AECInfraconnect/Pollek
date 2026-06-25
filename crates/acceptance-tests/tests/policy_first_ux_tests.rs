@@ -1,9 +1,10 @@
-
+#![allow(clippy::expect_used)]
 use serde_json::Value;
 use std::fs;
 
 // Mock structures to simulate the test environment
 #[derive(Debug, PartialEq, Eq)]
+#[allow(dead_code)]
 enum ProductMode {
     DesktopSimple,
     DesktopAdvanced,
@@ -12,6 +13,7 @@ enum ProductMode {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[allow(dead_code)]
 enum ControlMethod {
     AgentToolControl,
     SystemNetworkControl,
@@ -19,6 +21,7 @@ enum ControlMethod {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[allow(dead_code)]
 enum PolicyFeasibilityStatus {
     CanEnforceNow,
     CanEnforceAfterApproval,
@@ -36,6 +39,7 @@ struct FeasibilityResult {
 }
 
 #[derive(PartialEq)]
+#[allow(dead_code)]
 enum PolicyIntent {
     ApproveRiskyToolCalls,
     BlockUnknownNetworkDestinations,
@@ -46,6 +50,7 @@ struct WarmCheckResult {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[allow(dead_code)]
 enum DeploymentStatus {
     Active,
     Failed,
@@ -54,6 +59,7 @@ enum DeploymentStatus {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[allow(dead_code)]
 enum ControlLevel {
     Enforce,
     Observe,
@@ -68,7 +74,12 @@ fn load_fixture(name: &str) -> Value {
 fn get_navigation_labels(mode: ProductMode) -> Vec<String> {
     match mode {
         ProductMode::DesktopSimple => vec!["Overview".into(), "Scan".into(), "Agents".into()],
-        ProductMode::DesktopAdvanced => vec!["Overview".into(), "Scan".into(), "Agents".into(), "PEP".into()],
+        ProductMode::DesktopAdvanced => vec![
+            "Overview".into(),
+            "Scan".into(),
+            "Agents".into(),
+            "PEP".into(),
+        ],
         _ => vec![],
     }
 }
@@ -83,7 +94,10 @@ fn evaluate_policy(fixture: Value, intent: PolicyIntent) -> FeasibilityResult {
         }
     } else {
         if let Some(peps) = fixture.get("peps").and_then(|p| p.as_array()) {
-            if peps.iter().any(|p| p.get("ready").and_then(|r| r.as_bool()) == Some(false)) {
+            if peps
+                .iter()
+                .any(|p| p.get("ready").and_then(|r| r.as_bool()) == Some(false))
+            {
                 return FeasibilityResult {
                     status: PolicyFeasibilityStatus::NeedsSetup,
                     route_preview: RoutePreview {
@@ -101,7 +115,11 @@ fn evaluate_policy(fixture: Value, intent: PolicyIntent) -> FeasibilityResult {
     }
 }
 
-fn status_after_warm_check(requested: ControlLevel, effective: ControlLevel, warm_check: &WarmCheckResult) -> DeploymentStatus {
+fn status_after_warm_check(
+    requested: ControlLevel,
+    effective: ControlLevel,
+    warm_check: &WarmCheckResult,
+) -> DeploymentStatus {
     if !warm_check.ok {
         return DeploymentStatus::Failed;
     }
@@ -127,8 +145,14 @@ fn simple_mode_hides_pep_terms() {
 fn windows_without_wfp_can_still_use_mcp_policy() {
     let fixture = load_fixture("windows_mcp_stdio_no_wfp");
     let result = evaluate_policy(fixture, PolicyIntent::ApproveRiskyToolCalls);
-    assert_eq!(result.status, PolicyFeasibilityStatus::CanEnforceAfterApproval);
-    assert_eq!(result.route_preview.user_control_method, ControlMethod::AgentToolControl);
+    assert_eq!(
+        result.status,
+        PolicyFeasibilityStatus::CanEnforceAfterApproval
+    );
+    assert_eq!(
+        result.route_preview.user_control_method,
+        ControlMethod::AgentToolControl
+    );
 }
 
 #[test]
@@ -149,24 +173,26 @@ fn active_requires_warm_check_success() {
     assert_ne!(status, DeploymentStatus::Active);
 }
 
-
 #[test]
 fn e2e_happy_path_scan_deploy_active() {
     let fixture = load_fixture("windows_mcp_stdio_no_wfp");
     let intent = PolicyIntent::ApproveRiskyToolCalls;
-    
+
     // 1. scan -> suggestion (mocked)
     // 2. feasibility
     let feasibility = evaluate_policy(fixture, intent);
-    assert_eq!(feasibility.status, PolicyFeasibilityStatus::CanEnforceAfterApproval);
-    
+    assert_eq!(
+        feasibility.status,
+        PolicyFeasibilityStatus::CanEnforceAfterApproval
+    );
+
     // 3. deploy (mocked user approval)
     let requested = ControlLevel::Enforce;
     let effective = ControlLevel::Enforce; // Assuming user approved
-    
+
     // 4. warm check
     let warm_check = WarmCheckResult { ok: true };
-    
+
     // 5. active
     let final_status = status_after_warm_check(requested, effective, &warm_check);
     assert_eq!(final_status, DeploymentStatus::Active);
@@ -176,19 +202,19 @@ fn e2e_happy_path_scan_deploy_active() {
 fn e2e_fallback_path_scan_observe_only() {
     let fixture = load_fixture("linux_no_ebpf_permission");
     let intent = PolicyIntent::BlockUnknownNetworkDestinations;
-    
+
     // 1. scan -> suggestion (mocked)
     // 2. feasibility
     let feasibility = evaluate_policy(fixture, intent);
     assert_eq!(feasibility.status, PolicyFeasibilityStatus::NeedsSetup);
-    
+
     // 3. fallback to observe
     let requested = ControlLevel::Enforce;
     let effective = ControlLevel::Observe;
-    
+
     // 4. warm check
     let warm_check = WarmCheckResult { ok: true };
-    
+
     // 5. active_observe_only
     let final_status = status_after_warm_check(requested, effective, &warm_check);
     assert_eq!(final_status, DeploymentStatus::ActiveObserveOnly);

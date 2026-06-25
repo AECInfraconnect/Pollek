@@ -22,5 +22,5 @@ pub trait NetworkEnforcer: Send + Sync {
     fn clear_rules(&self) -> Result<()>;
 }
 
-pub mod warm_check;
 pub mod feasibility;
+pub mod warm_check;

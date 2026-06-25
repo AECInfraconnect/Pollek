@@ -2,8 +2,8 @@
 // Copyright (c) 2026 AEC Infraconnect
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use crate::deployment_session::LocalizedText;
 
@@ -78,8 +78,8 @@ pub struct EntityCardModel {
     pub last_updated_at: Option<DateTime<Utc>>,
 }
 
-
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     #[test]

@@ -40,100 +40,6 @@ impl PolicySuggestionEngine for FeasibilitySuggester {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use dek_capability_registry::snapshot::*;
-    use dek_domain_schema::capability_inventory::*;
-    use dek_domain_schema::feasibility::InternalPep;
-
-    fn make_agent(id: &str, has_mcp: bool, has_api: bool) -> AgentCapabilityInventory {
-        AgentCapabilityInventory {
-            schema_version: "1".into(),
-            tenant_id: "t1".into(),
-            device_id: "d1".into(),
-            agent_id: id.into(),
-            candidate_id: None,
-            display_name: id.into(),
-            agent_type: AgentKind::DesktopAgent,
-            trust_level: "High".into(),
-            confidence: 1.0,
-            risk_score: 0,
-            process: None,
-            config_surfaces: vec![],
-            mcp_surfaces: if has_mcp {
-                vec![McpSurface {
-                    server_name: "test".into(),
-                    client_hint: "test".into(),
-                    transport: McpTransportKind::Stdio,
-                    command_template: None,
-                    endpoint_domain: None,
-                    has_auth_header: false,
-                    env_key_names: vec![],
-                    tools_known: vec![],
-                    resources_known: vec![],
-                }]
-            } else {
-                vec![]
-            },
-            model_endpoints: if has_api {
-                vec![ModelEndpointSurface {
-                    endpoint_url: "http://localhost:11434".into(),
-                    protocol: "http".into(),
-                    models_known: vec![],
-                }]
-            } else {
-                vec![]
-            },
-            browser_surfaces: vec![],
-            file_surfaces: vec![],
-            network_surfaces: vec![],
-            supported_pep_bindings: vec![],
-            supported_pdp_routes: vec![],
-            telemetry_capabilities: TelemetryCapabilities {
-                emits_tool_logs: false,
-                emits_resource_logs: false,
-                emits_decision_logs: false,
-                emits_network_logs: false,
-                format: "json".into(),
-            },
-            last_scan_id: "".into(),
-            last_seen_at: "".into(),
-        }
-    }
-
-    #[test]
-    fn test_suggestions_mcp_and_network_ready() {
-        let agent = make_agent("test1", true, false);
-        let caps = vec![ControlMethodCapability {
-            method: ControlMethod::SystemNetworkControl,
-            internal_pep: InternalPep::WindowsWfp,
-            status: CapabilityStatus::Ready,
-            can_observe: true,
-            can_enforce: true,
-            requires_admin: true,
-            requires_user_approval: false,
-            confidence: 1.0,
-            evidence: vec![],
-            user_message: LocalizedText {
-                en: "".into(),
-                th: "".into(),
-            },
-            next_action: None,
-        }];
-
-        let suggs = suggest_for_agent(&agent, &caps);
-        assert_eq!(suggs.len(), 3); // 2 for MCP, 1 for network
-        let template_ids: Vec<_> = suggs
-            .iter()
-            .map(|s| s.policy_template_id.as_str())
-            .collect();
-        assert!(template_ids.contains(&"approve_risky_tool_calls"));
-        assert!(template_ids.contains(&"redact_sensitive_parameters"));
-        assert!(template_ids.contains(&"block_unknown_network_destinations"));
-    }
-}
-
 pub fn suggest_for_agent(
     agent: &AgentCapabilityInventory,
     caps: &[dek_capability_registry::snapshot::ControlMethodCapability],
@@ -144,9 +50,9 @@ pub fn suggest_for_agent(
     // In a real app we'd check if the endpoint actually matches openai
     let has_local_api = !agent.model_endpoints.is_empty();
 
-    let network_ready = caps
-        .iter()
-        .any(|c| c.method == ControlMethod::SystemNetworkControl && c.status == CapabilityStatus::Ready);
+    let network_ready = caps.iter().any(|c| {
+        c.method == ControlMethod::SystemNetworkControl && c.status == CapabilityStatus::Ready
+    });
 
     if has_mcp {
         suggestions.push(SuggestedPolicy {
@@ -251,4 +157,98 @@ pub fn suggest_for_agent(
     }
 
     suggestions
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dek_capability_registry::snapshot::*;
+    use dek_domain_schema::capability_inventory::*;
+    use dek_domain_schema::feasibility::InternalPep;
+
+    fn make_agent(id: &str, has_mcp: bool, has_api: bool) -> AgentCapabilityInventory {
+        AgentCapabilityInventory {
+            schema_version: "1".into(),
+            tenant_id: "t1".into(),
+            device_id: "d1".into(),
+            agent_id: id.into(),
+            candidate_id: None,
+            display_name: id.into(),
+            agent_type: AgentKind::DesktopAgent,
+            trust_level: "High".into(),
+            confidence: 1.0,
+            risk_score: 0,
+            process: None,
+            config_surfaces: vec![],
+            mcp_surfaces: if has_mcp {
+                vec![McpSurface {
+                    server_name: "test".into(),
+                    client_hint: "test".into(),
+                    transport: McpTransportKind::Stdio,
+                    command_template: None,
+                    endpoint_domain: None,
+                    has_auth_header: false,
+                    env_key_names: vec![],
+                    tools_known: vec![],
+                    resources_known: vec![],
+                }]
+            } else {
+                vec![]
+            },
+            model_endpoints: if has_api {
+                vec![ModelEndpointSurface {
+                    endpoint_url: "http://localhost:11434".into(),
+                    protocol: "http".into(),
+                    models_known: vec![],
+                }]
+            } else {
+                vec![]
+            },
+            browser_surfaces: vec![],
+            file_surfaces: vec![],
+            network_surfaces: vec![],
+            supported_pep_bindings: vec![],
+            supported_pdp_routes: vec![],
+            telemetry_capabilities: TelemetryCapabilities {
+                emits_tool_logs: false,
+                emits_resource_logs: false,
+                emits_decision_logs: false,
+                emits_network_logs: false,
+                format: "json".into(),
+            },
+            last_scan_id: "".into(),
+            last_seen_at: "".into(),
+        }
+    }
+
+    #[test]
+    fn test_suggestions_mcp_and_network_ready() {
+        let agent = make_agent("test1", true, false);
+        let caps = vec![ControlMethodCapability {
+            method: ControlMethod::SystemNetworkControl,
+            internal_pep: InternalPep::WindowsWfp,
+            status: CapabilityStatus::Ready,
+            can_observe: true,
+            can_enforce: true,
+            requires_admin: true,
+            requires_user_approval: false,
+            confidence: 1.0,
+            evidence: vec![],
+            user_message: LocalizedText {
+                en: "".into(),
+                th: "".into(),
+            },
+            next_action: None,
+        }];
+
+        let suggs = suggest_for_agent(&agent, &caps);
+        assert_eq!(suggs.len(), 3); // 2 for MCP, 1 for network
+        let template_ids: Vec<_> = suggs
+            .iter()
+            .map(|s| s.policy_template_id.as_str())
+            .collect();
+        assert!(template_ids.contains(&"approve_risky_tool_calls"));
+        assert!(template_ids.contains(&"redact_sensitive_parameters"));
+        assert!(template_ids.contains(&"block_unknown_network_destinations"));
+    }
 }

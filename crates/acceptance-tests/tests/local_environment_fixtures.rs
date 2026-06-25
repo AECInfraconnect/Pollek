@@ -39,7 +39,7 @@ mod tests {
     fn test_fixtures_valid() {
         let win = mock_windows_11_environment();
         assert_eq!(win.os.r#type, "windows");
-        
+
         let lin = mock_linux_environment();
         assert_eq!(lin.os.r#type, "linux");
     }

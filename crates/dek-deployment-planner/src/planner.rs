@@ -206,7 +206,7 @@ pub fn build_feasibility_result(
     let (plan, status) = candidate;
     let negotiation = negotiate_control_level(req.requested_control_level, &plan.enforceability);
 
-    use dek_domain_schema::feasibility::{RoutePreview, FallbackBehavior};
+    use dek_domain_schema::feasibility::{FallbackBehavior, RoutePreview};
 
     let fallback = if negotiation.downgraded {
         FallbackBehavior::DowngradeToObserve
@@ -423,6 +423,6 @@ mod tests {
 
         let res = evaluate_policy_feasibility(req, &snapshot);
         assert_eq!(res[0].effective_control_level, ControlLevel::Observe);
-        assert!(res[0].user_summary.en.contains("cannot fully enforce"));
+        assert!(res[0].summary.en.contains("cannot fully enforce"));
     }
 }

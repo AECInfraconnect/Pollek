@@ -48,7 +48,7 @@ impl Default for Spool<os::DefaultOsKeyStore> {
     fn default() -> Self {
         Self::new(
             std::env::temp_dir().join("pollek-spool"),
-            100 * 1024 * 1024,
+            100, // tiny size forces rotation
             None,
             "local".to_string(),
             "default".to_string(),
@@ -262,7 +262,7 @@ mod tests {
     #[tokio::test]
     async fn test_spool_enqueue_and_replay() {
         let dir = std::env::temp_dir().join(format!("test_spool_{}", Uuid::new_v4()));
-        
+        let km = key_manager::SpoolKeyManager::new(DummyKeyStore);
         let spool = Spool::new(
             dir.clone(),
             1024 * 1024,
@@ -306,8 +306,8 @@ mod tests {
     #[tokio::test]
     async fn test_spool_tamper_quarantine() {
         let dir = std::env::temp_dir().join(format!("test_spool_{}", Uuid::new_v4()));
-        let km = key_manager::SpoolKeyManager::new(DummyKeyStore);
-        
+        let _km = key_manager::SpoolKeyManager::new(DummyKeyStore);
+
         {
             let spool1 = Spool::new(
                 dir.clone(),
@@ -355,7 +355,7 @@ mod tests {
 
         let err = spool3.replay().await;
         assert!(err.is_err(), "Expected tamper error, got {:?}", err);
-        
+
         let mut has_quarantine = false;
         if let Ok(mut entries) = std::fs::read_dir(&dir) {
             while let Some(Ok(entry)) = entries.next() {
@@ -367,5 +367,4 @@ mod tests {
         assert!(has_quarantine, "Expected quarantined files");
         let _ = std::fs::remove_dir_all(dir);
     }
-
 }

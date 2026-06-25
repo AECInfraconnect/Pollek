@@ -8,8 +8,8 @@ use axum::{
     Json, Router,
 };
 use dek_enforcement_api::planner::{
-    assess_feasibility, negotiate, ControlDomain, ControlLevel, ControlMethodCap,
-    LocalCapabilitySnapshot, MethodStatus, Policy, PolicyFeasibilityResult,
+    negotiate, ControlDomain, ControlLevel, ControlMethodCap, LocalCapabilitySnapshot,
+    MethodStatus, PolicyFeasibilityResult,
 };
 use serde::{Deserialize, Serialize};
 

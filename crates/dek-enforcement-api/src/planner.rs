@@ -207,7 +207,7 @@ pub fn assess_feasibility(
             Some(m) => {
                 let lvl = m.max_level.clone().min(policy.requested_level.clone()); // negotiate ลงตามจริง
                 achievable = achievable.min(lvl.clone());
-                per_domain.push(DomainFeasibility::ok(domain, &m, lvl));
+                per_domain.push(DomainFeasibility::ok(domain, m, lvl));
             }
             None => {
                 achievable = ControlLevel::Observe.min(achievable);

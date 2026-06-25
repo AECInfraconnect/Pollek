@@ -4,10 +4,10 @@ mod tests {
     fn test_web_ai_browser_idle_resolution() {
         let resolved = "chatgpt.com";
         assert!(resolved.contains("chatgpt"));
-        
+
         let resolved_claude = "claude.ai";
         assert!(resolved_claude.contains("claude"));
-        
+
         let resolved_gemini = "gemini.google.com";
         assert!(resolved_gemini.contains("gemini"));
 

@@ -207,7 +207,7 @@ fn test_browser_ai_no_extension() {
 fn test_windows_no_wfp() {
     let mut snapshot = create_mock_snapshot();
     snapshot.methods.push(ControlMethodCapability {
-        method: ControlMethod::NetworkControl,
+        method: ControlMethod::SystemNetworkControl,
         internal_pep: InternalPep::WindowsWfp,
         status: CapabilityStatus::MissingPermission, // Needs admin approval to install
         can_observe: false,
@@ -241,7 +241,7 @@ fn test_windows_no_wfp() {
 fn test_macos_network_extension_inactive() {
     let mut snapshot = create_mock_snapshot();
     snapshot.methods.push(ControlMethodCapability {
-        method: ControlMethod::NetworkControl,
+        method: ControlMethod::SystemNetworkControl,
         internal_pep: InternalPep::MacosNetworkExtension,
         status: CapabilityStatus::MissingPermission,
         can_observe: false,

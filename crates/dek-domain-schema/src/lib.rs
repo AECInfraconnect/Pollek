@@ -3,8 +3,6 @@ pub mod message_catalog;
 
 // Copyright (c) 2026 AEC Infraconnect
 
-
-
 pub mod agent;
 
 pub mod bundle;
@@ -61,8 +59,6 @@ pub mod tool;
 
 pub mod user_event;
 
-
-
 pub use agent::*;
 
 pub use bundle::*;
@@ -115,10 +111,6 @@ pub use tenant::*;
 
 pub use tool::*;
 
-
-
 pub use user_event::{EventCategory, UserVisibleEvent};
-
-
 
 pub mod entity_card;
