@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     middleware::Next,
     response::Response,
+    routing::any,
     Json, Router,
 };
 use metrics_exporter_prometheus::PrometheusHandle;
@@ -10,11 +11,11 @@ use tower_http::services::{ServeDir, ServeFile};
 
 use crate::{
     activity_api, agent_discovery_api, agent_inventory_api, auth, bundle, connectors, consent_api,
-    deployment_api, discovery, enforcement_plan_api, entity_graph, inventory_api, observation_api,
-    pdp_cloud_api, pdp_routing_api, pdp_runtime_api, pep_capabilities_api, plugin_api, policy,
-    policy_deploy_api, policy_first_api, policy_presets_api, policy_suggestions_api,
-    preset_deploy_api, preset_deploy_wizard_api, push, recommendation_api, registry,
-    state::AppState, telemetry, usage_api,
+    deployment_api, discovery, enforcement_plan_api, entity_graph, inventory_api, local_observe,
+    observation_api, pdp_cloud_api, pdp_routing_api, pdp_runtime_api, pep_capabilities_api,
+    plugin_api, policy, policy_deploy_api, policy_first_api, policy_presets_api,
+    policy_suggestions_api, preset_deploy_api, preset_deploy_wizard_api, push, recommendation_api,
+    registry, state::AppState, telemetry, usage_api,
 };
 
 pub async fn local_tenant_guard(
@@ -37,6 +38,16 @@ pub async fn local_tenant_guard(
         }
     }
     Ok(next.run(req).await)
+}
+
+async fn api_not_found() -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::NOT_FOUND,
+        Json(serde_json::json!({
+            "error": "api route not found",
+            "message": "The Local Control Plane API route is not available in this running backend. Restart local-control-plane after updating the repository, or verify that the dashboard is pointing at the Local Control Plane API port.",
+        })),
+    )
 }
 
 pub fn create_app(state: AppState, static_dir: &str, metrics_handle: PrometheusHandle) -> Router {
@@ -65,6 +76,7 @@ pub fn create_app(state: AppState, static_dir: &str, metrics_handle: PrometheusH
         .merge(policy_suggestions_api::router())
         .merge(observation_api::router())
         .merge(usage_api::router())
+        .merge(local_observe::router())
         .merge(entity_graph::router())
         .merge(inventory_api::router())
         .merge(policy::router())
@@ -83,6 +95,7 @@ pub fn create_app(state: AppState, static_dir: &str, metrics_handle: PrometheusH
             "/v1/tenants/:tenant/devices/:device/events",
             axum::routing::get(push::sse_handler),
         )
+        .route("/v1/*path", any(api_not_found))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             local_tenant_guard,

@@ -1,6 +1,7 @@
 use crate::model::AgentObservationEvent;
 use pollen_contract::{IdentityAccessPayload, ResourceAccessPayload, ToolUsagePayload};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -11,6 +12,8 @@ pub struct ObservedResource {
     pub target_redacted: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub classification: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<Value>,
     pub agents: Vec<String>,
     pub modes: Vec<String>,
     pub last_access: chrono::DateTime<chrono::Utc>,
@@ -98,6 +101,7 @@ fn push_unique<T: PartialEq>(vec: &mut Vec<T>, item: T) {
 pub fn aggregate_resources(events: &[ResourceAccessPayload]) -> Vec<ObservedResource> {
     let mut map: HashMap<String, ObservedResource> = HashMap::new();
     for e in events {
+        let details = resource_details(e);
         let r = map
             .entry(e.target_hash.clone())
             .or_insert_with(|| ObservedResource {
@@ -106,6 +110,7 @@ pub fn aggregate_resources(events: &[ResourceAccessPayload]) -> Vec<ObservedReso
                 kind: e.kind.to_string(),
                 target_redacted: e.target_redacted.clone(),
                 classification: e.classification.clone(),
+                details: details.clone(),
                 agents: vec![],
                 modes: vec![],
                 last_access: e.observed_at,
@@ -116,11 +121,22 @@ pub fn aggregate_resources(events: &[ResourceAccessPayload]) -> Vec<ObservedReso
         r.access_count += 1;
         if r.last_access < e.observed_at {
             r.last_access = e.observed_at;
+            r.details = details.clone().or_else(|| r.details.clone());
+        }
+        if r.details.is_none() {
+            r.details = details;
         }
         push_unique(&mut r.agents, e.agent_id.clone());
         push_unique(&mut r.modes, e.mode.to_string());
     }
     map.into_values().collect()
+}
+
+fn resource_details(event: &ResourceAccessPayload) -> Option<Value> {
+    serde_json::to_value(event)
+        .ok()
+        .and_then(|value| value.get("details").cloned())
+        .filter(|value| !value.is_null())
 }
 
 pub fn aggregate_tools(events: &[ToolUsagePayload]) -> Vec<ObservedTool> {

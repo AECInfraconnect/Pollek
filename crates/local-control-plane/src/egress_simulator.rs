@@ -63,6 +63,7 @@ impl EgressEventSource for SimulatorEgressSource {
                     bytes: Some(1024),
                     count: Some(1),
                     classification: Some(name.clone()),
+                    details: None,
                     observed_at: chrono::Utc::now(),
                 };
 

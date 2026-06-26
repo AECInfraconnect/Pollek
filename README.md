@@ -45,7 +45,15 @@ Pollek is designed for humans. Users simply state their **Policy** (e.g., "Block
 - **Agent Fingerprint Definitions** — natively supports Offline Baseline definitions with Cloud-pushed Delta updates over SSE. Definitions map agent binaries/processes to known identities securely with signature verification.
 - **Agent Binding Governance** — Maps discovered agents to Runtime Capabilities (resolving HTTP/Stdio MCP surfaces dynamically) and enforces governance constraints throughout the agent lifecycle.
 - **Token & Cost Ledger** — tracks estimated token costs across all observed AI
-  APIs via a configurable price catalog, with per-agent breakdowns.
+  APIs via a configurable price catalog, with per-agent breakdowns. This legacy
+  estimate-only wording is superseded by the exact-first ledger below.
+- **Exact-first Usage Ledger** - captures provider-reported token usage first
+  from wrappers, proxies, browser events, and known agent logs, then labels any
+  metadata-only fallback as estimated.
+- **Data Resource Trace Depth** - records source-backed file, folder, database,
+  table/collection, host, and query-fingerprint metadata where the local OS,
+  wrapper, DB hook, or agent log can prove it. See
+  [Resource Trace Depth](docs/RESOURCE_TRACE_DEPTH.md).
 - **Telemetry-Driven Policy Suggestions** — auto-generates specific `DeployPreset` rules (like PII Redaction and Prompt Injection blocks) based on active observations from the secure spool.
 - **Governance Loop** — fully integrated Observe → Suggest → Enforce cycle runs
   end-to-end.

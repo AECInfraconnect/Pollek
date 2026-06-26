@@ -9,6 +9,7 @@ pub mod discovery;
 pub mod error;
 pub mod governance;
 pub mod inventory_api;
+pub mod local_observe;
 pub mod policy;
 pub mod push;
 pub mod registry;

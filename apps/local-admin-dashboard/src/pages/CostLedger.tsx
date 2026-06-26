@@ -6,12 +6,23 @@ import {
   Clock,
   Gauge,
   RefreshCw,
+  Search,
   Server,
   ShieldAlert,
+  ShieldCheck,
   Wifi,
   Zap,
 } from "lucide-react";
-import { RegistryApi, UsageApi, type AiUsageSummary } from "../services/api";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import {
+  LocalObserveApi,
+  RegistryApi,
+  UsageApi,
+  type AiUsageEventPage,
+  type AiUsageSummary,
+  type LocalObserveRefreshResponse,
+} from "../services/api";
 import { RegisterControlBar } from "../components/RegisterControlBar";
 
 type RangeKey = "5m" | "1h" | "24h" | "7d" | "month";
@@ -26,6 +37,13 @@ type SyncCounts = {
   sent: number;
   acked: number;
   failed: number;
+};
+
+type UsageEvidence = {
+  exact: number;
+  estimated: number;
+  captureQuality: string[];
+  latest?: string;
 };
 
 const ranges: Array<{ key: RangeKey; label: string; bucket: string }> = [
@@ -64,10 +82,48 @@ function statusClass(status?: string) {
   return "text-emerald-600 bg-emerald-500/10";
 }
 
+function buildUsageEvidence(
+  events: AiUsageEventPage["items"] = [],
+): UsageEvidence {
+  const captureQuality = new Set<string>();
+  let exact = 0;
+  let estimated = 0;
+  let latest: string | undefined;
+
+  for (const event of events) {
+    if (!latest || event.occurred_at > latest) latest = event.occurred_at;
+    const metadata = event.metadata as Record<string, unknown>;
+    const quality = metadata.capture_quality;
+    if (typeof quality === "string" && quality) captureQuality.add(quality);
+
+    if (event.tokens?.estimated || event.cost?.estimated) {
+      estimated += 1;
+    } else {
+      exact += 1;
+    }
+  }
+
+  return {
+    exact,
+    estimated,
+    captureQuality: Array.from(captureQuality).sort(),
+    latest,
+  };
+}
+
 export function CostLedger() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [observeLoading, setObserveLoading] = useState(false);
   const [range, setRange] = useState<RangeKey>("24h");
   const [summary, setSummary] = useState<AiUsageSummary | null>(null);
+  const [observeResult, setObserveResult] =
+    useState<LocalObserveRefreshResponse | null>(null);
+  const [usageEvidence, setUsageEvidence] = useState<UsageEvidence>({
+    exact: 0,
+    estimated: 0,
+    captureQuality: [],
+  });
   const [agentLabels, setAgentLabels] = useState<Map<string, AgentLabel>>(
     new Map(),
   );
@@ -123,8 +179,28 @@ export function CostLedger() {
       setSummary(usage);
       setAgentLabels(names);
       setSyncCounts(counts);
+      setUsageEvidence(buildUsageEvidence(events.items ?? []));
     } finally {
       if (showSpinner) setLoading(false);
+    }
+  };
+
+  const observeNow = async () => {
+    setObserveLoading(true);
+    try {
+      const result = await LocalObserveApi.refresh({ include_estimates: true });
+      setObserveResult(result);
+      toast.success(
+        `Observed ${result.exact_usage_events} exact usage event(s), ${result.estimated_usage_events} labeled fallback event(s).`,
+      );
+      await fetchUsage(false);
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : "Local observe refresh failed",
+      );
+    } finally {
+      setObserveLoading(false);
     }
   };
 
@@ -206,6 +282,16 @@ export function CostLedger() {
             ))}
           </div>
           <button
+            onClick={observeNow}
+            disabled={observeLoading}
+            className="inline-flex h-10 items-center justify-center rounded-lg border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+          >
+            <Search
+              className={`mr-2 h-4 w-4 ${observeLoading ? "animate-pulse" : ""}`}
+            />
+            Observe Now
+          </button>
+          <button
             onClick={() => fetchUsage()}
             disabled={loading}
             className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
@@ -246,6 +332,12 @@ export function CostLedger() {
           tone={syncCounts.failed ? "hard_exceeded" : syncCounts.pending ? "soft_exceeded" : "ok"}
         />
       </div>
+
+      <UsageProvenancePanel
+        evidence={usageEvidence}
+        observeResult={observeResult}
+        onSetup={() => navigate("/capabilities")}
+      />
 
       <div className="grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
         <section className="glass rounded-lg p-5">
@@ -370,6 +462,105 @@ function MetricCard({
         {detail}
       </div>
     </div>
+  );
+}
+
+function UsageProvenancePanel({
+  evidence,
+  observeResult,
+  onSetup,
+}: {
+  evidence: UsageEvidence;
+  observeResult: LocalObserveRefreshResponse | null;
+  onSetup: () => void;
+}) {
+  const exact = observeResult?.exact_usage_events ?? evidence.exact;
+  const estimated = observeResult?.estimated_usage_events ?? evidence.estimated;
+  const qualities =
+    observeResult?.capture_quality?.length
+      ? observeResult.capture_quality
+      : evidence.captureQuality;
+  const limitations = observeResult?.limitations ?? [];
+  const nextSteps = observeResult?.next_steps ?? [];
+
+  return (
+    <section className="glass rounded-lg p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+            <h3 className="font-semibold">Exact-first usage provenance</h3>
+          </div>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+            POLLEK records provider-reported usage from wrappers, proxy/browser
+            events, and known local agent logs before it falls back to labeled
+            metadata estimates.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onSetup}
+          className="inline-flex h-9 items-center justify-center rounded-md border bg-background px-3 text-sm font-medium hover:bg-muted"
+        >
+          Setup exact sources
+        </button>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-4">
+        <div className="rounded-lg border p-3">
+          <div className="text-xs text-muted-foreground">Exact events</div>
+          <div className="mt-1 text-xl font-semibold tabular-nums">
+            {number(exact)}
+          </div>
+        </div>
+        <div className="rounded-lg border p-3">
+          <div className="text-xs text-muted-foreground">
+            Estimated fallback
+          </div>
+          <div className="mt-1 text-xl font-semibold tabular-nums">
+            {number(estimated)}
+          </div>
+        </div>
+        <div className="rounded-lg border p-3 md:col-span-2">
+          <div className="text-xs text-muted-foreground">Capture quality</div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {qualities.length ? (
+              qualities.map((quality) => (
+                <span
+                  key={quality}
+                  className="rounded-md border bg-background px-2 py-0.5 text-[11px]"
+                >
+                  {quality.replace(/_/g, " ")}
+                </span>
+              ))
+            ) : (
+              <span className="text-sm text-muted-foreground">
+                Waiting for wrapper, proxy, browser, or local log telemetry.
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      {(limitations.length > 0 || nextSteps.length > 0) && (
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {limitations.length > 0 && (
+            <div className="rounded-lg border p-3 text-sm text-muted-foreground">
+              <div className="mb-1 font-medium text-foreground">
+                Current limits
+              </div>
+              {limitations.slice(0, 3).join(" ")}
+            </div>
+          )}
+          {nextSteps.length > 0 && (
+            <div className="rounded-lg border p-3 text-sm text-muted-foreground">
+              <div className="mb-1 font-medium text-foreground">
+                Next setup
+              </div>
+              {nextSteps.slice(0, 2).map((step) => step.title).join(", ")}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 

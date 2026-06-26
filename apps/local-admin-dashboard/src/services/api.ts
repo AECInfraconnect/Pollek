@@ -32,6 +32,112 @@ export type AiUsageSummary = components["schemas"]["AiUsageSummaryV1"];
 export type AiUsageEventPage = components["schemas"]["AiUsageEventPageV1"];
 export type AiBudgetLimit = components["schemas"]["AiBudgetLimitV1"];
 
+export type LocalObserveRefreshRequest = {
+  include_estimates?: boolean;
+  sources?: string[];
+};
+
+export type LocalObserveRefreshResponse = {
+  schema_version: "local-observe-refresh.v1";
+  tenant_id: string;
+  scan_id: string;
+  candidates_found: number;
+  resource_events: number;
+  identity_events: number;
+  tool_events: number;
+  usage_events: number;
+  exact_usage_events: number;
+  estimated_usage_events: number;
+  capture_quality: string[];
+  limitations: string[];
+  next_steps: Array<{
+    action_id: string;
+    title: string;
+    reason: string;
+    route: string;
+  }>;
+};
+
+export const LOCAL_CONTROL_PLANE_DEFAULT_ORIGIN = "http://127.0.0.1:43891";
+export const MOCK_CLOUD_DEFAULT_ORIGIN = "https://127.0.0.1:43892";
+
+const htmlFallbackMessage = (url: string) =>
+  `Local Control Plane API returned dashboard HTML instead of JSON for ${url}. ` +
+  "This usually means the dashboard is running without the Local Control Plane API, " +
+  "an old backend binary is still running, or the dev proxy points at the wrong port. " +
+  "Restart local-control-plane and verify the API is available on 127.0.0.1:43891.";
+
+export function isHtmlResponse(text: string, contentType?: string | null) {
+  const normalizedContentType = (contentType ?? "").toLowerCase();
+  if (normalizedContentType.includes("text/html")) return true;
+  const sample = text.trimStart().slice(0, 128).toLowerCase();
+  return sample.startsWith("<!doctype html") || sample.startsWith("<html");
+}
+
+export function tenantBaseUrl(originOrBase: string, tenantId = "local") {
+  const trimmed = originOrBase.trim().replace(/\/+$/, "");
+  if (!trimmed) return `/v1/tenants/${tenantId}`;
+  if (trimmed.endsWith(`/v1/tenants/${tenantId}`)) return trimmed;
+  if (trimmed.endsWith("/v1")) return `${trimmed}/tenants/${tenantId}`;
+  return `${trimmed}/v1/tenants/${tenantId}`;
+}
+
+function envValue(name: string) {
+  return (import.meta.env[name] as string | undefined)?.trim();
+}
+
+function configuredLocalOrigin() {
+  return (
+    envValue("VITE_POLLEK_LCP_ORIGIN") ??
+    envValue("VITE_POLLEK_API_ORIGIN") ??
+    ""
+  );
+}
+
+function configuredMockCloudOrigin() {
+  return (
+    envValue("VITE_POLLEK_MOCK_CLOUD_ORIGIN") ??
+    envValue("VITE_POLLEK_CLOUD_ORIGIN") ??
+    MOCK_CLOUD_DEFAULT_ORIGIN
+  );
+}
+
+async function parseJsonResponse<T>(res: Response, url: string): Promise<T> {
+  const text = await res.text();
+  const contentType = res.headers.get("content-type");
+  if (isHtmlResponse(text, contentType)) {
+    throw new Error(htmlFallbackMessage(url));
+  }
+
+  let parsed: unknown = undefined;
+  if (text.trim()) {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      if (!res.ok) {
+        throw new Error(
+          `HTTP Error ${res.status}: ${res.statusText || "non-JSON error response"}`,
+        );
+      }
+      throw new Error(
+        `Local Control Plane API returned a non-JSON response for ${url}.`,
+      );
+    }
+  }
+
+  if (!res.ok) {
+    let errText = "";
+    if (parsed && typeof parsed === "object") {
+      const payload = parsed as { message?: unknown; error?: unknown };
+      if (typeof payload.message === "string") errText = payload.message;
+      else if (typeof payload.error === "string") errText = payload.error;
+    }
+    throw new Error(errText || `HTTP Error ${res.status}: ${res.statusText}`);
+  }
+
+  return parsed as T;
+}
+
 export interface ConnectorConfig {
   id: string;
   kind: string;
@@ -50,14 +156,17 @@ export class ControlPlaneClient {
   public mockRole: string;
 
   constructor(profile: "local" | "mock-cloud" = "local") {
+    this.tenantId = "local";
     if (profile === "mock-cloud") {
-      this.baseUrl = "http://localhost:43891/v1/tenants/local";
+      this.baseUrl = tenantBaseUrl(configuredMockCloudOrigin(), this.tenantId);
       this.mockRole = "admin";
     } else {
-      this.baseUrl = "/v1/tenants/local";
+      const origin = configuredLocalOrigin();
+      this.baseUrl = origin
+        ? tenantBaseUrl(origin, this.tenantId)
+        : `/v1/tenants/${this.tenantId}`;
       this.mockRole = "";
     }
-    this.tenantId = "local";
   }
 
   get rootUrl(): string {
@@ -69,14 +178,12 @@ export class ControlPlaneClient {
   }
 
   async getContractDiscovery(): Promise<ContractDiscoveryResponse> {
-    const res = await fetch(`${this.rootUrl}/.well-known/pollen-contract`);
-    if (!res.ok) {
-      throw new Error(await res.text());
-    }
-    return res.json();
+    const url = `${this.rootUrl}/.well-known/pollen-contract`;
+    const res = await fetch(url);
+    return parseJsonResponse<ContractDiscoveryResponse>(res, url);
   }
 
-  public async fetchRootApi(path: string, options?: RequestInit) {
+  public async fetchRootApi<T = any>(path: string, options?: RequestInit): Promise<T> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -84,26 +191,18 @@ export class ControlPlaneClient {
       headers["x-mock-role"] = this.mockRole;
     }
 
-    const res = await fetch(`${this.rootUrl}${path}`, {
+    const url = `${this.rootUrl}${path}`;
+    const res = await fetch(url, {
       ...options,
       headers: {
         ...headers,
         ...options?.headers,
       },
     });
-    if (!res.ok) {
-      let errText = await res.text();
-      try {
-        const json = JSON.parse(errText);
-        if (json.message) errText = json.message;
-        else if (json.error) errText = json.error;
-      } catch (e) {}
-      throw new Error(errText || `HTTP Error ${res.status}: ${res.statusText}`);
-    }
-    return res.json();
+    return parseJsonResponse<T>(res, url);
   }
 
-  public async fetchApi(path: string, options?: RequestInit) {
+  public async fetchApi<T = any>(path: string, options?: RequestInit): Promise<T> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -111,23 +210,15 @@ export class ControlPlaneClient {
       headers["x-mock-role"] = this.mockRole;
     }
 
-    const res = await fetch(`${this.baseUrl}${path}`, {
+    const url = `${this.baseUrl}${path}`;
+    const res = await fetch(url, {
       ...options,
       headers: {
         ...headers,
         ...options?.headers,
       },
     });
-    if (!res.ok) {
-      let errText = await res.text();
-      try {
-        const json = JSON.parse(errText);
-        if (json.message) errText = json.message;
-        else if (json.error) errText = json.error;
-      } catch (e) {}
-      throw new Error(errText || `HTTP Error ${res.status}: ${res.statusText}`);
-    }
-    return res.json();
+    return parseJsonResponse<T>(res, url);
   }
 
   async getHostCapabilities(): Promise<LocalCapabilitySnapshot> {
@@ -598,8 +689,16 @@ export class ControlPlaneClient {
 }
 
 // Store the active profile in localStorage to persist across reloads
+const getStorage = () => {
+  try {
+    return typeof window !== "undefined" ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+};
+
 const getStoredProfile = (): "local" | "mock-cloud" => {
-  const p = localStorage.getItem("dek_admin_profile");
+  const p = getStorage()?.getItem("dek_admin_profile");
   if (p === "mock-cloud") return "mock-cloud";
   return "local";
 };
@@ -663,7 +762,7 @@ export const LogApi = {
 
 // Helper to switch profile
 export const switchProfile = (profile: "local" | "mock-cloud") => {
-  localStorage.setItem("dek_admin_profile", profile);
+  getStorage()?.setItem("dek_admin_profile", profile);
   window.location.reload();
 };
 
@@ -720,6 +819,14 @@ export const UsageApi = {
     defaultClient.getAiUsageEvents(params),
   streamUrl: () =>
     `${defaultClient.rootUrl}/v1/tenants/${defaultClient.tenantId}/usage/stream`,
+};
+
+export const LocalObserveApi = {
+  refresh: (payload?: LocalObserveRefreshRequest) =>
+    defaultClient.fetchApi<LocalObserveRefreshResponse>("/local-observe/refresh", {
+      method: "POST",
+      body: JSON.stringify(payload ?? { include_estimates: true }),
+    }),
 };
 
 export const PolicyApi = {

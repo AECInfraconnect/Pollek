@@ -148,17 +148,26 @@ async fn main() -> anyhow::Result<()> {
         }),
     };
 
-    // Spawn Egress Simulator
-    let sim_sink = telemetry_sink.clone();
-    tokio::spawn(async move {
-        use dek_enforcement_api::egress_observer::EgressEventSource;
-        let source = local_control_plane::egress_simulator::SimulatorEgressSource {
-            deterministic: false, // Set to true for tests later if needed
-        };
-        if let Err(e) = source.start_observing(sim_sink).await {
-            tracing::error!("SimulatorEgressSource error: {}", e);
-        }
-    });
+    if std::env::var("POLLEK_ENABLE_SIMULATED_EGRESS")
+        .ok()
+        .as_deref()
+        == Some("1")
+    {
+        let sim_sink = telemetry_sink.clone();
+        tokio::spawn(async move {
+            use dek_enforcement_api::egress_observer::EgressEventSource;
+            let source = local_control_plane::egress_simulator::SimulatorEgressSource {
+                deterministic: false,
+            };
+            if let Err(e) = source.start_observing(sim_sink).await {
+                tracing::error!("SimulatorEgressSource error: {}", e);
+            }
+        });
+    } else {
+        tracing::info!(
+            "Egress simulator disabled. Set POLLEK_ENABLE_SIMULATED_EGRESS=1 for demo fixtures."
+        );
+    }
 
     // Spawn Anomaly Detector (P2)
     tokio::spawn(local_control_plane::anomaly_detector::start_anomaly_detector(state.clone()));

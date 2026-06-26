@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { switchProfile, defaultClient } from "../services/api";
+import {
+  LOCAL_CONTROL_PLANE_DEFAULT_ORIGIN,
+  MOCK_CLOUD_DEFAULT_ORIGIN,
+  switchProfile,
+  defaultClient,
+} from "../services/api";
 import type { ContractDiscoveryResponse } from "../services/api";
 import { toast } from "sonner";
 import { Activity } from "lucide-react";
@@ -67,10 +72,10 @@ export function Settings() {
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="local">
-                Local Control Plane (127.0.0.1:43890)
+                Local Control Plane (127.0.0.1:43891)
               </option>
               <option value="mock-cloud">
-                Mock Pollek Cloud (127.0.0.1:43891)
+                Mock Pollek Cloud (127.0.0.1:43892)
               </option>
             </select>
           </div>
@@ -81,8 +86,9 @@ export function Settings() {
               className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
               value={
                 profile === "mock-cloud"
-                  ? "http://localhost:43891"
-                  : "http://localhost:43890"
+                  ? MOCK_CLOUD_DEFAULT_ORIGIN
+                  : defaultClient.rootUrl ||
+                    `same origin (${LOCAL_CONTROL_PLANE_DEFAULT_ORIGIN})`
               }
               disabled
             />

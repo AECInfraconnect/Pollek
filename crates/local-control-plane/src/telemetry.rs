@@ -23,6 +23,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use dek_agent_observer::{model::AgentObservationEvent, usage_model::AiUsageEventV1};
 use serde_json::json;
 
 pub fn router() -> Router<AppState> {
@@ -325,6 +326,7 @@ async fn store_events(
             .is_ok()
         {
             stored += 1;
+            bridge_exact_usage_event(st, tenant, &kind, &val).await;
         }
     }
     (
@@ -335,6 +337,42 @@ async fn store_events(
             "rejected": (count - stored) as i32
         })),
     )
+}
+
+async fn bridge_exact_usage_event(st: &AppState, tenant: &str, kind: &str, ev: &serde_json::Value) {
+    let payload = ev.get("payload").cloned().unwrap_or_else(|| ev.clone());
+    match kind {
+        "ai_usage_event" => {
+            if let Ok(mut usage) = serde_json::from_value::<AiUsageEventV1>(payload) {
+                usage.metadata = crate::usage_api::merge_usage_metadata(
+                    usage.metadata,
+                    json!({
+                        "capture_quality": if usage.tokens.estimated { "estimated_forwarded_usage" } else { "exact_forwarded_usage" },
+                        "capture_source": "telemetry_ingest"
+                    }),
+                );
+                let _ = crate::usage_api::persist_usage_event(st, tenant, usage).await;
+            }
+        }
+        "agent_observation" => {
+            if let Ok(obs) = serde_json::from_value::<AgentObservationEvent>(payload) {
+                let _ = st.observability_store.insert_observation_event(&obs).await;
+                if obs.token_usage.is_some() {
+                    let mut usage =
+                        AiUsageEventV1::from_legacy_observation(&obs, obs.provider.clone());
+                    usage.metadata = crate::usage_api::merge_usage_metadata(
+                        usage.metadata,
+                        json!({
+                            "capture_quality": "exact_agent_observation",
+                            "capture_source": obs.pep_type.clone().unwrap_or_else(|| "telemetry_ingest".to_string())
+                        }),
+                    );
+                    let _ = crate::usage_api::persist_usage_event(st, tenant, usage).await;
+                }
+            }
+        }
+        _ => {}
+    }
 }
 
 /// Dashboard read-side: return DecisionLog events (newest first).

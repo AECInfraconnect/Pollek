@@ -1691,6 +1691,7 @@ export interface components {
             kind: components["schemas"]["ResourceKind"];
             target_redacted: string;
             classification?: string;
+            details?: components["schemas"]["ResourceTraceDetails"];
             agents: string[];
             modes: components["schemas"]["AccessMode"][];
             /** Format: date-time */
@@ -1875,6 +1876,7 @@ export interface components {
             /** Format: int32 */
             count?: number;
             classification?: string;
+            details?: components["schemas"]["ResourceTraceDetails"];
             /** Format: date-time */
             observed_at: string;
         };
@@ -1888,6 +1890,33 @@ export interface components {
         ResourceKind: "file" | "folder" | "database_local" | "os_syscall" | "config" | "process" | "clipboard" | "web" | "email" | "cloud_drive" | "database_cloud" | "data_source" | "api" | "saas";
         ResourceListResponse: {
             items: components["schemas"]["Resource"][];
+        };
+        ResourceTraceDetails: {
+            trace_source?: string;
+            capture_quality?: string;
+            trace_granularity?: string;
+            raw_content_stored?: boolean;
+            source_path_hash?: string;
+            source_path_redacted?: string;
+            path_kind?: string;
+            resource_name?: string;
+            file_name?: string;
+            file_extension?: string;
+            folder_name?: string;
+            folder_path?: string;
+            host?: string;
+            /** Format: int32 */
+            port?: number;
+            db_system?: string;
+            db_namespace?: string;
+            db_table?: string;
+            db_collection?: string;
+            db_operation?: string;
+            query_summary?: string;
+            query_fingerprint?: string;
+            os_observer?: string;
+            control_method?: components["schemas"]["ControlMethod"];
+            limitations?: string[];
         };
         RouteMatch: {
             agent_ids?: string[];

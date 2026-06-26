@@ -3973,6 +3973,8 @@ components:
           type: string
         classification:
           type: string
+        details:
+          $ref: '#/components/schemas/ResourceTraceDetails'
         agents:
           type: array
           items:
@@ -4496,6 +4498,8 @@ components:
           format: int32
         classification:
           type: string
+        details:
+          $ref: '#/components/schemas/ResourceTraceDetails'
         observed_at:
           type: string
           format: date-time
@@ -4541,6 +4545,60 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Resource'
+    ResourceTraceDetails:
+      type: object
+      properties:
+        trace_source:
+          type: string
+        capture_quality:
+          type: string
+        trace_granularity:
+          type: string
+        raw_content_stored:
+          type: boolean
+        source_path_hash:
+          type: string
+        source_path_redacted:
+          type: string
+        path_kind:
+          type: string
+        resource_name:
+          type: string
+        file_name:
+          type: string
+        file_extension:
+          type: string
+        folder_name:
+          type: string
+        folder_path:
+          type: string
+        host:
+          type: string
+        port:
+          type: integer
+          format: int32
+        db_system:
+          type: string
+        db_namespace:
+          type: string
+        db_table:
+          type: string
+        db_collection:
+          type: string
+        db_operation:
+          type: string
+        query_summary:
+          type: string
+        query_fingerprint:
+          type: string
+        os_observer:
+          type: string
+        control_method:
+          $ref: '#/components/schemas/ControlMethod'
+        limitations:
+          type: array
+          items:
+            type: string
     RouteMatch:
       type: object
       properties:

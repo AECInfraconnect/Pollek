@@ -23,4 +23,31 @@ test.describe("Policy-First Navigation", () => {
     await page.getByRole("link", { name: /(alerts|แจ้งเตือน)/i }).click();
     await expect(page.getByRole("heading", { name: /(alerts|แจ้งเตือน)/i, exact: false }).first()).toBeVisible();
   });
+
+  test("relationship and activity pages do not show raw Vite fallback HTML", async ({ page }) => {
+    await page.goto("/entity-graph");
+    await expect(page.getByRole("heading", { name: "Relationship Map" })).toBeVisible();
+    await expect(page.getByText("<!doctype html")).toHaveCount(0);
+
+    await page.goto("/activity-timeline");
+    await expect(page.getByRole("heading", { name: "Activity Timeline" })).toBeVisible();
+    await expect(page.getByText("<!doctype html")).toHaveCount(0);
+  });
+
+  test("API HTML fallback errors are shortened for operators", async ({ page }) => {
+    await page.route("**/v1/tenants/local/entity-graph", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: '<!doctype html><html><head><script type="module" src="/assets/index.js"></script></head></html>',
+      }),
+    );
+
+    await page.goto("/entity-graph");
+
+    await expect(
+      page.getByText("Local Control Plane API returned dashboard HTML instead of JSON"),
+    ).toBeVisible();
+    await expect(page.getByText('script type="module"')).toHaveCount(0);
+  });
 });

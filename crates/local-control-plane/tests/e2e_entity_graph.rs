@@ -204,3 +204,36 @@ async fn entity_graph_joins_registry_policy_observation_and_activity() {
     assert_eq!(timeline["items"][0]["decision"], "deny");
     assert_eq!(timeline["items"][0]["enforcement_mode"], "enforce");
 }
+
+#[tokio::test]
+async fn unknown_v1_routes_return_json_not_dashboard_html() {
+    let harness = common::LocalControlPlaneHarness::start().await;
+    let client = Client::new();
+
+    let response = client
+        .get(format!(
+            "{}/v1/tenants/local/not-a-dashboard-route",
+            harness.base_url
+        ))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), 404);
+    let content_type = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .to_string();
+    let body = response.text().await.unwrap();
+
+    assert!(
+        content_type.contains("application/json"),
+        "expected JSON content-type, got {content_type}; body={body}"
+    );
+    assert!(
+        !body.to_ascii_lowercase().contains("<!doctype html"),
+        "API fallback leaked dashboard HTML: {body}"
+    );
+}

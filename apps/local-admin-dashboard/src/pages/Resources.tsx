@@ -1,9 +1,25 @@
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { Database, Plus, FileKey, Activity, Info } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
-import { RegistryApi, TelemetryApi } from "../services/api";
+import {
+  Activity,
+  Database,
+  FileKey,
+  Info,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  CapabilityApi,
+  LocalObserveApi,
+  RegistryApi,
+  TelemetryApi,
+  type LocalCapabilitySnapshotV2,
+  type LocalObserveRefreshResponse,
+} from "../services/api";
 import type { Resource, ObservedResource } from "../services/api";
 
 export interface UnifiedResource {
@@ -17,6 +33,7 @@ export interface UnifiedResource {
   observed_details?: ObservedResource;
   registered_details?: Resource;
 }
+type ResourceTraceDetails = Record<string, string | number | boolean | string[] | undefined>;
 import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
 import { EntityCard } from "../components/master-detail/EntityCard";
 import { DetailPane } from "../components/master-detail/DetailPane";
@@ -59,11 +76,34 @@ function resourceStatus(resource: UnifiedResource): {
   return { status: "ok", label: "Protected" };
 }
 
+function observedTraceDetails(observed?: ObservedResource): ResourceTraceDetails {
+  return ((observed as any)?.details ?? {}) as ResourceTraceDetails;
+}
+
+function resourceDisplayNameFromObserved(observed: ObservedResource) {
+  const details = observedTraceDetails(observed);
+  return (
+    details.file_name ||
+    details.folder_name ||
+    details.db_table ||
+    details.db_collection ||
+    details.resource_name ||
+    observed.target_redacted.split(/[\\/]/).pop() ||
+    observed.target_redacted
+  ).toString();
+}
+
 export function Resources() {
   const { confirm } = useConfirm();
+  const navigate = useNavigate();
 
   const [resources, setResources] = useState<UnifiedResource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [observing, setObserving] = useState(false);
+  const [observeResult, setObserveResult] =
+    useState<LocalObserveRefreshResponse | null>(null);
+  const [capabilitySnapshot, setCapabilitySnapshot] =
+    useState<LocalCapabilitySnapshotV2 | null>(null);
   const [search, setSearch] = useState("");
   const [scopeFilter, setScopeFilter] = useState<"all" | "local" | "cloud">(
     "all",
@@ -108,7 +148,7 @@ export function Resources() {
         } else {
           unifiedMap.set(uri, {
             id: o.resource_id || uri,
-            name: uri.split("/").pop() || uri,
+            name: resourceDisplayNameFromObserved(o),
             resource_type: o.kind,
             uri: uri,
             classification: o.classification,
@@ -121,8 +161,9 @@ export function Resources() {
 
       setResources(
         Array.from(unifiedMap.values()).filter((r) => {
+          const details = observedTraceDetails(r.observed_details);
           const haystack =
-            `${r.name} ${r.resource_type} ${r.uri} ${r.classification ?? ""}`.toLowerCase();
+            `${r.name} ${r.resource_type} ${r.uri} ${r.classification ?? ""} ${Object.values(details).join(" ")}`.toLowerCase();
           const matchesSearch = haystack.includes(search.trim().toLowerCase());
           const matchesKind =
             kindFilter === "all" || r.resource_type === kindFilter;
@@ -151,6 +192,18 @@ export function Resources() {
 
     return () => source.close();
   }, [search, scopeFilter, kindFilter, agentFilter]);
+
+  useEffect(() => {
+    let mounted = true;
+    CapabilityApi.getSnapshotV2()
+      .then((snapshot) => {
+        if (mounted) setCapabilitySnapshot(snapshot);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const select = (id: string) =>
     setParams((p) => {
@@ -183,24 +236,103 @@ export function Resources() {
     }
   };
 
+  const runLocalObserve = async () => {
+    setObserving(true);
+    try {
+      const result = await LocalObserveApi.refresh({ include_estimates: true });
+      setObserveResult(result);
+      await fetchResources();
+      toast.success(
+        `Observed ${result.resource_events} resource event(s), ${result.exact_usage_events} exact usage event(s).`,
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : "Local observe refresh failed",
+      );
+    } finally {
+      setObserving(false);
+    }
+  };
+
+  const protectResource = (resource: UnifiedResource) => {
+    const query = new URLSearchParams({
+      resource: resource.id,
+      resource_uri: resource.uri,
+    });
+    navigate(`/protect?${query.toString()}`);
+  };
+
+  const canEnforce =
+    capabilitySnapshot?.control_methods.some(
+      (method) =>
+        method.status === "available" &&
+        (method.max_level === "enforce" || method.max_level === "strict_deny"),
+    ) ?? false;
+  const setupActions = capabilitySnapshot?.setup_actions ?? [];
+
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <div className="mb-2 rounded-md bg-blue-50/50 border border-blue-200 p-4 shadow-sm">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <Info className="h-5 w-5 text-blue-600" aria-hidden="true" />
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">
-              POLLEK is observing simulated cloud egress for testing.
-            </h3>
-            <div className="mt-1 text-sm text-blue-700">
-              <p>
-                Real network enforcement is not enabled yet. This device can
-                currently Observe cloud egress. Blocking requires OS network
-                integration.
-              </p>
+      <div className="mb-2 rounded-lg border bg-card/60 p-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 rounded-lg bg-primary/10 p-2">
+              {canEnforce ? (
+                <ShieldCheck className="h-5 w-5 text-emerald-500" />
+              ) : (
+                <Info className="h-5 w-5 text-primary" aria-hidden="true" />
+              )}
             </div>
+            <div>
+              <h3 className="text-sm font-medium">
+                {canEnforce
+                  ? "Local observe and enforcement are available on this device."
+                  : "Local observe is active; some enforcement paths need setup."}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Observe Now reads exact usage first from wrapper, proxy,
+                browser, and known agent-log telemetry. Estimates are only used
+                as labeled fallback when exact usage is unavailable.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-md border bg-background px-2 py-1">
+                  {observeResult
+                    ? `${observeResult.resource_events} resource events`
+                    : "Ready to observe"}
+                </span>
+                <span className="rounded-md border bg-background px-2 py-1">
+                  {observeResult
+                    ? `${observeResult.exact_usage_events} exact usage`
+                    : "Exact-first"}
+                </span>
+                {!canEnforce && (
+                  <span className="rounded-md border bg-background px-2 py-1">
+                    {setupActions.length || "Capability"} setup pending
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={runLocalObserve}
+              disabled={observing}
+              className="inline-flex h-10 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${observing ? "animate-spin" : ""}`}
+              />
+              Observe Now
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/capabilities")}
+              className="inline-flex h-10 items-center rounded-lg border bg-background px-3 text-sm font-medium hover:bg-muted"
+            >
+              <Wrench className="mr-2 h-4 w-4" />
+              Setup
+            </button>
           </div>
         </div>
       </div>
@@ -214,10 +346,21 @@ export function Resources() {
             Manage data boundaries and classifications for registered resources.
           </p>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm">
-          <Plus className="h-4 w-4" />
-          Add Resource
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={runLocalObserve}
+            disabled={observing}
+            className="flex items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm font-medium hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${observing ? "animate-spin" : ""}`} />
+            Observe
+          </button>
+          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm">
+            <Plus className="h-4 w-4" />
+            Add Resource
+          </button>
+        </div>
       </div>
 
       <MasterDetailLayout
@@ -306,7 +449,7 @@ export function Resources() {
                 {
                   label: r.is_registered ? "Policy" : "Protect",
                   primary: !r.is_registered,
-                  onClick: () => {},
+                  onClick: () => protectResource(r),
                 },
               ]}
               selected={selected}
@@ -317,6 +460,7 @@ export function Resources() {
           <Resource360Detail
             resource={r}
             onDelete={() => deleteResource(r.id)}
+            onProtect={() => protectResource(r)}
           />
         )}
       />
@@ -325,6 +469,13 @@ export function Resources() {
 }
 
 function ResourceFriendlyOverview({ resource }: { resource: UnifiedResource }) {
+  const details = observedTraceDetails(resource.observed_details);
+  const primaryObject =
+    details.file_name ||
+    details.folder_name ||
+    details.db_table ||
+    details.db_collection ||
+    details.resource_name;
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
@@ -340,6 +491,48 @@ function ResourceFriendlyOverview({ resource }: { resource: UnifiedResource }) {
           value={resource.classification || "Unclassified"}
           helper="Used for policy suggestions and default guardrails."
         />
+        {primaryObject && (
+          <SummaryMetric
+            label="Exact object"
+            value={primaryObject}
+            helper={
+              details.trace_granularity
+                ? `${details.trace_granularity}`.replace(/_/g, " ")
+                : "Object name captured from local telemetry."
+            }
+          />
+        )}
+        {(details.folder_path || details.host || details.db_namespace) && (
+          <SummaryMetric
+            label="Container"
+            value={details.folder_path || details.db_namespace || details.host}
+            helper="Folder, database namespace, or host associated with this resource."
+          />
+        )}
+        {(details.db_system || details.db_operation) && (
+          <SummaryMetric
+            label="Database trace"
+            value={[details.db_system, details.db_operation]
+              .filter(Boolean)
+              .join(" / ")}
+            helper={
+              details.query_fingerprint
+                ? `Query fingerprint ${details.query_fingerprint}`
+                : "Table-level detail when available from DB logs or hooks."
+            }
+          />
+        )}
+        {(details.trace_source || details.capture_quality) && (
+          <SummaryMetric
+            label="Provenance"
+            value={details.capture_quality || "observed"}
+            helper={
+              details.trace_source
+                ? `${details.trace_source}`.replace(/_/g, " ")
+                : "Telemetry source recorded with this event."
+            }
+          />
+        )}
         {resource.is_observed && resource.observed_details && (
           <>
             <SummaryMetric
@@ -382,19 +575,23 @@ function ResourceFriendlyOverview({ resource }: { resource: UnifiedResource }) {
   );
 }
 
-function ResourcePolicyPrompt({ resource }: { resource: UnifiedResource }) {
+function ResourcePolicyPrompt({
+  resource,
+  onProtect,
+}: {
+  resource: UnifiedResource;
+  onProtect: () => void;
+}) {
   return (
     <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center text-muted-foreground">
       <FileKey className="mb-4 h-8 w-8 opacity-50" />
       <p className="mb-4 text-sm">
-        Protect this resource by assigning an access policy to specific agents.
+        Protect {resource.name} by assigning an access policy to specific agents.
       </p>
       <button
         type="button"
         className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
-        onClick={() => {
-          toast.success(`Policy draft requested for ${resource.name}.`);
-        }}
+        onClick={onProtect}
       >
         Create Policy
       </button>
@@ -405,19 +602,19 @@ function ResourcePolicyPrompt({ resource }: { resource: UnifiedResource }) {
 function Resource360Detail({
   resource,
   onDelete,
+  onProtect,
 }: {
   resource: UnifiedResource;
   onDelete: () => void;
+  onProtect: () => void;
 }) {
   const { data } = useEntity360("resource", resource.id);
   const { status, label } = resourceStatus(resource);
-  const protect = () =>
-    toast.success(`Policy draft requested for ${resource.name}.`);
   const actions = (
     <>
       <button
         type="button"
-        onClick={protect}
+        onClick={onProtect}
         className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         {resource.is_registered ? "Apply Policy" : "Protect"}
@@ -455,7 +652,7 @@ function Resource360Detail({
           {
             label: resource.is_registered ? "Apply Policy" : "Protect",
             primary: true,
-            onClick: protect,
+            onClick: onProtect,
           },
           resource.is_registered
             ? {
@@ -475,7 +672,7 @@ function Resource360Detail({
         {
           id: "access",
           label: "Access Policies",
-          content: <ResourcePolicyPrompt resource={resource} />,
+          content: <ResourcePolicyPrompt resource={resource} onProtect={onProtect} />,
         },
         {
           id: "activity",
@@ -522,22 +719,39 @@ function ResourceActivityTimeline({ resource }: { resource: UnifiedResource }) {
 
   return (
     <div className="space-y-4">
-      {events.map((ev, i) => (
+      {events.map((ev, i) => {
+        const payload = ev.payload ?? ev.details ?? ev;
+        const details = (payload.details ?? {}) as ResourceTraceDetails;
+        const object =
+          details.file_name ||
+          details.folder_name ||
+          details.db_table ||
+          details.db_collection ||
+          payload.target_redacted ||
+          resource.name;
+        return (
         <div key={i} className="flex gap-4 p-4 border rounded-lg bg-card">
           <div className="mt-1">
             <Activity className="h-4 w-4 text-primary" />
           </div>
           <div>
             <p className="text-sm font-medium">
-              Access by Agent: {ev.agent_id || "Unknown"}
+              {object} by {payload.agent_id || "Unknown agent"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Mode: {ev.details?.mode || ev.mode || "read"} •{" "}
-              {new Date(ev.observed_at || ev.timestamp).toLocaleString()}
+              {new Date(payload.observed_at || ev.timestamp).toLocaleString()}
             </p>
+            {(details.capture_quality || details.trace_granularity) && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {details.capture_quality || "observed"} /{" "}
+                {details.trace_granularity || "resource"}
+              </p>
+            )}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

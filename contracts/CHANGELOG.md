@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Optional `ResourceTraceDetails` on resource access telemetry and resource
+  inventory items so Local Dashboard and Pollek Cloud can share exact file,
+  folder, database, table/collection, and provenance metadata.
 - Initial setup of Pollek Contract Hub.
 - TypeSpec REST specs for basic endpoints.
 - AsyncAPI spec for SSE.

@@ -37,6 +37,33 @@ enum AccessScope { local, cloud }
 enum IdentityKind { user, service_account, workload, device, oauth_client, spiffe_id, api_key, browser_profile, cloud_account }
 enum IdentityAction { authenticate, authorize, assume, delegate, token_issue, token_refresh, access }
 
+model ResourceTraceDetails {
+  trace_source?: string;
+  capture_quality?: string;
+  trace_granularity?: string;
+  raw_content_stored?: boolean;
+  source_path_hash?: string;
+  source_path_redacted?: string;
+  path_kind?: string;
+  resource_name?: string;
+  file_name?: string;
+  file_extension?: string;
+  folder_name?: string;
+  folder_path?: string;
+  host?: string;
+  port?: int32;
+  db_system?: string;
+  db_namespace?: string;
+  db_table?: string;
+  db_collection?: string;
+  db_operation?: string;
+  query_summary?: string;
+  query_fingerprint?: string;
+  os_observer?: string;
+  control_method?: ControlMethod;
+  limitations?: string[];
+}
+
 model AgentObservationPayload {
   agent_id: string;
   agent_label: string;
@@ -101,6 +128,7 @@ model ResourceAccessPayload {
   control_method?: ControlMethod;
   enforced_for_real: boolean;
   bytes?: int64; count?: int32; classification?: string;
+  details?: ResourceTraceDetails;
   observed_at: utcDateTime;
 }
 
@@ -125,6 +153,7 @@ model IdentityAccessPayload {
 model ObservedResource {
   resource_id: string; scope: AccessScope; kind: ResourceKind;
   target_redacted: string; classification?: string;
+  details?: ResourceTraceDetails;
   agents: string[]; modes: AccessMode[];
   last_access: utcDateTime; access_count: int64;
   governed: boolean; registered: boolean;

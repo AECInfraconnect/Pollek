@@ -43,6 +43,29 @@ export async function installMockApi(page: Page) {
     json(route, { count: 0, decisions: [] }),
   );
 
+  await page.route("**/v1/tenants/local/entity-graph", (route) =>
+    json(route, {
+      schema_version: "entity-graph.v1",
+      tenant_id: "local",
+      generated_at: "2026-06-26T00:00:00Z",
+      center: null,
+      nodes: [],
+      edges: [],
+      summaries: [],
+      warnings: [],
+    }),
+  );
+
+  await page.route("**/v1/tenants/local/activity-timeline**", (route) =>
+    json(route, {
+      schema_version: "activity-timeline.v1",
+      tenant_id: "local",
+      generated_at: "2026-06-26T00:00:00Z",
+      items: [],
+      next_cursor: null,
+    }),
+  );
+
   await page.route("**/v1/tenants/local/policies", (route) => {
     const method = route.request().method();
     if (method === "GET") {
