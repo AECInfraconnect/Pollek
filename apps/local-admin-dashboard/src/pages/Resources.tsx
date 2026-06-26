@@ -23,11 +23,35 @@ import { DetailPane } from "../components/master-detail/DetailPane";
 import { EmptyState } from "../components/master-detail/EmptyState";
 import type { UiStatus } from "../lib/status";
 
+function SummaryMetric({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: React.ReactNode;
+  helper?: string;
+}) {
+  return (
+    <div className="p-4 bg-muted/30 rounded-xl border">
+      <span className="text-muted-foreground block mb-1 text-xs">{label}</span>
+      <span className="text-sm font-medium break-words">{value}</span>
+      {helper && <p className="mt-1 text-xs text-muted-foreground">{helper}</p>}
+    </div>
+  );
+}
+
 export function Resources() {
   const { confirm } = useConfirm();
 
   const [resources, setResources] = useState<UnifiedResource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [scopeFilter, setScopeFilter] = useState<"all" | "local" | "cloud">(
+    "all",
+  );
+  const [kindFilter, setKindFilter] = useState("all");
+  const [agentFilter, setAgentFilter] = useState("");
   const [params, setParams] = useSearchParams();
   const selectedId = params.get("selected") ?? undefined;
 
@@ -36,7 +60,10 @@ export function Resources() {
     try {
       const [regRes, obsRes] = await Promise.all([
         RegistryApi.listResources(),
-        TelemetryApi.listResourceInventory().catch(() => ({ items: [] as ObservedResource[] })),
+        TelemetryApi.listResourceInventory({
+          agentId: agentFilter || undefined,
+          scope: scopeFilter === "all" ? undefined : scopeFilter,
+        }).catch(() => ({ items: [] as ObservedResource[] })),
       ]);
 
       const unifiedMap = new Map<string, UnifiedResource>();
@@ -74,7 +101,15 @@ export function Resources() {
         }
       }
 
-      setResources(Array.from(unifiedMap.values()));
+      setResources(
+        Array.from(unifiedMap.values()).filter((r) => {
+          const haystack = `${r.name} ${r.resource_type} ${r.uri} ${r.classification ?? ""}`.toLowerCase();
+          const matchesSearch = haystack.includes(search.trim().toLowerCase());
+          const matchesKind =
+            kindFilter === "all" || r.resource_type === kindFilter;
+          return matchesSearch && matchesKind;
+        }),
+      );
     } catch (err) {
       console.error(err);
     } finally {
@@ -85,7 +120,7 @@ export function Resources() {
   useEffect(() => {
     fetchResources();
 
-    const source = new EventSource("/v1/telemetry/observations/stream");
+    const source = new EventSource(TelemetryApi.streamUrl("resources"));
     source.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -96,7 +131,7 @@ export function Resources() {
     };
 
     return () => source.close();
-  }, []);
+  }, [search, scopeFilter, kindFilter, agentFilter]);
 
   const select = (id: string) =>
     setParams((p) => {
@@ -173,6 +208,40 @@ export function Resources() {
             <input
               type="text"
               placeholder="Search resources..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="px-3 py-1.5 text-sm rounded-md border bg-background"
+            />
+            <select
+              value={scopeFilter}
+              onChange={(e) =>
+                setScopeFilter(e.target.value as "all" | "local" | "cloud")
+              }
+              className="px-3 py-1.5 text-sm rounded-md border bg-background"
+            >
+              <option value="all">All scopes</option>
+              <option value="local">Local</option>
+              <option value="cloud">Cloud</option>
+            </select>
+            <select
+              value={kindFilter}
+              onChange={(e) => setKindFilter(e.target.value)}
+              className="px-3 py-1.5 text-sm rounded-md border bg-background"
+            >
+              <option value="all">All kinds</option>
+              <option value="file">File</option>
+              <option value="folder">Folder</option>
+              <option value="database_local">Local DB</option>
+              <option value="api">API</option>
+              <option value="cloud_drive">Cloud drive</option>
+              <option value="email">Email</option>
+              <option value="saas">SaaS</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Agent ID"
+              value={agentFilter}
+              onChange={(e) => setAgentFilter(e.target.value)}
               className="px-3 py-1.5 text-sm rounded-md border bg-background"
             />
           </div>
@@ -180,8 +249,8 @@ export function Resources() {
         emptyState={
           <EmptyState
             icon={Database}
-            title="No resources registered"
-            description="Add data resources like databases or object stores to begin protecting them."
+            title="No resources observed"
+            description="Run scan and protect, then agent file, cloud, API, or database access will appear here."
             actionLabel="Add Resource"
           />
         }
@@ -207,6 +276,13 @@ export function Resources() {
               status={status}
               statusLabel={label}
               meta={[{ label: "URI", value: r.uri }]}
+              actions={[
+                {
+                  label: r.is_registered ? "Policy" : "Protect",
+                  primary: !r.is_registered,
+                  onClick: () => {},
+                },
+              ]}
               selected={selected}
             />
           );
@@ -254,36 +330,48 @@ export function Resources() {
                   content: (
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div className="p-4 bg-muted/30 rounded-xl border">
-                          <span className="text-muted-foreground block mb-1">
-                            URI
-                          </span>
-                          <span className="font-mono text-xs break-all">
-                            {r.uri}
-                          </span>
-                        </div>
-                        <div className="p-4 bg-muted/30 rounded-xl border">
-                          <span className="text-muted-foreground block mb-1">
-                            Classification
-                          </span>
-                          <span className="capitalize">{r.classification || "Unclassified"}</span>
-                        </div>
+                        <SummaryMetric
+                          label="What POLLEK saw"
+                          value={r.uri}
+                          helper={`${r.resource_type} - ${r.is_registered ? "registered" : "observed only"}`}
+                        />
+                        <SummaryMetric
+                          label="Sensitivity"
+                          value={r.classification || "Unclassified"}
+                          helper="Used for policy suggestions and default guardrails."
+                        />
                         {r.is_observed && r.observed_details && (
                           <>
-                            <div className="p-4 bg-muted/30 rounded-xl border">
-                              <span className="text-muted-foreground block mb-1">
-                                Last Access
-                              </span>
-                              <span className="text-xs">
-                                {new Date(r.observed_details.last_access).toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="p-4 bg-muted/30 rounded-xl border">
-                              <span className="text-muted-foreground block mb-1">
-                                Access Count
-                              </span>
-                              <span className="text-xs">{r.observed_details.access_count}</span>
-                            </div>
+                            <SummaryMetric
+                              label="Last access"
+                              value={new Date(
+                                r.observed_details.last_access,
+                              ).toLocaleString()}
+                              helper={`${r.observed_details.access_count} total observed access event(s).`}
+                            />
+                            <SummaryMetric
+                              label="Agents touching it"
+                              value={r.observed_details.agents.length}
+                              helper={r.observed_details.agents.join(", ") || "No agent linked yet."}
+                            />
+                            <SummaryMetric
+                              label="Access modes"
+                              value={r.observed_details.modes.join(", ") || "Unknown"}
+                              helper="Read/write/connect actions grouped from telemetry."
+                            />
+                            <SummaryMetric
+                              label="Governance"
+                              value={
+                                r.observed_details.governed
+                                  ? "Policy attached"
+                                  : "Needs policy"
+                              }
+                              helper={
+                                r.is_registered
+                                  ? "Registered resource can be targeted directly."
+                                  : "Protect will create a policy target for this observed resource."
+                              }
+                            />
                           </>
                         )}
                       </div>

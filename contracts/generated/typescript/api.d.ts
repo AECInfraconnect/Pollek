@@ -70,6 +70,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/telemetry/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TelemetryApi_identities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/telemetry/observations": {
         parameters: {
             query?: never;
@@ -1176,6 +1192,32 @@ export interface components {
                 payload: components["schemas"]["EnforcementResultPayload"];
             }[];
         };
+        IdentityAccessPayload: {
+            agent_id: string;
+            agent_label: string;
+            scope: components["schemas"]["AccessScope"];
+            identity_kind: components["schemas"]["IdentityKind"];
+            identity_id: string;
+            identity_label: string;
+            provider?: string;
+            spiffe_id?: string;
+            action: components["schemas"]["IdentityAction"];
+            decision: components["schemas"]["DecisionOutcome"];
+            control_method?: components["schemas"]["ControlMethod"];
+            enforced_for_real: boolean;
+            /** Format: date-time */
+            observed_at: string;
+        };
+        /** @enum {string} */
+        IdentityAction: "authenticate" | "authorize" | "assume" | "delegate" | "token_issue" | "token_refresh" | "access";
+        IdentityInventoryPage: {
+            /** @enum {string} */
+            schema_version: "identity-inventory.v1";
+            items: components["schemas"]["ObservedIdentity"][];
+            next_cursor?: string;
+        };
+        /** @enum {string} */
+        IdentityKind: "user" | "service_account" | "workload" | "device" | "oauth_client" | "spiffe_id" | "api_key" | "browser_profile" | "cloud_account";
         MissingControl: {
             control_type: string;
             reason: string;
@@ -1222,6 +1264,22 @@ export interface components {
             since?: string;
             /** Format: int32 */
             limit?: number;
+        };
+        ObservedIdentity: {
+            identity_id: string;
+            identity_label: string;
+            identity_kind: components["schemas"]["IdentityKind"];
+            scope: components["schemas"]["AccessScope"];
+            provider?: string;
+            spiffe_id?: string;
+            agents: string[];
+            actions: components["schemas"]["IdentityAction"][];
+            /** Format: date-time */
+            last_seen: string;
+            /** Format: int64 */
+            access_count: number;
+            governed: boolean;
+            registered: boolean;
         };
         ObservedResource: {
             resource_id: string;
@@ -1496,7 +1554,7 @@ export interface components {
             }[];
         };
         /** @enum {string} */
-        TelemetryEventType: "agent_observation" | "enforcement_result" | "control_binding_changed" | "health" | "resource_access" | "tool_usage";
+        TelemetryEventType: "agent_observation" | "enforcement_result" | "control_binding_changed" | "health" | "resource_access" | "tool_usage" | "identity_access";
         TelemetryIngestResponse: {
             /** @enum {string} */
             schema_version: "telemetry-ingest-response.v1";
@@ -1710,6 +1768,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EnforcementStatusList"];
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    TelemetryApi_identities: {
+        parameters: {
+            query?: {
+                agent_id?: string;
+                scope?: components["schemas"]["AccessScope"];
+            };
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityInventoryPage"];
                 };
             };
             /** @description An unexpected error response. */

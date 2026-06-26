@@ -81,12 +81,21 @@ async fn main() -> anyhow::Result<()> {
 
     let spool = state.secure_spool.clone();
     let sse_tx = state.telemetry_tx.clone();
+    let telemetry_store = state.telemetry_store.clone();
     tokio::spawn(async move {
         while let Some(env) = telemetry_mpsc_rx.recv().await {
             if let Ok(bytes) = serde_json::to_vec(&env) {
                 let priority = dek_secure_spool::sqlite_spool::Priority::Normal;
                 if let Err(e) = spool.push(priority, &bytes) {
                     tracing::error!("Failed to spool telemetry: {}", e);
+                }
+            }
+            if let Ok(value) = serde_json::to_value(&env) {
+                if let Err(e) = telemetry_store
+                    .put_telemetry(&env.tenant_id, &env.event_type, &env.event_id, &value)
+                    .await
+                {
+                    tracing::error!("Failed to persist telemetry event: {}", e);
                 }
             }
             // Broadcast to SSE clients

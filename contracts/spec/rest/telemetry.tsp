@@ -17,7 +17,7 @@ model TelemetryEnvelope<T> {
   payload: T;
 }
 
-enum TelemetryEventType { agent_observation, enforcement_result, control_binding_changed, health, resource_access, tool_usage }
+enum TelemetryEventType { agent_observation, enforcement_result, control_binding_changed, health, resource_access, tool_usage, identity_access }
 
 enum ControlLevel { observe, warn, ask, enforce }
 enum ControlDomain { network, file_system, process, mcp_tool, dns }
@@ -34,6 +34,8 @@ enum ResourceKind { file, folder, database_local, os_syscall, config, process, c
 enum ToolKind { mcp_tool, function_call, http_api, a2a_skill, shell_command, browser_action }
 enum AccessMode { read, write, execute, delete, connect, invoke }
 enum AccessScope { local, cloud }
+enum IdentityKind { user, service_account, workload, device, oauth_client, spiffe_id, api_key, browser_profile, cloud_account }
+enum IdentityAction { authenticate, authorize, assume, delegate, token_issue, token_refresh, access }
 
 model AgentObservationPayload {
   agent_id: string;
@@ -109,6 +111,17 @@ model ToolUsagePayload {
   args_redacted?: string; observed_at: utcDateTime;
 }
 
+model IdentityAccessPayload {
+  agent_id: string; agent_label: string;
+  scope: AccessScope; identity_kind: IdentityKind;
+  identity_id: string; identity_label: string; provider?: string; spiffe_id?: string;
+  action: IdentityAction;
+  decision: DecisionOutcome;
+  control_method?: ControlMethod;
+  enforced_for_real: boolean;
+  observed_at: utcDateTime;
+}
+
 model ObservedResource {
   resource_id: string; scope: AccessScope; kind: ResourceKind;
   target_redacted: string; classification?: string;
@@ -123,8 +136,17 @@ model ObservedTool {
   governed: boolean; registered: boolean;
 }
 
+model ObservedIdentity {
+  identity_id: string; identity_label: string; identity_kind: IdentityKind;
+  scope: AccessScope; provider?: string; spiffe_id?: string;
+  agents: string[]; actions: IdentityAction[];
+  last_seen: utcDateTime; access_count: int64;
+  governed: boolean; registered: boolean;
+}
+
 model ResourceInventoryPage { schema_version: "resource-inventory.v1"; items: ObservedResource[]; next_cursor?: string; }
 model ToolInventoryPage     { schema_version: "tool-inventory.v1";     items: ObservedTool[];     next_cursor?: string; }
+model IdentityInventoryPage { schema_version: "identity-inventory.v1"; items: ObservedIdentity[]; next_cursor?: string; }
 
 @tag("Telemetry")
 interface TelemetryApi {
@@ -142,4 +164,7 @@ interface TelemetryApi {
 
   @route("/v1/telemetry/tools") @get
   tools(...PollenHeaders, @query agent_id?: string): ToolInventoryPage | PollenError;
+
+  @route("/v1/telemetry/identities") @get
+  identities(...PollenHeaders, @query agent_id?: string, @query scope?: AccessScope): IdentityInventoryPage | PollenError;
 }

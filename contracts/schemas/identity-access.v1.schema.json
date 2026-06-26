@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.pollen.dev/schemas/identity-access.v1.schema.json",
+  "title": "IdentityAccessPayload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "agent_id",
+    "agent_label",
+    "scope",
+    "identity_kind",
+    "identity_id",
+    "identity_label",
+    "action",
+    "decision",
+    "enforced_for_real",
+    "observed_at"
+  ],
+  "properties": {
+    "agent_id": { "type": "string" },
+    "agent_label": { "type": "string" },
+    "scope": {
+      "type": "string",
+      "enum": ["local", "cloud"]
+    },
+    "identity_kind": {
+      "type": "string",
+      "enum": [
+        "user",
+        "service_account",
+        "workload",
+        "device",
+        "oauth_client",
+        "spiffe_id",
+        "api_key",
+        "browser_profile",
+        "cloud_account"
+      ]
+    },
+    "identity_id": { "type": "string" },
+    "identity_label": { "type": "string" },
+    "provider": { "type": "string" },
+    "spiffe_id": { "type": "string" },
+    "action": {
+      "type": "string",
+      "enum": [
+        "authenticate",
+        "authorize",
+        "assume",
+        "delegate",
+        "token_issue",
+        "token_refresh",
+        "access"
+      ]
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["allow", "deny", "redact", "warn", "observed"]
+    },
+    "control_method": {
+      "type": "string",
+      "enum": [
+        "mcp_stdio",
+        "mcp_http",
+        "linux_landlock",
+        "linux_ebpf",
+        "linux_seccomp",
+        "windows_wfp_um",
+        "windows_wfp_callout",
+        "windows_etw",
+        "macos_netext",
+        "macos_endpoint_security"
+      ]
+    },
+    "enforced_for_real": { "type": "boolean" },
+    "observed_at": { "type": "string", "format": "date-time" }
+  }
+}

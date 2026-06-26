@@ -89,6 +89,42 @@ pub struct AgentIdentity {
     pub process_path: Option<String>,
     pub user_subject: Option<String>,
     pub signing_key_fingerprint: Option<String>,
+    #[serde(default)]
+    pub token_bindings: Vec<TokenBinding>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TokenBindingKind {
+    OAuthAccessToken,
+    OidcIdToken,
+    OAuthRefreshToken,
+    JwtSvid,
+    X509Svid,
+    ApiKeyReference,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ProofOfPossession {
+    MtlsCertificate,
+    DpopKey,
+    SpiffeSvid,
+    None,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct TokenBinding {
+    pub kind: TokenBindingKind,
+    pub provider: String,
+    pub issuer: Option<String>,
+    pub subject: Option<String>,
+    pub audience: Vec<String>,
+    pub scopes: Vec<String>,
+    pub confirmation: ProofOfPossession,
+    pub token_hash: Option<String>,
+    pub expires_at: Option<String>,
+    pub last_rotated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

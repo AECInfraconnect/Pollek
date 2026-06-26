@@ -228,7 +228,10 @@ pub async fn start_cloud_registry_sync_loop(state: AppState) -> anyhow::Result<(
 
                         let batch_payload = serde_json::json!({
                             "schema_version": "telemetry-batch.v1",
-                            "items": envelopes
+                            "tenant_id": tenant_id,
+                            "device_id": "default",
+                            "batch_id": format!("batch-{}", chrono::Utc::now().timestamp_millis()),
+                            "events": envelopes
                         });
 
                         let mut push_req = client.post(&telemetry_endpoint).json(&batch_payload);

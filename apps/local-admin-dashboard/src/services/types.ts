@@ -1,5 +1,7 @@
 // Pollek Local Enforcement Kit Registry API Models
 
+import type { components } from "../../../../contracts/generated/typescript/api";
+
 export interface ObjectMeta {
   schema_version: string;
   tenant_id: string;
@@ -57,6 +59,28 @@ export interface AiAgent {
     process_path?: string;
     user_subject?: string;
     signing_key_fingerprint?: string;
+    token_bindings?: {
+      kind:
+        | "oauth_access_token"
+        | "oidc_id_token"
+        | "oauth_refresh_token"
+        | "jwt_svid"
+        | "x509_svid"
+        | "api_key_reference";
+      provider: string;
+      issuer?: string;
+      subject?: string;
+      audience: string[];
+      scopes: string[];
+      confirmation:
+        | "mtls_certificate"
+        | "dpop_key"
+        | "spiffe_svid"
+        | "none";
+      token_hash?: string;
+      expires_at?: string;
+      last_rotated_at?: string;
+    }[];
   };
   trust_level: "untrusted" | "low" | "medium" | "high" | "system";
   capabilities: string[];
@@ -75,8 +99,6 @@ export interface McpServer {
   resources: string[];
   risk_level: "low" | "medium" | "high" | "critical";
 }
-
-import type { components } from "../../../../contracts/generated/typescript/api";
 
 export type Tool = components["schemas"]["Tool"];
 export type Resource = components["schemas"]["Resource"];
@@ -760,28 +782,6 @@ export interface EntityCardModel {
   last_updated_at: string;
 }
 
-export interface ObservedResource {
-  resource_id: string;
-  scope: string;
-  kind: string;
-  target_redacted: string;
-  classification?: string;
-  agents: string[];
-  modes: string[];
-  last_access: string;
-  access_count: number;
-  governed: boolean;
-  registered: boolean;
-}
-
-export interface ObservedTool {
-  tool_id: string;
-  tool_kind: string;
-  tool_name: string;
-  server?: string;
-  agents: string[];
-  last_used: string;
-  use_count: number;
-  governed: boolean;
-  registered: boolean;
-}
+export type ObservedResource = components["schemas"]["ObservedResource"];
+export type ObservedTool = components["schemas"]["ObservedTool"];
+export type ObservedIdentity = components["schemas"]["ObservedIdentity"];

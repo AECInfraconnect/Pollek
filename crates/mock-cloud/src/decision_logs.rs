@@ -9,8 +9,6 @@ use axum::{
     routing::get,
     Json, Router,
 };
-use dek_domain_schema::TelemetryEvent;
-
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/mock/admin/decision-logs", get(get_decision_logs_json))

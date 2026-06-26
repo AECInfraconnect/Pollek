@@ -15,8 +15,6 @@ pub struct DeviceStatus {
     pub capabilities: dek_domain_schema::EnforcementCapabilities,
 }
 
-use dek_domain_schema::TelemetryEvent;
-
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct AuditLog {
     pub timestamp: String,

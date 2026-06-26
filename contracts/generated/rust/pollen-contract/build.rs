@@ -16,6 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "enforcement-result.v1.schema.json",
         "resource-access.v1.schema.json",
         "tool-usage.v1.schema.json",
+        "identity-access.v1.schema.json",
     ];
 
     let mut generated = String::new();

@@ -65,6 +65,22 @@ pub fn router() -> Router<AppState> {
         )
         .route("/v1/telemetry/observations", get(list_observations_v2))
         .route("/v1/telemetry/observations/stream", get(telemetry_stream))
+        .route(
+            "/v1/tenants/:tenant/telemetry/observations/stream",
+            get(telemetry_stream),
+        )
+        .route(
+            "/v1/tenants/:tenant/telemetry/resources/stream",
+            get(telemetry_stream),
+        )
+        .route(
+            "/v1/tenants/:tenant/telemetry/tools/stream",
+            get(telemetry_stream),
+        )
+        .route(
+            "/v1/tenants/:tenant/telemetry/identities/stream",
+            get(telemetry_stream),
+        )
         .route("/v1/telemetry/enforcement-status", get(enforcement_status))
         .route("/v1/decisions/:id/explain", get(explain_decision))
 }

@@ -1,5 +1,5 @@
 use crate::model::AgentObservationEvent;
-use pollen_contract::{ResourceAccessPayload, ToolUsagePayload};
+use pollen_contract::{IdentityAccessPayload, ResourceAccessPayload, ToolUsagePayload};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -29,6 +29,24 @@ pub struct ObservedTool {
     pub agents: Vec<String>,
     pub last_used: chrono::DateTime<chrono::Utc>,
     pub use_count: u64,
+    pub governed: bool,
+    pub registered: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ObservedIdentity {
+    pub identity_id: String,
+    pub identity_label: String,
+    pub identity_kind: String,
+    pub scope: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spiffe_id: Option<String>,
+    pub agents: Vec<String>,
+    pub actions: Vec<String>,
+    pub last_seen: chrono::DateTime<chrono::Utc>,
+    pub access_count: u64,
     pub governed: bool,
     pub registered: bool,
 }
@@ -125,6 +143,35 @@ pub fn aggregate_tools(events: &[ToolUsagePayload]) -> Vec<ObservedTool> {
             t.last_used = e.observed_at;
         }
         push_unique(&mut t.agents, e.agent_id.clone());
+    }
+    map.into_values().collect()
+}
+
+pub fn aggregate_identities(events: &[IdentityAccessPayload]) -> Vec<ObservedIdentity> {
+    let mut map: HashMap<String, ObservedIdentity> = HashMap::new();
+    for e in events {
+        let i = map
+            .entry(e.identity_id.clone())
+            .or_insert_with(|| ObservedIdentity {
+                identity_id: e.identity_id.clone(),
+                identity_label: e.identity_label.clone(),
+                identity_kind: e.identity_kind.to_string(),
+                scope: e.scope.to_string(),
+                provider: e.provider.clone(),
+                spiffe_id: e.spiffe_id.clone(),
+                agents: vec![],
+                actions: vec![],
+                last_seen: e.observed_at,
+                access_count: 0,
+                governed: false,
+                registered: false,
+            });
+        i.access_count += 1;
+        if i.last_seen < e.observed_at {
+            i.last_seen = e.observed_at;
+        }
+        push_unique(&mut i.agents, e.agent_id.clone());
+        push_unique(&mut i.actions, e.action.to_string());
     }
     map.into_values().collect()
 }

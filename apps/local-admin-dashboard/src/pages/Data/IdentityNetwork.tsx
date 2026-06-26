@@ -1,25 +1,121 @@
 import { useState, useEffect } from "react";
 import { UserCircle, Network, Activity, Info } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import { RegistryApi } from "../../services/api";
-import type { Entity, Relationship } from "../../services/types";
+import { RegistryApi, TelemetryApi } from "../../services/api";
+import type {
+  Entity,
+  ObservedIdentity,
+  Relationship,
+} from "../../services/types";
 import { MasterDetailLayout } from "../../components/master-detail/MasterDetailLayout";
 import { EntityCard } from "../../components/master-detail/EntityCard";
 import { DetailPane } from "../../components/master-detail/DetailPane";
 import { EmptyState } from "../../components/master-detail/EmptyState";
 
+function SummaryMetric({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: React.ReactNode;
+  helper?: string;
+}) {
+  return (
+    <div className="p-4 bg-muted/30 rounded-xl border">
+      <span className="text-muted-foreground block mb-1 text-xs">{label}</span>
+      <span className="text-sm font-medium break-words">{value}</span>
+      {helper && <p className="mt-1 text-xs text-muted-foreground">{helper}</p>}
+    </div>
+  );
+}
+
 export function IdentityNetwork() {
-  const [entities, setEntities] = useState<Entity[]>([]);
+  const [entities, setEntities] = useState<
+    (Entity & { observed_details?: ObservedIdentity; is_observed?: boolean })[]
+  >([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [scopeFilter, setScopeFilter] = useState<"all" | "local" | "cloud">(
+    "all",
+  );
+  const [agentFilter, setAgentFilter] = useState("");
   const [params, setParams] = useSearchParams();
   const selectedId = params.get("selected") ?? undefined;
 
   const loadData = () => {
     setLoading(true);
-    Promise.all([RegistryApi.listEntities(), RegistryApi.listRelationships()])
-      .then(([ents, rels]) => {
-        setEntities(ents);
+    Promise.all([
+      RegistryApi.listEntities(),
+      RegistryApi.listRelationships(),
+      TelemetryApi.listIdentityInventory({
+        agentId: agentFilter || undefined,
+        scope: scopeFilter === "all" ? undefined : scopeFilter,
+      }).catch(() => ({ items: [] as ObservedIdentity[] })),
+    ])
+      .then(([ents, rels, observed]) => {
+        const map = new Map<
+          string,
+          Entity & { observed_details?: ObservedIdentity; is_observed?: boolean }
+        >();
+        for (const entity of ents) {
+          map.set(entity.entity_id, { ...entity, is_observed: false });
+        }
+        for (const identity of observed.items ?? []) {
+          const existing = map.get(identity.identity_id);
+          if (existing) {
+            existing.observed_details = identity;
+            existing.is_observed = true;
+          } else {
+            map.set(identity.identity_id, {
+              meta: {
+                schema_version: "entity.v1",
+                tenant_id: "local",
+                workspace_id: "local",
+                environment_id: "local",
+                created_at: identity.last_seen,
+                updated_at: identity.last_seen,
+                created_by: "telemetry",
+                updated_by: "telemetry",
+                source: "discovery",
+                status: "discovered",
+                tags: ["observed"],
+              },
+              entity_id: identity.identity_id,
+              entity_type:
+                identity.identity_kind === "device"
+                  ? "device"
+                  : identity.identity_kind === "workload"
+                    ? "workload"
+                    : identity.identity_kind === "user"
+                      ? "human_user"
+                      : "service_account",
+              display_name: identity.identity_label,
+              external_ids: [
+                {
+                  provider: identity.provider ?? "telemetry",
+                  id: identity.identity_id,
+                },
+              ],
+              roles: [],
+              attributes: {
+                scope: identity.scope,
+                kind: identity.identity_kind,
+                provider: identity.provider,
+              },
+              observed_details: identity,
+              is_observed: true,
+            });
+          }
+        }
+        setEntities(
+          Array.from(map.values()).filter((entity) => {
+            const haystack =
+              `${entity.display_name} ${entity.entity_type} ${entity.entity_id}`.toLowerCase();
+            return haystack.includes(search.trim().toLowerCase());
+          }),
+        );
         setRelationships(rels);
       })
       .catch(console.error)
@@ -29,19 +125,14 @@ export function IdentityNetwork() {
   useEffect(() => {
     loadData();
 
-    const source = new EventSource("/v1/telemetry/observations/stream");
+    const source = new EventSource(TelemetryApi.streamUrl("identities"));
     source.onmessage = () => {
       // Refresh identity graph on telemetry update
-      Promise.all([RegistryApi.listEntities(), RegistryApi.listRelationships()])
-        .then(([ents, rels]) => {
-          setEntities(ents);
-          setRelationships(rels);
-        })
-        .catch(console.error);
+      loadData();
     };
 
     return () => source.close();
-  }, []);
+  }, [search, scopeFilter, agentFilter]);
 
   const select = (id: string) =>
     setParams((p) => {
@@ -74,6 +165,26 @@ export function IdentityNetwork() {
             <input
               type="text"
               placeholder="Search identities..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="px-3 py-1.5 text-sm rounded-md border bg-background"
+            />
+            <select
+              value={scopeFilter}
+              onChange={(event) =>
+                setScopeFilter(event.target.value as "all" | "local" | "cloud")
+              }
+              className="px-3 py-1.5 text-sm rounded-md border bg-background"
+            >
+              <option value="all">All scopes</option>
+              <option value="local">Local</option>
+              <option value="cloud">Cloud</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Agent ID"
+              value={agentFilter}
+              onChange={(event) => setAgentFilter(event.target.value)}
               className="px-3 py-1.5 text-sm rounded-md border bg-background"
             />
           </div>
@@ -92,9 +203,27 @@ export function IdentityNetwork() {
               title={e.display_name}
               subtitle={e.entity_type}
               icon={UserCircle}
-              status={isGoverned ? "ok" : "idle"}
-              statusLabel={isGoverned ? "Governed" : "Unmanaged"}
-              meta={[{ label: "Roles", value: e.roles?.length || 0 }]}
+              status={isGoverned ? "ok" : e.is_observed ? "degraded" : "idle"}
+              statusLabel={
+                isGoverned ? "Governed" : e.is_observed ? "Observed" : "Unmanaged"
+              }
+              meta={[
+                {
+                  label: "Provider",
+                  value:
+                    e.observed_details?.provider ??
+                    e.external_ids?.[0]?.provider ??
+                    "local",
+                },
+                ...(e.observed_details
+                  ? [
+                      {
+                        label: "Agents",
+                        value: e.observed_details.agents.length,
+                      },
+                    ]
+                  : []),
+              ]}
               selected={selected}
             />
           );
@@ -111,8 +240,10 @@ export function IdentityNetwork() {
             <DetailPane
               title={e.display_name}
               subtitle={e.entity_type}
-              status={isGoverned ? "ok" : "idle"}
-              statusLabel={isGoverned ? "Governed" : "Unmanaged"}
+              status={isGoverned ? "ok" : e.is_observed ? "degraded" : "idle"}
+              statusLabel={
+                isGoverned ? "Governed" : e.is_observed ? "Observed" : "Unmanaged"
+              }
               tabs={[
                 {
                   id: "overview",
@@ -120,22 +251,62 @@ export function IdentityNetwork() {
                   content: (
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="p-4 bg-muted/30 rounded-xl border">
-                          <span className="text-muted-foreground block mb-1">
-                            ID
-                          </span>
-                          <span className="font-mono text-xs">
-                            {e.entity_id}
-                          </span>
-                        </div>
-                        <div className="p-4 bg-muted/30 rounded-xl border">
-                          <span className="text-muted-foreground block mb-1">
-                            Roles
-                          </span>
-                          <span className="capitalize">
-                            {e.roles?.join(", ") || "None"}
-                          </span>
-                        </div>
+                        <SummaryMetric
+                          label="Identity"
+                          value={e.display_name}
+                          helper={`${e.entity_type} - ${e.is_observed ? "observed" : "registered"}`}
+                        />
+                        <SummaryMetric
+                          label="Provider"
+                          value={
+                            e.observed_details?.provider ??
+                            e.external_ids?.[0]?.provider ??
+                            "local"
+                          }
+                          helper={e.roles?.length ? `Roles: ${e.roles.join(", ")}` : "No roles assigned."}
+                        />
+                        <SummaryMetric
+                          label="Stable ID"
+                          value={e.entity_id}
+                          helper="Used to join registry, telemetry, and policy targets."
+                        />
+                        {e.observed_details?.spiffe_id && (
+                          <SummaryMetric
+                            label="SPIFFE ID"
+                            value={e.observed_details.spiffe_id}
+                            helper="Workload trace identity for Pollek Cloud correlation."
+                          />
+                        )}
+                        {e.observed_details && (
+                          <>
+                            <SummaryMetric
+                              label="Last seen"
+                              value={new Date(
+                                e.observed_details.last_seen,
+                              ).toLocaleString()}
+                              helper={`${e.observed_details.access_count} identity event(s).`}
+                            />
+                            <SummaryMetric
+                              label="Agents using it"
+                              value={e.observed_details.agents.length}
+                              helper={e.observed_details.agents.join(", ") || "No agent linked yet."}
+                            />
+                            <SummaryMetric
+                              label="Actions"
+                              value={e.observed_details.actions.join(", ") || "access"}
+                              helper="Authentication, token, delegation, or access actions observed."
+                            />
+                            <SummaryMetric
+                              label="Governance"
+                              value={
+                                e.observed_details.governed
+                                  ? "Policy attached"
+                                  : "Needs policy"
+                              }
+                              helper="Registered agents should bind to this identity before Cloud control."
+                            />
+                          </>
+                        )}
                       </div>
 
                       <div>

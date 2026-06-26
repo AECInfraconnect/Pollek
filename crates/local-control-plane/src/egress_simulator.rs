@@ -3,8 +3,10 @@ use dek_agent_observer::egress_parser::classify_cloud_egress;
 use dek_enforcement_api::control_method::TelemetrySink;
 use dek_enforcement_api::egress_observer::EgressEventSource;
 use pollen_contract::{
-    ResourceAccessPayload, ResourceAccessPayloadDecision, ResourceAccessPayloadKind,
-    ResourceAccessPayloadMode, ResourceAccessPayloadScope,
+    IdentityAccessPayload, IdentityAccessPayloadAction, IdentityAccessPayloadDecision,
+    IdentityAccessPayloadIdentityKind, IdentityAccessPayloadScope, ResourceAccessPayload,
+    ResourceAccessPayloadDecision, ResourceAccessPayloadKind, ResourceAccessPayloadMode,
+    ResourceAccessPayloadScope,
 };
 
 pub struct SimulatorEgressSource {
@@ -60,11 +62,29 @@ impl EgressEventSource for SimulatorEgressSource {
                     enforced_for_real: false,
                     bytes: Some(1024),
                     count: Some(1),
-                    classification: Some(name),
+                    classification: Some(name.clone()),
                     observed_at: chrono::Utc::now(),
                 };
 
                 sink.resource(payload).await;
+
+                let identity_payload = IdentityAccessPayload {
+                    agent_id: "agent-simulator".into(),
+                    agent_label: "Simulator Agent".into(),
+                    scope: IdentityAccessPayloadScope::Cloud,
+                    identity_kind: IdentityAccessPayloadIdentityKind::ServiceAccount,
+                    identity_id: format!("cloud-service-account:{}", host),
+                    identity_label: format!("{} service identity", name),
+                    provider: Some(name),
+                    spiffe_id: Some("spiffe://local/pollek/agent/agent-simulator".into()),
+                    action: IdentityAccessPayloadAction::Access,
+                    decision: IdentityAccessPayloadDecision::Allow,
+                    control_method: None,
+                    enforced_for_real: false,
+                    observed_at: chrono::Utc::now(),
+                };
+
+                sink.identity(identity_payload).await;
             }
         }
     }

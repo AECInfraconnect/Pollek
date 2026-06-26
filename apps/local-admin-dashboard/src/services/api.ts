@@ -679,12 +679,39 @@ export const TelemetryApi = {
     const url = agentId ? `/v1/telemetry/enforcement-status?agent_id=${agentId}` : `/v1/telemetry/enforcement-status`;
     return defaultClient.fetchRootApi(url);
   },
-  listResourceInventory: async (agentId?: string) => {
-    const url = agentId ? `/telemetry/resources?agent_id=${agentId}` : `/telemetry/resources`;
+  streamUrl: (
+    channel: "observations" | "resources" | "tools" | "identities" = "observations",
+  ) =>
+    `${defaultClient.rootUrl}/v1/tenants/${defaultClient.tenantId}/telemetry/${channel}/stream`,
+  listResourceInventory: async (
+    params?: string | { agentId?: string; scope?: "local" | "cloud" },
+  ) => {
+    const normalized =
+      typeof params === "string" ? { agentId: params } : (params ?? {});
+    const query = new URLSearchParams();
+    if (normalized.agentId) query.set("agent_id", normalized.agentId);
+    if (normalized.scope) query.set("scope", normalized.scope);
+    const suffix = query.toString() ? `?${query}` : "";
+    const url = `/telemetry/resources${suffix}`;
     return defaultClient.fetchApi(url);
   },
   listToolInventory: async (agentId?: string) => {
-    const url = agentId ? `/telemetry/tools?agent_id=${agentId}` : `/telemetry/tools`;
+    const query = new URLSearchParams();
+    if (agentId) query.set("agent_id", agentId);
+    const suffix = query.toString() ? `?${query}` : "";
+    const url = `/telemetry/tools${suffix}`;
+    return defaultClient.fetchApi(url);
+  },
+  listIdentityInventory: async (
+    params?: string | { agentId?: string; scope?: "local" | "cloud" },
+  ) => {
+    const normalized =
+      typeof params === "string" ? { agentId: params } : (params ?? {});
+    const query = new URLSearchParams();
+    if (normalized.agentId) query.set("agent_id", normalized.agentId);
+    if (normalized.scope) query.set("scope", normalized.scope);
+    const suffix = query.toString() ? `?${query}` : "";
+    const url = `/telemetry/identities${suffix}`;
     return defaultClient.fetchApi(url);
   },
 };

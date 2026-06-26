@@ -26,9 +26,30 @@ import { RegisterControlBar } from "../components/RegisterControlBar";
 import type { UiStatus } from "../lib/status";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 
+function SummaryMetric({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: React.ReactNode;
+  helper?: string;
+}) {
+  return (
+    <div className="p-4 bg-muted/30 rounded-xl border">
+      <span className="text-muted-foreground block mb-1 text-xs">{label}</span>
+      <span className="text-sm font-medium break-words">{value}</span>
+      {helper && <p className="mt-1 text-xs text-muted-foreground">{helper}</p>}
+    </div>
+  );
+}
+
 export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
   const [tools, setTools] = useState<UnifiedTool[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [kindFilter, setKindFilter] = useState("all");
+  const [agentFilter, setAgentFilter] = useState("");
   const [params, setParams] = useSearchParams();
   const selectedId = params.get("selected") ?? undefined;
   const { confirm } = useConfirm();
@@ -38,7 +59,9 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
     try {
       const [regRes, obsRes] = await Promise.all([
         RegistryApi.listTools(),
-        TelemetryApi.listToolInventory().catch(() => ({ items: [] as ObservedTool[] })),
+        TelemetryApi.listToolInventory(agentFilter || undefined).catch(() => ({
+          items: [] as ObservedTool[],
+        })),
       ]);
 
       const unifiedMap = new Map<string, UnifiedTool>();
@@ -80,7 +103,18 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
         }
       }
 
-      setTools(Array.from(unifiedMap.values()));
+      setTools(
+        Array.from(unifiedMap.values()).filter((tool) => {
+          const haystack =
+            `${tool.name} ${tool.tool_id} ${tool.description ?? ""}`.toLowerCase();
+          const matchesSearch = haystack.includes(search.trim().toLowerCase());
+          const matchesKind =
+            kindFilter === "all" ||
+            tool.observed_details?.tool_kind === kindFilter ||
+            tool.registered_details?.category === kindFilter;
+          return matchesSearch && matchesKind;
+        }),
+      );
     } catch (err) {
       console.error(err);
     } finally {
@@ -91,7 +125,7 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
   useEffect(() => {
     fetchTools();
 
-    const source = new EventSource("/v1/telemetry/observations/stream");
+    const source = new EventSource(TelemetryApi.streamUrl("tools"));
     source.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -102,7 +136,7 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
     };
 
     return () => source.close();
-  }, []);
+  }, [search, kindFilter, agentFilter]);
 
   const select = (id: string) =>
     setParams((p) => {
@@ -159,6 +193,28 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
             <input
               type="text"
               placeholder="Search tools..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="px-3 py-1.5 text-sm rounded-md border bg-background"
+            />
+            <select
+              value={kindFilter}
+              onChange={(e) => setKindFilter(e.target.value)}
+              className="px-3 py-1.5 text-sm rounded-md border bg-background"
+            >
+              <option value="all">All kinds</option>
+              <option value="mcp_tool">MCP tool</option>
+              <option value="function_call">Function</option>
+              <option value="http_api">HTTP API</option>
+              <option value="a2a_skill">A2A skill</option>
+              <option value="shell_command">Shell</option>
+              <option value="browser_action">Browser</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Agent ID"
+              value={agentFilter}
+              onChange={(e) => setAgentFilter(e.target.value)}
               className="px-3 py-1.5 text-sm rounded-md border bg-background"
             />
           </div>
@@ -187,6 +243,13 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
                 !t.is_registered ? "Observed" : t.risk_level ? t.risk_level.toUpperCase() : "UNKNOWN"
               }
               meta={[{ label: "Data Access", value: t.data_access_level }]}
+              actions={[
+                {
+                  label: t.is_registered ? "Policy" : "Protect",
+                  primary: !t.is_registered,
+                  onClick: () => {},
+                },
+              ]}
               selected={selected}
             />
           );
@@ -230,38 +293,49 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
                   content: (
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="p-4 bg-muted/30 rounded-xl border">
-                          <span className="text-muted-foreground block mb-1">
-                            Data Access
-                          </span>
-                          <span className="capitalize">
-                            {t.data_access_level}
-                          </span>
-                        </div>
-                        <div className="p-4 bg-muted/30 rounded-xl border">
-                          <span className="text-muted-foreground block mb-1">
-                            Side Effects
-                          </span>
-                          <span className="capitalize">
-                            {t.side_effect_level}
-                          </span>
-                        </div>
+                        <SummaryMetric
+                          label="What POLLEK saw"
+                          value={t.name}
+                          helper={
+                            t.observed_details
+                              ? `${t.observed_details.tool_kind} - ${t.observed_details.server || "local"}`
+                              : t.is_registered
+                                ? "Registered tool definition"
+                                : "Observed tool"
+                          }
+                        />
+                        <SummaryMetric
+                          label="Risk"
+                          value={t.risk_level || "unknown"}
+                          helper={`Data: ${t.data_access_level || "unknown"} - Effects: ${t.side_effect_level || "unknown"}`}
+                        />
                         {t.is_observed && t.observed_details && (
                           <>
-                            <div className="p-4 bg-muted/30 rounded-xl border">
-                              <span className="text-muted-foreground block mb-1">
-                                Last Used
-                              </span>
-                              <span className="text-xs">
-                                {new Date(t.observed_details.last_used).toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="p-4 bg-muted/30 rounded-xl border">
-                              <span className="text-muted-foreground block mb-1">
-                                Usage Count
-                              </span>
-                              <span className="text-xs">{t.observed_details.use_count}</span>
-                            </div>
+                            <SummaryMetric
+                              label="Last used"
+                              value={new Date(
+                                t.observed_details.last_used,
+                              ).toLocaleString()}
+                              helper={`${t.observed_details.use_count} observed invocation(s).`}
+                            />
+                            <SummaryMetric
+                              label="Agents invoking it"
+                              value={t.observed_details.agents.length}
+                              helper={t.observed_details.agents.join(", ") || "No agent linked yet."}
+                            />
+                            <SummaryMetric
+                              label="Governance"
+                              value={
+                                t.observed_details.governed
+                                  ? "Policy attached"
+                                  : "Needs policy"
+                              }
+                              helper={
+                                t.is_registered
+                                  ? "Registered tool can be targeted directly."
+                                  : "Protect will create a policy target for this observed tool."
+                              }
+                            />
                           </>
                         )}
                       </div>

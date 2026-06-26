@@ -185,6 +185,7 @@ async fn register_agent(
             process_path: None,
             user_subject: None,
             signing_key_fingerprint: None,
+            token_bindings: vec![],
         },
         trust_level: dek_control_plane_api::registry::TrustLevel::Untrusted,
         capabilities: vec![],

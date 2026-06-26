@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use pollen_contract::{
     AgentObservationPayload, AgentObservationPayloadControlMethod, EnforcementResultPayload,
-    PollenTelemetryEnvelopeV1, ResourceAccessPayload, ToolUsagePayload,
+    IdentityAccessPayload, PollenTelemetryEnvelopeV1, ResourceAccessPayload, ToolUsagePayload,
 };
 use serde_json::Value;
 
@@ -80,6 +80,14 @@ impl TelemetrySink {
         let env = self
             .ctx
             .envelope("tool_usage", serde_json::to_value(p).unwrap_or_default());
+        let _ = self.tx.send(env).await;
+    }
+
+    pub async fn identity(&self, p: IdentityAccessPayload) {
+        let env = self.ctx.envelope(
+            "identity_access",
+            serde_json::to_value(p).unwrap_or_default(),
+        );
         let _ = self.tx.send(env).await;
     }
 }

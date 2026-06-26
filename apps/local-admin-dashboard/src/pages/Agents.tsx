@@ -13,6 +13,24 @@ import { useConfirm } from "../components/ui/ConfirmDialog";
 import { AgentEnforcementTab } from "../components/agents/AgentEnforcementTab";
 import { AgentActivityTab } from "../components/agents/AgentActivityTab";
 
+function SummaryMetric({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: React.ReactNode;
+  helper?: string;
+}) {
+  return (
+    <div className="p-4 bg-muted/30 rounded-xl border">
+      <span className="text-muted-foreground block mb-1 text-xs">{label}</span>
+      <span className="text-sm font-medium break-words">{value}</span>
+      {helper && <p className="mt-1 text-xs text-muted-foreground">{helper}</p>}
+    </div>
+  );
+}
+
 export function Agents({ hideHeader = false }: { hideHeader?: boolean }) {
   const [agents, setAgents] = useState<AiAgent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,6 +153,10 @@ export function Agents({ hideHeader = false }: { hideHeader?: boolean }) {
               statusLabel={label}
               meta={[
                 { label: "Version", value: a.runtime.version || "Unknown" },
+                {
+                  label: "Identity",
+                  value: a.identity?.spiffe_id ? "SPIFFE" : "Local",
+                },
               ]}
               selected={selected}
             />
@@ -179,6 +201,50 @@ export function Agents({ hideHeader = false }: { hideHeader?: boolean }) {
                   label: "Overview",
                   content: (
                     <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <SummaryMetric
+                          label="Cloud trace identity"
+                          value={a.identity?.spiffe_id || "Not bound yet"}
+                          helper={
+                            a.identity?.spiffe_id
+                              ? "Used as the canonical workload identity when this agent reports to Pollek Cloud."
+                              : "Local mode works, but Cloud control should bind a SPIFFE ID before enforcement at fleet scale."
+                          }
+                        />
+                        <SummaryMetric
+                          label="Token bindings"
+                          value={a.identity?.token_bindings?.length ?? 0}
+                          helper={
+                            a.identity?.token_bindings?.length
+                              ? a.identity.token_bindings
+                                  .map(
+                                    (binding) =>
+                                      `${binding.provider}:${binding.kind}`,
+                                  )
+                                  .join(", ")
+                              : "No OAuth/OIDC/SVID token bindings recorded."
+                          }
+                        />
+                        <SummaryMetric
+                          label="Runtime identity"
+                          value={a.identity?.user_subject || "Local process"}
+                          helper={
+                            a.identity?.process_path
+                              ? `Process: ${a.identity.process_path}`
+                              : "Process path not confirmed yet."
+                          }
+                        />
+                        <SummaryMetric
+                          label="Signing key"
+                          value={
+                            a.identity?.signing_key_fingerprint
+                              ? "Fingerprint present"
+                              : "Not available"
+                          }
+                          helper="Fingerprints only; private keys and OAuth tokens are never stored here."
+                        />
+                      </div>
+
                       <div className="p-4 bg-muted/30 rounded-xl border space-y-3">
                         <h4 className="text-sm font-semibold">Capabilities</h4>
                         <ul className="text-sm space-y-1.5 text-muted-foreground">

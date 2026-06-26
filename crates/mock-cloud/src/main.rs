@@ -51,6 +51,8 @@ use std::sync::{Arc, Mutex};
 use tracing::info;
 
 use crate::state::{AppState, AuditLog, DeviceStatus, PolicyBundle, RegistryState, RolloutConfig};
+use dek_agent_observer::aggregate::{aggregate_identities, aggregate_resources, aggregate_tools};
+use pollen_contract::{IdentityAccessPayload, ResourceAccessPayload, ToolUsagePayload};
 
 // Static ed25519 seed used to sign policy bundles.
 pub const BUNDLE_SEED: [u8; 32] = [
@@ -356,7 +358,51 @@ async fn device_page_post(
 
 async fn dashboard_data_api(State(state): State<AppState>) -> impl IntoResponse {
     let devices: Vec<DeviceStatus> = state.devices.lock().unwrap().values().cloned().collect(); //
-    let count = state.telemetry_events.lock().unwrap().len(); //
+    let telemetry_events: Vec<serde_json::Value> = state
+        .telemetry_events
+        .lock()
+        .unwrap()
+        .iter()
+        .cloned()
+        .collect(); //
+    let count = telemetry_events.len();
+
+    let payload_from_event = |event: &serde_json::Value| {
+        event
+            .get("payload")
+            .cloned()
+            .or_else(|| event.get("details").cloned())
+            .unwrap_or_else(|| event.clone())
+    };
+    let mut resource_events = Vec::new();
+    let mut tool_events = Vec::new();
+    let mut identity_events = Vec::new();
+    for event in &telemetry_events {
+        match event.get("event_type").and_then(|value| value.as_str()) {
+            Some("resource_access") => {
+                if let Ok(payload) =
+                    serde_json::from_value::<ResourceAccessPayload>(payload_from_event(event))
+                {
+                    resource_events.push(payload);
+                }
+            }
+            Some("tool_usage") => {
+                if let Ok(payload) =
+                    serde_json::from_value::<ToolUsagePayload>(payload_from_event(event))
+                {
+                    tool_events.push(payload);
+                }
+            }
+            Some("identity_access") => {
+                if let Ok(payload) =
+                    serde_json::from_value::<IdentityAccessPayload>(payload_from_event(event))
+                {
+                    identity_events.push(payload);
+                }
+            }
+            _ => {}
+        }
+    }
 
     let rollout_guard = state.rollout.lock().unwrap(); //
     let current_version = rollout_guard.latest_bundle.version.clone();
@@ -369,6 +415,18 @@ async fn dashboard_data_api(State(state): State<AppState>) -> impl IntoResponse 
         "telemetry_count": count,
         "current_version": current_version,
         "audits": audits,
+        "resource_inventory": {
+            "schema_version": "resource-inventory.v1",
+            "items": aggregate_resources(&resource_events)
+        },
+        "tool_inventory": {
+            "schema_version": "tool-inventory.v1",
+            "items": aggregate_tools(&tool_events)
+        },
+        "identity_inventory": {
+            "schema_version": "identity-inventory.v1",
+            "items": aggregate_identities(&identity_events)
+        },
     }))
 }
 

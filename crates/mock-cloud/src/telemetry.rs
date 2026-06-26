@@ -26,9 +26,8 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use dek_agent_observer::aggregate::{aggregate_resources, aggregate_tools};
-use dek_domain_schema::TelemetryEvent;
-use pollen_contract::{ResourceAccessPayload, ToolUsagePayload};
+use dek_agent_observer::aggregate::{aggregate_identities, aggregate_resources, aggregate_tools};
+use pollen_contract::{IdentityAccessPayload, ResourceAccessPayload, ToolUsagePayload};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -45,6 +44,7 @@ pub fn router() -> Router<AppState> {
         .route("/v1/telemetry/batches", post(ingest_batches))
         .route("/v1/telemetry/resources", get(list_resources))
         .route("/v1/telemetry/tools", get(list_tools))
+        .route("/v1/telemetry/identities", get(list_identities))
         .route("/v1/telemetry/observations", get(list_observations))
         // legacy/tenant-scoped alias kept for back-compat
         .route(
@@ -164,10 +164,13 @@ async fn ingest_events_tenant(
 
 #[derive(serde::Deserialize)]
 pub struct TelemetryBatchRequest {
-    pub schema_version: String,
+    pub schema_version: Option<String>,
     pub tenant_id: Option<String>,
     pub device_id: Option<String>,
     pub batch_id: Option<String>,
+    #[serde(default)]
+    pub events: Vec<serde_json::Value>,
+    #[serde(default)]
     pub items: Vec<serde_json::Value>,
 }
 
@@ -175,9 +178,15 @@ async fn ingest_batches(
     State(s): State<AppState>,
     Json(p): Json<TelemetryBatchRequest>,
 ) -> impl IntoResponse {
+    let events = if !p.events.is_empty() {
+        p.events
+    } else {
+        p.items
+    };
+    let count = events.len();
     let mut logs = s.telemetry_events.lock().unwrap(); //
     let mut n = 0;
-    for event in p.items {
+    for event in events {
         logs.push_front(event);
         if logs.len() > 2000 {
             logs.pop_back();
@@ -188,7 +197,11 @@ async fn ingest_batches(
 
     (
         StatusCode::OK,
-        Json(serde_json::json!({ "status": "ok", "processed": n })),
+        Json(serde_json::json!({
+            "schema_version": "telemetry-ingest-response.v1",
+            "accepted": n as i32,
+            "rejected": (count - n) as i32
+        })),
     )
 }
 
@@ -224,6 +237,19 @@ async fn ingest_device_status(
 pub struct ObservationsQuery {
     pub target_redacted: Option<String>,
     pub tool_id: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+pub struct InventoryQuery {
+    pub agent_id: Option<String>,
+    pub scope: Option<String>,
+}
+
+fn telemetry_payload(v: &serde_json::Value) -> serde_json::Value {
+    v.get("payload")
+        .cloned()
+        .or_else(|| v.get("details").cloned())
+        .unwrap_or_else(|| v.clone())
 }
 
 async fn list_observations(
@@ -288,18 +314,27 @@ async fn list_observations(
     )
 }
 
-async fn list_resources(State(s): State<AppState>) -> impl IntoResponse {
+async fn list_resources(
+    State(s): State<AppState>,
+    Query(query): Query<InventoryQuery>,
+) -> impl IntoResponse {
     let logs = s.telemetry_events.lock().unwrap();
     let mut payloads = Vec::new();
     for v in logs.iter() {
         if let Some(event_type) = v.get("event_type").and_then(|t| t.as_str()) {
             if event_type == "resource_access" {
-                let payload = if v.get("details").is_some() {
-                    v.get("details").unwrap().clone()
-                } else {
-                    v.clone()
-                };
+                let payload = telemetry_payload(v);
                 if let Ok(p) = serde_json::from_value::<ResourceAccessPayload>(payload) {
+                    if let Some(agent_id) = &query.agent_id {
+                        if p.agent_id != *agent_id {
+                            continue;
+                        }
+                    }
+                    if let Some(scope) = &query.scope {
+                        if p.scope.to_string() != *scope {
+                            continue;
+                        }
+                    }
                     payloads.push(p);
                 }
             }
@@ -317,18 +352,22 @@ async fn list_resources(State(s): State<AppState>) -> impl IntoResponse {
     )
 }
 
-async fn list_tools(State(s): State<AppState>) -> impl IntoResponse {
+async fn list_tools(
+    State(s): State<AppState>,
+    Query(query): Query<InventoryQuery>,
+) -> impl IntoResponse {
     let logs = s.telemetry_events.lock().unwrap();
     let mut payloads = Vec::new();
     for v in logs.iter() {
         if let Some(event_type) = v.get("event_type").and_then(|t| t.as_str()) {
             if event_type == "tool_usage" {
-                let payload = if v.get("details").is_some() {
-                    v.get("details").unwrap().clone()
-                } else {
-                    v.clone()
-                };
+                let payload = telemetry_payload(v);
                 if let Ok(p) = serde_json::from_value::<ToolUsagePayload>(payload) {
+                    if let Some(agent_id) = &query.agent_id {
+                        if p.agent_id != *agent_id {
+                            continue;
+                        }
+                    }
                     payloads.push(p);
                 }
             }
@@ -341,6 +380,44 @@ async fn list_tools(State(s): State<AppState>) -> impl IntoResponse {
         StatusCode::OK,
         Json(serde_json::json!({
             "schema_version": "tool-inventory.v1",
+            "items": items
+        })),
+    )
+}
+
+async fn list_identities(
+    State(s): State<AppState>,
+    Query(query): Query<InventoryQuery>,
+) -> impl IntoResponse {
+    let logs = s.telemetry_events.lock().unwrap();
+    let mut payloads = Vec::new();
+    for v in logs.iter() {
+        if let Some(event_type) = v.get("event_type").and_then(|t| t.as_str()) {
+            if event_type == "identity_access" {
+                let payload = telemetry_payload(v);
+                if let Ok(p) = serde_json::from_value::<IdentityAccessPayload>(payload) {
+                    if let Some(agent_id) = &query.agent_id {
+                        if p.agent_id != *agent_id {
+                            continue;
+                        }
+                    }
+                    if let Some(scope) = &query.scope {
+                        if p.scope.to_string() != *scope {
+                            continue;
+                        }
+                    }
+                    payloads.push(p);
+                }
+            }
+        }
+    }
+    drop(logs);
+
+    let items = aggregate_identities(&payloads);
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "schema_version": "identity-inventory.v1",
             "items": items
         })),
     )

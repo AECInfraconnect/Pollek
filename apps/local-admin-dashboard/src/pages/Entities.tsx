@@ -10,6 +10,24 @@ import { EmptyState } from "../components/master-detail/EmptyState";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 
+function SummaryMetric({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: React.ReactNode;
+  helper?: string;
+}) {
+  return (
+    <div className="p-4 bg-muted/30 rounded-xl border">
+      <span className="text-muted-foreground block mb-1 text-xs">{label}</span>
+      <span className="text-sm font-medium break-words">{value}</span>
+      {helper && <p className="mt-1 text-xs text-muted-foreground">{helper}</p>}
+    </div>
+  );
+}
+
 export function Entities() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,7 +179,14 @@ export function Entities() {
                     : "Unmanaged"
               }
               meta={[
-                { label: "ID", value: e.entity_id.slice(0, 18) },
+                {
+                  label: "Source",
+                  value: e.meta?.source ?? e.attributes?.status ?? "local",
+                },
+                {
+                  label: "Provider",
+                  value: e.external_ids?.[0]?.provider ?? "registry",
+                },
                 ...(isDiscoverySurface && e.attributes?.confidence
                   ? [
                       {
@@ -176,6 +201,7 @@ export function Entities() {
           );
         }}
         renderDetail={(e) => {
+          const isDiscoverySurface = e.entity_id?.startsWith("discovery:");
           const isGoverned = e.meta?.status === "active";
           return (
             <DetailPane
@@ -204,22 +230,51 @@ export function Entities() {
                   content: (
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground block mb-1">
-                            ID
-                          </span>
-                          <span className="font-mono">{e.entity_id}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">
-                            Created At
-                          </span>
-                          <span>
-                            {e.meta?.created_at
+                        <SummaryMetric
+                          label="Entity"
+                          value={e.display_name}
+                          helper={`${e.entity_type} - ${isGoverned ? "governed" : "unmanaged"}`}
+                        />
+                        <SummaryMetric
+                          label="Provider"
+                          value={e.external_ids?.[0]?.provider ?? "registry"}
+                          helper={e.external_ids?.[0]?.id ?? "No external ID linked."}
+                        />
+                        <SummaryMetric
+                          label="Stable ID"
+                          value={e.entity_id}
+                          helper="Used by policies and relationship checks."
+                        />
+                        <SummaryMetric
+                          label="Created"
+                          value={
+                            e.meta?.created_at
                               ? new Date(e.meta.created_at).toLocaleString()
-                              : "N/A"}
-                          </span>
-                        </div>
+                              : "N/A"
+                          }
+                          helper={e.meta?.source ? `Source: ${e.meta.source}` : undefined}
+                        />
+                        {isDiscoverySurface && (
+                          <>
+                            <SummaryMetric
+                              label="Confidence"
+                              value={
+                                e.attributes?.confidence
+                                  ? `${(e.attributes.confidence * 100).toFixed(0)}%`
+                                  : "Unknown"
+                              }
+                              helper="Discovery confidence before registration."
+                            />
+                            <SummaryMetric
+                              label="Capabilities"
+                              value={e.attributes?.capabilities?.length ?? 0}
+                              helper={
+                                e.attributes?.capabilities?.join(", ") ||
+                                "No capabilities reported yet."
+                              }
+                            />
+                          </>
+                        )}
                       </div>
                       <div className="pt-4">
                         <h4 className="font-medium mb-2 flex items-center gap-2">
