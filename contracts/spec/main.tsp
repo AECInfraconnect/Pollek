@@ -6,6 +6,7 @@ import "./rest/contract-discovery.tsp";
 import "./rest/bundles.tsp";
 import "./rest/telemetry.tsp";
 import "./rest/registry.tsp";
+import "./rest/usage.tsp";
 import "./rest/enrollment.tsp";
 import "./rest/a2a.tsp";
 import "./rest/pdp-routing.tsp";

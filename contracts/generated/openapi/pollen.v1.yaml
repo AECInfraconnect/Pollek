@@ -16,6 +16,7 @@ tags:
   - name: PolicySuggestions
   - name: PolicyPresets
   - name: PepCapabilities
+  - name: AI Usage
   - name: A2A Mediator
   - name: PDPConfig
   - name: LocalDashboard
@@ -1890,8 +1891,585 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Tool'
+  /v1/tenants/{tenant_id}/usage/agents/{agent_id}:
+    get:
+      operationId: AiUsageApi_getAgentUsageSummary
+      description: Get canonical AI usage summary for one agent
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.from'
+        - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.to'
+        - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.bucket'
+        - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.group_by'
+        - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.agent_type'
+        - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.provider'
+        - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.model'
+        - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.task_id'
+        - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.session_id'
+        - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.surface'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiUsageSummaryV1'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - AI Usage
+  /v1/tenants/{tenant_id}/usage/budgets:
+    get:
+      operationId: AiUsageApi_listUsageBudgets
+      description: List AI budget policies
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiBudgetLimitListV1'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - AI Usage
+  /v1/tenants/{tenant_id}/usage/budgets/{budget_id}:
+    put:
+      operationId: AiUsageApi_upsertUsageBudget
+      description: Upsert an AI budget policy
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: budget_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  item:
+                    $ref: '#/components/schemas/AiBudgetLimitV1'
+                required:
+                  - item
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - AI Usage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiBudgetLimitV1'
+  /v1/tenants/{tenant_id}/usage/events:
+    post:
+      operationId: AiUsageApi_ingestUsageEvent
+      description: Ingest one canonical AI usage event
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  item:
+                    $ref: '#/components/schemas/AiUsageEventV1'
+                required:
+                  - item
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - AI Usage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiUsageEventV1'
+    get:
+      operationId: AiUsageApi_listUsageEvents
+      description: List canonical AI usage events
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/AiUsageQueryParams.from'
+        - $ref: '#/components/parameters/AiUsageQueryParams.to'
+        - $ref: '#/components/parameters/AiUsageQueryParams.agent_id'
+        - $ref: '#/components/parameters/AiUsageQueryParams.agent_type'
+        - $ref: '#/components/parameters/AiUsageQueryParams.provider'
+        - $ref: '#/components/parameters/AiUsageQueryParams.model'
+        - $ref: '#/components/parameters/AiUsageQueryParams.task_id'
+        - $ref: '#/components/parameters/AiUsageQueryParams.session_id'
+        - $ref: '#/components/parameters/AiUsageQueryParams.surface'
+        - $ref: '#/components/parameters/AiUsageQueryParams.sync_status'
+        - $ref: '#/components/parameters/AiUsageQueryParams.limit'
+        - $ref: '#/components/parameters/AiUsageQueryParams.cursor'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiUsageEventPageV1'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - AI Usage
+  /v1/tenants/{tenant_id}/usage/events/batch:
+    post:
+      operationId: AiUsageApi_ingestUsageEventsBatch
+      description: Ingest canonical AI usage events in batch
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiUsageBatchIngestResponseV1'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - AI Usage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiUsageBatchIngestRequestV1'
+  /v1/tenants/{tenant_id}/usage/ledger:
+    get:
+      operationId: AiUsageApi_getUsageLedger
+      description: List canonical AI usage ledger events
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/AiUsageQueryParams.from'
+        - $ref: '#/components/parameters/AiUsageQueryParams.to'
+        - $ref: '#/components/parameters/AiUsageQueryParams.agent_id'
+        - $ref: '#/components/parameters/AiUsageQueryParams.agent_type'
+        - $ref: '#/components/parameters/AiUsageQueryParams.provider'
+        - $ref: '#/components/parameters/AiUsageQueryParams.model'
+        - $ref: '#/components/parameters/AiUsageQueryParams.task_id'
+        - $ref: '#/components/parameters/AiUsageQueryParams.session_id'
+        - $ref: '#/components/parameters/AiUsageQueryParams.surface'
+        - $ref: '#/components/parameters/AiUsageQueryParams.sync_status'
+        - $ref: '#/components/parameters/AiUsageQueryParams.limit'
+        - $ref: '#/components/parameters/AiUsageQueryParams.cursor'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiUsageLedgerV1'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - AI Usage
+  /v1/tenants/{tenant_id}/usage/reconcile:
+    post:
+      operationId: AiUsageApi_reconcileUsage
+      description: Accept provider billing reconciliation metadata
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiUsageReconcileResponseV1'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - AI Usage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {}
+  /v1/tenants/{tenant_id}/usage/summary:
+    get:
+      operationId: AiUsageApi_getUsageSummary
+      description: Get canonical AI usage summary
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.from'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.to'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.bucket'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.group_by'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.agent_id'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.agent_type'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.provider'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.model'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.task_id'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.session_id'
+        - $ref: '#/components/parameters/AiUsageSummaryQueryParams.surface'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiUsageSummaryV1'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - AI Usage
 components:
   parameters:
+    AiUsageAgentSummaryQueryParams.agent_type:
+      name: agent_type
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageAgentSummaryQueryParams.bucket:
+      name: bucket
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageAgentSummaryQueryParams.from:
+      name: from
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+      explode: false
+    AiUsageAgentSummaryQueryParams.group_by:
+      name: group_by
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageAgentSummaryQueryParams.model:
+      name: model
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageAgentSummaryQueryParams.provider:
+      name: provider
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageAgentSummaryQueryParams.session_id:
+      name: session_id
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageAgentSummaryQueryParams.surface:
+      name: surface
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageAgentSummaryQueryParams.task_id:
+      name: task_id
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageAgentSummaryQueryParams.to:
+      name: to
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+      explode: false
+    AiUsageQueryParams.agent_id:
+      name: agent_id
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageQueryParams.agent_type:
+      name: agent_type
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageQueryParams.cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageQueryParams.from:
+      name: from
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+      explode: false
+    AiUsageQueryParams.limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int64
+      explode: false
+    AiUsageQueryParams.model:
+      name: model
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageQueryParams.provider:
+      name: provider
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageQueryParams.session_id:
+      name: session_id
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageQueryParams.surface:
+      name: surface
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageQueryParams.sync_status:
+      name: sync_status
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageQueryParams.task_id:
+      name: task_id
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageQueryParams.to:
+      name: to
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+      explode: false
+    AiUsageSummaryQueryParams.agent_id:
+      name: agent_id
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageSummaryQueryParams.agent_type:
+      name: agent_type
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageSummaryQueryParams.bucket:
+      name: bucket
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageSummaryQueryParams.from:
+      name: from
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+      explode: false
+    AiUsageSummaryQueryParams.group_by:
+      name: group_by
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageSummaryQueryParams.model:
+      name: model
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageSummaryQueryParams.provider:
+      name: provider
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageSummaryQueryParams.session_id:
+      name: session_id
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageSummaryQueryParams.surface:
+      name: surface
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageSummaryQueryParams.task_id:
+      name: task_id
+      in: query
+      required: false
+      schema:
+        type: string
+      explode: false
+    AiUsageSummaryQueryParams.to:
+      name: to
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+      explode: false
     PollenHeaders.contractVersion:
       name: X-Pollen-Contract-Version
       in: header
@@ -2073,6 +2651,513 @@ components:
         tokens:
           type: integer
           format: int64
+    AiAgentType:
+      type: string
+      enum:
+        - local_agent
+        - browser_ai
+        - coding_agent
+        - claude_code
+        - codex_cli
+        - cursor
+        - mcp_client
+        - mcp_server_agent
+        - a2a_agent
+        - managed_agent
+        - gateway_agent
+        - shadow_ai
+        - unknown
+    AiBudgetLimitListV1:
+      type: object
+      required:
+        - schema_version
+        - items
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - ai-budget-limit-list.v1
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiBudgetLimitV1'
+    AiBudgetLimitV1:
+      type: object
+      required:
+        - schema_version
+        - budget_id
+        - tenant_id
+        - scope_type
+        - scope_id
+        - window
+        - currency
+        - action_on_soft
+        - action_on_hard
+        - enabled
+        - created_at
+        - updated_at
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - ai-budget-limit.v1
+        budget_id:
+          type: string
+        tenant_id:
+          type: string
+        scope_type:
+          type: string
+        scope_id:
+          type: string
+        window:
+          type: string
+        currency:
+          type: string
+        soft_cost_limit:
+          type: number
+          format: float
+        hard_cost_limit:
+          type: number
+          format: float
+        soft_token_limit:
+          type: integer
+          format: int64
+        hard_token_limit:
+          type: integer
+          format: int64
+        action_on_soft:
+          type: string
+        action_on_hard:
+          type: string
+        enabled:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    AiCostSource:
+      type: string
+      enum:
+        - provider_reported
+        - price_catalog_exact
+        - price_catalog_tiered
+        - estimated_tokenizer
+        - billing_reconciled
+        - unknown
+    AiUsageBatchIngestRequestV1:
+      type: object
+      required:
+        - events
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiUsageEventV1'
+    AiUsageBatchIngestResponseV1:
+      type: object
+      required:
+        - schema_version
+        - accepted
+        - rejected
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - ai-usage-batch-ingest-response.v1
+        accepted:
+          type: integer
+          format: int64
+        rejected:
+          type: integer
+          format: int64
+    AiUsageBreakdownV1:
+      type: object
+      required:
+        - key
+        - label
+        - request_count
+        - total_tokens
+        - total_cost
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        agent_type:
+          type: string
+        request_count:
+          type: integer
+          format: int64
+        total_tokens:
+          type: integer
+          format: int64
+        total_cost:
+          type: number
+          format: float
+        budget:
+          $ref: '#/components/schemas/AiUsageBudgetStatusV1'
+    AiUsageBudgetStatusV1:
+      type: object
+      required:
+        - window
+        - status
+      properties:
+        window:
+          type: string
+        hard_cost_limit:
+          type: number
+          format: float
+        hard_token_limit:
+          type: integer
+          format: int64
+        remaining_cost:
+          type: number
+          format: float
+        remaining_tokens:
+          type: integer
+          format: int64
+        status:
+          type: string
+    AiUsageEventKind:
+      type: string
+      enum:
+        - agent_run_started
+        - agent_run_completed
+        - agent_step_started
+        - agent_step_completed
+        - model_call_started
+        - model_call_chunk
+        - model_call_completed
+        - tool_call_started
+        - tool_call_completed
+        - resource_access
+        - budget_preflight
+        - budget_alert
+        - budget_blocked
+        - usage_reconciled
+    AiUsageEventPageV1:
+      type: object
+      required:
+        - schema_version
+        - items
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - ai-usage-event-page.v1
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiUsageEventV1'
+        next_cursor:
+          type: string
+    AiUsageEventV1:
+      type: object
+      required:
+        - schema_version
+        - event_id
+        - event_kind
+        - occurred_at
+        - received_at
+        - tenant_id
+        - trace_id
+        - span_id
+        - agent_type
+        - surface
+        - policy_ids
+        - tokens
+        - cost
+        - status
+        - provider_usage_raw
+        - metadata
+        - idempotency_key
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - ai-usage-event.v1
+        event_id:
+          type: string
+        event_kind:
+          $ref: '#/components/schemas/AiUsageEventKind'
+        occurred_at:
+          type: string
+          format: date-time
+        received_at:
+          type: string
+          format: date-time
+        tenant_id:
+          type: string
+        workspace_id:
+          type: string
+        device_id:
+          type: string
+        actor_id_hash:
+          type: string
+        actor_kind:
+          type: string
+        trace_id:
+          type: string
+        span_id:
+          type: string
+        parent_span_id:
+          type: string
+        session_id:
+          type: string
+        task_id:
+          type: string
+        agent_run_id:
+          type: string
+        agent_step_id:
+          type: string
+        invocation_id:
+          type: string
+        agent_id:
+          type: string
+        agent_instance_id:
+          type: string
+        agent_type:
+          $ref: '#/components/schemas/AiAgentType'
+        parent_agent_id:
+          type: string
+        subagent_id:
+          type: string
+        shadow_candidate_id:
+          type: string
+        provider:
+          type: string
+        provider_api:
+          type: string
+        provider_request_id:
+          type: string
+        model:
+          type: string
+        model_version:
+          type: string
+        service_tier:
+          type: string
+        inference_region:
+          type: string
+        surface:
+          type: string
+        pep_type:
+          type: string
+        control_mode:
+          type: string
+        policy_ids:
+          type: array
+          items:
+            type: string
+        tokens:
+          $ref: '#/components/schemas/CanonicalTokenUsageV1'
+        cost:
+          $ref: '#/components/schemas/CanonicalCostBreakdownV1'
+        tool_id:
+          type: string
+        tool_name:
+          type: string
+        mcp_server_id:
+          type: string
+        resource_id:
+          type: string
+        resource_type:
+          type: string
+        latency_ms:
+          type: integer
+          format: int64
+        status:
+          type: string
+        error_code:
+          type: string
+        provider_usage_raw:
+          type: object
+          unevaluatedProperties: {}
+        metadata:
+          type: object
+          unevaluatedProperties: {}
+        local_sequence:
+          type: integer
+          format: int64
+        cloud_sync_status:
+          type: string
+        idempotency_key:
+          type: string
+    AiUsageLedgerV1:
+      type: object
+      required:
+        - schema_version
+        - items
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - ai-usage-ledger.v1
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiUsageEventV1'
+    AiUsageReconcileResponseV1:
+      type: object
+      required:
+        - schema_version
+        - tenant_id
+        - status
+        - received
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - ai-usage-reconcile-response.v1
+        tenant_id:
+          type: string
+        status:
+          type: string
+        received: {}
+    AiUsageSeriesPointV1:
+      type: object
+      required:
+        - bucket_start
+        - request_count
+        - input_tokens
+        - output_tokens
+        - cached_input_tokens
+        - reasoning_output_tokens
+        - total_tokens
+        - total_cost
+      properties:
+        bucket_start:
+          type: string
+          format: date-time
+        request_count:
+          type: integer
+          format: int64
+        input_tokens:
+          type: integer
+          format: int64
+        output_tokens:
+          type: integer
+          format: int64
+        cached_input_tokens:
+          type: integer
+          format: int64
+        reasoning_output_tokens:
+          type: integer
+          format: int64
+        total_tokens:
+          type: integer
+          format: int64
+        total_cost:
+          type: number
+          format: float
+    AiUsageSource:
+      type: string
+      enum:
+        - provider_response
+        - provider_streaming_final
+        - provider_billing_export
+        - sdk_instrumentation
+        - proxy_observation
+        - browser_estimate
+        - local_tokenizer_estimate
+        - manual_import
+        - reconciled
+        - unknown
+    AiUsageSummaryV1:
+      type: object
+      required:
+        - schema_version
+        - tenant_id
+        - bucket
+        - currency
+        - totals
+        - by_agent
+        - by_provider
+        - by_model
+        - series
+        - budgets
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - ai-usage-summary.v1
+        tenant_id:
+          type: string
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        bucket:
+          type: string
+        currency:
+          type: string
+        totals:
+          $ref: '#/components/schemas/AiUsageTotalsV1'
+        by_agent:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiUsageBreakdownV1'
+        by_provider:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiUsageBreakdownV1'
+        by_model:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiUsageBreakdownV1'
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiUsageSeriesPointV1'
+        budgets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiBudgetLimitV1'
+    AiUsageTotalsV1:
+      type: object
+      required:
+        - request_count
+        - input_tokens
+        - output_tokens
+        - cached_input_tokens
+        - cache_write_input_tokens
+        - reasoning_output_tokens
+        - tool_tokens
+        - multimodal_tokens
+        - total_tokens
+        - total_cost
+      properties:
+        request_count:
+          type: integer
+          format: int64
+        input_tokens:
+          type: integer
+          format: int64
+        output_tokens:
+          type: integer
+          format: int64
+        cached_input_tokens:
+          type: integer
+          format: int64
+        cache_write_input_tokens:
+          type: integer
+          format: int64
+        reasoning_output_tokens:
+          type: integer
+          format: int64
+        tool_tokens:
+          type: integer
+          format: int64
+        multimodal_tokens:
+          type: integer
+          format: int64
+        total_tokens:
+          type: integer
+          format: int64
+        total_cost:
+          type: number
+          format: float
     BrowserAiObservationScope:
       type: object
       properties:
@@ -2145,6 +3230,148 @@ components:
           type: integer
           format: int32
         envelope: {}
+    CanonicalCostBreakdownV1:
+      type: object
+      required:
+        - currency
+        - input_cost
+        - output_cost
+        - cached_input_cost
+        - cache_write_input_cost
+        - reasoning_output_cost
+        - tool_cost
+        - image_cost
+        - audio_cost
+        - total_cost
+        - cost_source
+        - estimated
+        - cost_details_ext
+      properties:
+        currency:
+          type: string
+        input_cost:
+          type: number
+          format: float
+        output_cost:
+          type: number
+          format: float
+        cached_input_cost:
+          type: number
+          format: float
+        cache_write_input_cost:
+          type: number
+          format: float
+        reasoning_output_cost:
+          type: number
+          format: float
+        tool_cost:
+          type: number
+          format: float
+        image_cost:
+          type: number
+          format: float
+        audio_cost:
+          type: number
+          format: float
+        total_cost:
+          type: number
+          format: float
+        price_catalog_version:
+          type: string
+        pricing_tier_id:
+          type: string
+        cost_source:
+          $ref: '#/components/schemas/AiCostSource'
+        estimated:
+          type: boolean
+        cost_details_ext:
+          type: object
+          unevaluatedProperties:
+            type: number
+            format: float
+    CanonicalTokenUsageV1:
+      type: object
+      required:
+        - input_tokens
+        - output_tokens
+        - total_tokens
+        - cached_input_tokens
+        - cache_write_input_tokens
+        - reasoning_output_tokens
+        - tool_prompt_tokens
+        - tool_result_tokens
+        - image_input_tokens
+        - image_output_tokens
+        - audio_input_tokens
+        - audio_output_tokens
+        - video_input_tokens
+        - by_modality
+        - usage_details_ext
+        - estimated
+        - source
+      properties:
+        input_tokens:
+          type: integer
+          format: int64
+        output_tokens:
+          type: integer
+          format: int64
+        total_tokens:
+          type: integer
+          format: int64
+        cached_input_tokens:
+          type: integer
+          format: int64
+        cache_write_input_tokens:
+          type: integer
+          format: int64
+        cache_write_input_tokens_5m:
+          type: integer
+          format: int64
+        cache_write_input_tokens_1h:
+          type: integer
+          format: int64
+        reasoning_output_tokens:
+          type: integer
+          format: int64
+        reasoning_input_tokens:
+          type: integer
+          format: int64
+        tool_prompt_tokens:
+          type: integer
+          format: int64
+        tool_result_tokens:
+          type: integer
+          format: int64
+        image_input_tokens:
+          type: integer
+          format: int64
+        image_output_tokens:
+          type: integer
+          format: int64
+        audio_input_tokens:
+          type: integer
+          format: int64
+        audio_output_tokens:
+          type: integer
+          format: int64
+        video_input_tokens:
+          type: integer
+          format: int64
+        by_modality:
+          type: object
+          unevaluatedProperties:
+            type: integer
+            format: int64
+        usage_details_ext:
+          type: object
+          unevaluatedProperties:
+            type: integer
+            format: int64
+        estimated:
+          type: boolean
+        source:
+          $ref: '#/components/schemas/AiUsageSource'
     ContractDiscoveryResponse:
       type: object
       required:

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.pollen.dev/schemas/price-catalog.v2.schema.json",
+  "title": "PriceCatalogV2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "catalog_version", "default_currency", "models"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "price-catalog.v2" },
+    "catalog_version": { "type": "string" },
+    "default_currency": { "type": "string" },
+    "models": { "type": "array", "items": { "$ref": "#/$defs/model_price_rule" } }
+  },
+  "$defs": {
+    "model_price_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model_match", "prices_per_1m"],
+      "properties": {
+        "provider": { "type": "string" },
+        "provider_api": { "type": "string" },
+        "model_match": { "type": "string" },
+        "effective_from": { "type": "string", "format": "date-time" },
+        "effective_to": { "type": "string", "format": "date-time" },
+        "source_url": { "type": "string" },
+        "currency": { "type": "string" },
+        "prices_per_1m": { "type": "object", "additionalProperties": { "type": "number" } },
+        "tiers": { "type": "array", "items": { "$ref": "#/$defs/price_tier" } }
+      }
+    },
+    "price_tier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tier_id", "condition", "prices_per_1m"],
+      "properties": {
+        "tier_id": { "type": "string" },
+        "priority": { "type": "integer" },
+        "condition": { "$ref": "#/$defs/price_tier_condition" },
+        "prices_per_1m": { "type": "object", "additionalProperties": { "type": "number" } }
+      }
+    },
+    "price_tier_condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["usage_key_regex", "operator", "value"],
+      "properties": {
+        "usage_key_regex": { "type": "string" },
+        "operator": { "type": "string", "enum": ["gt", "gte", "lt", "lte", "eq"] },
+        "value": { "type": "integer" }
+      }
+    }
+  }
+}

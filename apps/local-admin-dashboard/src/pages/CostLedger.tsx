@@ -1,193 +1,456 @@
-import { useState, useEffect } from "react";
-import { DollarSign, RefreshCw } from "lucide-react";
-import { ObservationApi, RegistryApi } from "../services/api";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Activity,
+  Bot,
+  CircleDollarSign,
+  Clock,
+  Gauge,
+  RefreshCw,
+  Server,
+  ShieldAlert,
+  Wifi,
+  Zap,
+} from "lucide-react";
+import { RegistryApi, UsageApi, type AiUsageSummary } from "../services/api";
 import { RegisterControlBar } from "../components/RegisterControlBar";
 
-type AgentUsage = {
-  cost: number;
-  tokens: number;
+type RangeKey = "5m" | "1h" | "24h" | "7d" | "month";
+
+type AgentLabel = {
   name: string;
   kind?: string;
 };
 
+type SyncCounts = {
+  pending: number;
+  sent: number;
+  acked: number;
+  failed: number;
+};
+
+const ranges: Array<{ key: RangeKey; label: string; bucket: string }> = [
+  { key: "5m", label: "5m", bucket: "1m" },
+  { key: "1h", label: "1h", bucket: "1m" },
+  { key: "24h", label: "24h", bucket: "1h" },
+  { key: "7d", label: "7d", bucket: "1d" },
+  { key: "month", label: "Month", bucket: "1d" },
+];
+
+function fromForRange(range: RangeKey) {
+  const now = new Date();
+  if (range === "month") {
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  }
+  const minutes =
+    range === "5m" ? 5 : range === "1h" ? 60 : range === "24h" ? 1440 : 10080;
+  return new Date(now.getTime() - minutes * 60_000).toISOString();
+}
+
+function money(value: number, currency = "USD") {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: value < 1 ? 4 : 2,
+  }).format(value || 0);
+}
+
+function number(value: number) {
+  return new Intl.NumberFormat().format(value || 0);
+}
+
+function statusClass(status?: string) {
+  if (status === "hard_exceeded") return "text-red-600 bg-red-500/10";
+  if (status === "soft_exceeded") return "text-amber-600 bg-amber-500/10";
+  return "text-emerald-600 bg-emerald-500/10";
+}
+
 export function CostLedger() {
   const [loading, setLoading] = useState(false);
-  const [totalCost, setTotalCost] = useState<number>(0);
-  const [totalTokens, setTotalTokens] = useState<number>(0);
-  const [breakdown, setBreakdown] = useState<Record<string, AgentUsage>>({});
+  const [range, setRange] = useState<RangeKey>("24h");
+  const [summary, setSummary] = useState<AiUsageSummary | null>(null);
+  const [agentLabels, setAgentLabels] = useState<Map<string, AgentLabel>>(
+    new Map(),
+  );
+  const [syncCounts, setSyncCounts] = useState<SyncCounts>({
+    pending: 0,
+    sent: 0,
+    acked: 0,
+    failed: 0,
+  });
+  const [live, setLive] = useState(false);
 
-  const fetchCost = async () => {
-    setLoading(true);
+  const activeRange = ranges.find((item) => item.key === range) ?? ranges[2];
+
+  const fetchUsage = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
-      const data: any = await ObservationApi.getCostSummary();
-      const [agents, candidates] = await Promise.all([
+      const from = fromForRange(range);
+      const [usage, events, agents, candidates] = await Promise.all([
+        UsageApi.getSummary({ from, bucket: activeRange.bucket }),
+        UsageApi.getEvents({ from, limit: 100 }),
         RegistryApi.listAgents().catch(() => []),
         RegistryApi.listDiscoveryCandidates().catch(() => []),
       ]);
-      const agentNames = new Map<string, { name: string; kind?: string }>();
+
+      const names = new Map<string, AgentLabel>();
       for (const agent of agents) {
-        agentNames.set(agent.agent_id, {
+        names.set(agent.agent_id, {
           name: agent.name || agent.agent_id,
           kind: agent.agent_type,
         });
       }
       for (const candidate of candidates) {
         const displayName = candidate.display_name || candidate.candidate_id;
-        agentNames.set(candidate.candidate_id, {
+        names.set(candidate.candidate_id, {
           name: displayName,
           kind: candidate.inferred_agent_type,
         });
         const suggestedAgentId = candidate.suggested_registration?.agent_id;
         if (suggestedAgentId) {
-          agentNames.set(suggestedAgentId, {
+          names.set(suggestedAgentId, {
             name: displayName,
             kind: candidate.inferred_agent_type,
           });
         }
       }
 
-      setTotalCost(data.total_estimated_cost_usd || 0);
-      setTotalTokens(data.total_tokens || 0);
-      const usageBreakdown: Record<string, AgentUsage> = {};
-      const costBreakdown = data.agent_breakdown || {};
-      const tokenBreakdown = data.agent_token_breakdown || {};
-
-      for (const [agentId, value] of Object.entries<any>(
-        data.agent_usage_breakdown || {},
-      )) {
-        const agent = agentNames.get(agentId);
-        usageBreakdown[agentId] = {
-          cost: Number(value?.cost || 0),
-          tokens: Number(value?.tokens || 0),
-          name: agent?.name || agentId,
-          kind: agent?.kind,
-        };
+      const counts: SyncCounts = { pending: 0, sent: 0, acked: 0, failed: 0 };
+      for (const event of events.items ?? []) {
+        const status = event.cloud_sync_status || "pending";
+        if (status in counts) counts[status as keyof SyncCounts] += 1;
       }
 
-      for (const [agentId, cost] of Object.entries<any>(costBreakdown)) {
-        const agent = agentNames.get(agentId);
-        usageBreakdown[agentId] = usageBreakdown[agentId] || {
-          cost: Number(cost || 0),
-          tokens: Number(tokenBreakdown[agentId] || 0),
-          name: agent?.name || agentId,
-          kind: agent?.kind,
-        };
-      }
-
-      setBreakdown(usageBreakdown);
-    } catch (e) {
-      console.error(e);
+      setSummary(usage);
+      setAgentLabels(names);
+      setSyncCounts(counts);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCost();
-  }, []);
+    fetchUsage();
+  }, [range]);
+
+  useEffect(() => {
+    const source = new EventSource(UsageApi.streamUrl());
+    const refresh = () => fetchUsage(false);
+    source.addEventListener("open", () => setLive(true));
+    source.addEventListener("error", () => setLive(false));
+    source.addEventListener("ai_usage_event", refresh);
+    source.addEventListener("ai_budget_alert", refresh);
+    const timer = window.setInterval(refresh, 10_000);
+    return () => {
+      source.close();
+      window.clearInterval(timer);
+    };
+  }, [range]);
+
+  const totals = summary?.totals;
+  const currency = summary?.currency || "USD";
+  const topAgent = summary?.by_agent?.[0];
+  const topProvider = summary?.by_provider?.[0];
+  const topModel = summary?.by_model?.[0];
+
+  const budgetStatus = useMemo(() => {
+    const statuses = summary?.by_agent
+      ?.map((row) => row.budget?.status)
+      .filter(Boolean);
+    if (statuses?.includes("hard_exceeded")) return "hard_exceeded";
+    if (statuses?.includes("soft_exceeded")) return "soft_exceeded";
+    return "ok";
+  }, [summary]);
+
+  const tokenBreakdown = [
+    { label: "Input", value: totals?.input_tokens ?? 0 },
+    { label: "Output", value: totals?.output_tokens ?? 0 },
+    { label: "Cached", value: totals?.cached_input_tokens ?? 0 },
+    { label: "Reasoning", value: totals?.reasoning_output_tokens ?? 0 },
+    { label: "Tool", value: totals?.tool_tokens ?? 0 },
+    { label: "Multimodal", value: totals?.multimodal_tokens ?? 0 },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">
-            Token & Cost Ledger
+            AI Usage & Cost
           </h2>
-          <p className="text-muted-foreground">
-            Monitor estimated costs and token usage across all observed AI
-            agents.
-          </p>
-        </div>
-        <button
-          onClick={fetchCost}
-          disabled={loading}
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4"
-        >
-          {loading ? (
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
-          )}
-          Refresh
-        </button>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="glass rounded-xl p-6 relative overflow-hidden group">
-          <div className="relative flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">
-              Total Estimated Cost
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${
+                live ? "bg-emerald-500/10 text-emerald-600" : "bg-muted"
+              }`}
+            >
+              <Wifi className="h-3.5 w-3.5" />
+              {live ? "Live" : "Polling"}
             </span>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-bold">${totalCost.toFixed(2)}</span>
-            <span className="text-xs font-medium text-muted-foreground">
-              USD
-            </span>
+            <span>{summary?.from ? new Date(summary.from).toLocaleString() : ""}</span>
           </div>
         </div>
-        <div className="glass rounded-xl p-6 relative overflow-hidden group">
-          <div className="relative flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">
-              Total Tokens
-            </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg border bg-background p-1">
+            {ranges.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setRange(item.key)}
+                className={`rounded-md px-3 py-1.5 text-sm ${
+                  range === item.key
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-bold">
-              {totalTokens.toLocaleString()}
-            </span>
-            <span className="text-xs font-medium text-muted-foreground">
-              tokens
-            </span>
-          </div>
+          <button
+            onClick={() => fetchUsage()}
+            disabled={loading}
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </button>
         </div>
       </div>
 
-      <div className="glass rounded-xl p-6">
-        <h3 className="font-semibold mb-4">Cost & Token Breakdown by Agent</h3>
-        {Object.keys(breakdown).length === 0 ? (
-          <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-muted">
-            <p className="text-sm text-muted-foreground">
-              No observed provider usage yet. Use an API proxy, SDK wrapper, or
-              approved browser extension to capture token and cost data.
-            </p>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          icon={CircleDollarSign}
+          label="Spend"
+          value={money(totals?.total_cost ?? 0, currency)}
+          detail={`${number(totals?.request_count ?? 0)} calls`}
+        />
+        <MetricCard
+          icon={Zap}
+          label="Tokens"
+          value={number(totals?.total_tokens ?? 0)}
+          detail={`${number(totals?.cached_input_tokens ?? 0)} cached`}
+        />
+        <MetricCard
+          icon={Gauge}
+          label="Budget"
+          value={budgetStatus === "ok" ? "OK" : budgetStatus.replace("_", " ")}
+          detail={`${summary?.budgets?.length ?? 0} active limits`}
+          tone={budgetStatus}
+        />
+        <MetricCard
+          icon={Server}
+          label="Cloud Sync"
+          value={`${syncCounts.acked}/${Object.values(syncCounts).reduce((a, b) => a + b, 0)}`}
+          detail={`${syncCounts.pending} pending, ${syncCounts.failed} failed`}
+          tone={syncCounts.failed ? "hard_exceeded" : syncCounts.pending ? "soft_exceeded" : "ok"}
+        />
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
+        <section className="glass rounded-lg p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-semibold">Token Classes</h3>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {tokenBreakdown.map((item) => (
+              <div key={item.label} className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground">{item.label}</div>
+                <div className="mt-1 text-lg font-semibold tabular-nums">
+                  {number(item.value)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="glass rounded-lg p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-semibold">Top Usage</h3>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="space-y-3">
+            <TopRow label="Agent" value={agentName(topAgent?.key, agentLabels)} cost={topAgent?.total_cost} currency={currency} />
+            <TopRow label="Provider" value={topProvider?.label || "-"} cost={topProvider?.total_cost} currency={currency} />
+            <TopRow label="Model" value={topModel?.label || "-"} cost={topModel?.total_cost} currency={currency} />
+          </div>
+        </section>
+      </div>
+
+      <section className="glass rounded-lg p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-semibold">Agents</h3>
+          <Bot className="h-4 w-4 text-muted-foreground" />
+        </div>
+        {!summary?.by_agent?.length ? (
+          <EmptyState />
         ) : (
-          <div className="space-y-4">
-            {Object.entries(breakdown)
-              .sort(
-                ([, a], [, b]) =>
-                  b.cost - a.cost ||
-                  b.tokens - a.tokens ||
-                  a.name.localeCompare(b.name),
-              )
-              .map(([agentId, usage]) => (
+          <div className="space-y-3">
+            {summary.by_agent.map((row) => {
+              const label = agentLabels.get(row.key);
+              const status = row.budget?.status || "ok";
+              return (
                 <div
-                  key={agentId}
-                  className="flex flex-col gap-3 p-4 border rounded-lg md:flex-row md:items-center md:justify-between"
+                  key={row.key}
+                  className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between"
                 >
                   <div className="min-w-0">
-                    <div className="truncate font-medium">{usage.name}</div>
+                    <div className="truncate font-medium">
+                      {label?.name || row.label || row.key}
+                    </div>
                     <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      {usage.kind && <span>{usage.kind}</span>}
-                      <span className="font-mono">{agentId}</span>
+                      {(label?.kind || row.agent_type) && (
+                        <span>{label?.kind || row.agent_type}</span>
+                      )}
+                      <span className="font-mono">{row.key}</span>
+                      <span>{number(row.request_count)} calls</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-muted-foreground tabular-nums">
-                      {usage.tokens.toLocaleString()} tokens
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="tabular-nums text-muted-foreground">
+                      {number(row.total_tokens)} tokens
                     </span>
-                    <span className="text-muted-foreground tabular-nums">
-                      ${usage.cost.toFixed(2)}
+                    <span className="tabular-nums text-muted-foreground">
+                      {money(row.total_cost, currency)}
                     </span>
-                    <RegisterControlBar agentId={agentId} tenantId="local" />
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs ${statusClass(status)}`}
+                    >
+                      {status.replace("_", " ")}
+                    </span>
+                    <RegisterControlBar agentId={row.key} tenantId="local" />
                   </div>
                 </div>
-              ))}
+              );
+            })}
           </div>
         )}
+      </section>
+
+      <div className="grid gap-3 xl:grid-cols-2">
+        <BreakdownTable
+          title="Providers"
+          icon={Server}
+          rows={summary?.by_provider ?? []}
+          currency={currency}
+        />
+        <BreakdownTable
+          title="Models"
+          icon={ShieldAlert}
+          rows={summary?.by_model ?? []}
+          currency={currency}
+        />
       </div>
     </div>
   );
+}
+
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone = "ok",
+}: {
+  icon: typeof CircleDollarSign;
+  label: string;
+  value: string;
+  detail: string;
+  tone?: string;
+}) {
+  return (
+    <div className="glass rounded-lg p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="mt-3 text-2xl font-bold tabular-nums">{value}</div>
+      <div className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs ${statusClass(tone)}`}>
+        {detail}
+      </div>
+    </div>
+  );
+}
+
+function TopRow({
+  label,
+  value,
+  cost,
+  currency,
+}: {
+  label: string;
+  value: string;
+  cost?: number;
+  currency: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+      <div className="min-w-0">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className="truncate font-medium">{value}</div>
+      </div>
+      <div className="tabular-nums text-muted-foreground">
+        {money(cost ?? 0, currency)}
+      </div>
+    </div>
+  );
+}
+
+function BreakdownTable({
+  title,
+  icon: Icon,
+  rows,
+  currency,
+}: {
+  title: string;
+  icon: typeof Server;
+  rows: NonNullable<AiUsageSummary["by_provider"]>;
+  currency: string;
+}) {
+  return (
+    <section className="glass rounded-lg p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="font-semibold">{title}</h3>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="space-y-2">
+        {rows.length ? (
+          rows.map((row) => (
+            <div
+              key={row.key}
+              className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg border p-3 text-sm"
+            >
+              <span className="min-w-0 truncate font-medium">{row.label}</span>
+              <span className="tabular-nums text-muted-foreground">
+                {number(row.total_tokens)}
+              </span>
+              <span className="tabular-nums text-muted-foreground">
+                {money(row.total_cost, currency)}
+              </span>
+            </div>
+          ))
+        ) : (
+          <EmptyState compact />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function EmptyState({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      className={`flex items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground ${
+        compact ? "h-24" : "h-40"
+      }`}
+    >
+      No usage events yet.
+    </div>
+  );
+}
+
+function agentName(agentId: string | undefined, labels: Map<string, AgentLabel>) {
+  if (!agentId) return "-";
+  return labels.get(agentId)?.name || agentId;
 }

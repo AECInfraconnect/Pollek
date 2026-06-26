@@ -28,6 +28,10 @@ import type {
 export type * from "./types";
 import type { components } from "../../../../contracts/generated/typescript/api";
 
+export type AiUsageSummary = components["schemas"]["AiUsageSummaryV1"];
+export type AiUsageEventPage = components["schemas"]["AiUsageEventPageV1"];
+export type AiBudgetLimit = components["schemas"]["AiBudgetLimitV1"];
+
 export interface ConnectorConfig {
   id: string;
   kind: string;
@@ -542,6 +546,45 @@ export class ControlPlaneClient {
   async getCostSummary(): Promise<unknown> {
     return this.fetchApi("/observations/costs");
   }
+
+  async getAiUsageSummary(params?: {
+    from?: string;
+    to?: string;
+    bucket?: string;
+    agent_id?: string;
+    agent_type?: string;
+    provider?: string;
+    model?: string;
+    task_id?: string;
+    session_id?: string;
+    surface?: string;
+  }): Promise<AiUsageSummary> {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params ?? {})) {
+      if (value) query.set(key, value);
+    }
+    const suffix = query.toString() ? `?${query}` : "";
+    return this.fetchApi(`/usage/summary${suffix}`);
+  }
+
+  async getAiUsageEvents(params?: {
+    from?: string;
+    to?: string;
+    agent_id?: string;
+    provider?: string;
+    model?: string;
+    sync_status?: string;
+    limit?: number;
+  }): Promise<AiUsageEventPage> {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params ?? {})) {
+      if (value !== undefined && value !== null && value !== "") {
+        query.set(key, String(value));
+      }
+    }
+    const suffix = query.toString() ? `?${query}` : "";
+    return this.fetchApi(`/usage/events${suffix}`);
+  }
 }
 
 // Store the active profile in localStorage to persist across reloads
@@ -654,6 +697,15 @@ export const PolicySuggestionApi = {
 
 export const ObservationApi = {
   getCostSummary: () => defaultClient.getCostSummary(),
+};
+
+export const UsageApi = {
+  getSummary: (params?: Parameters<ControlPlaneClient["getAiUsageSummary"]>[0]) =>
+    defaultClient.getAiUsageSummary(params),
+  getEvents: (params?: Parameters<ControlPlaneClient["getAiUsageEvents"]>[0]) =>
+    defaultClient.getAiUsageEvents(params),
+  streamUrl: () =>
+    `${defaultClient.rootUrl}/v1/tenants/${defaultClient.tenantId}/usage/stream`,
 };
 
 export const PolicyApi = {

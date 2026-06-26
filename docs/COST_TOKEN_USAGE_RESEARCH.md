@@ -94,12 +94,27 @@ inside `payload_json.web_ai`; the local control plane accepts both forms.
 
 ## Current Code Hooks
 
-- `crates/dek-agent-observer/src/egress_parser.rs` parses provider usage payloads.
-- `crates/dek-agent-observer/src/cost.rs` calculates ledger entries from usage
-  plus a price catalog.
-- `apps/local-admin-dashboard/src/pages/CostLedger.tsx` displays the aggregated
-  ledger.
+- `crates/dek-agent-observer/src/usage_model.rs` defines the provider-neutral
+  `AiUsageEventV1` model used by Local Dashboard and Pollek Cloud.
+- `crates/dek-agent-observer/src/providers/*` normalizes initial OpenAI,
+  Anthropic, Gemini, and Bedrock usage payloads into canonical token classes.
+- `crates/dek-agent-observer/src/usage_cost.rs` implements `PriceCatalogV2` with
+  per-token-class pricing, catalog versioning, effective dates, and optional
+  provider-reported cost override.
+- `crates/dek-agent-observer/src/usage_budget.rs` evaluates observe/warn,
+  approval/throttle, and deny-style budget actions for rolling windows.
+- `crates/local-control-plane/src/usage_api.rs` exposes
+  `/v1/tenants/{tenant}/usage/events`, `/summary`, `/ledger`, `/budgets`, and
+  `/stream` while keeping the older `/observations/costs` compatibility route.
+- `crates/local-control-plane/migrations/20260626000000_ai_usage_cost_v2.sql`
+  stores canonical usage events, rollups, budget limits, and budget events in
+  SQLite with idempotency and cloud sync status columns.
+- `contracts/spec/rest/usage.tsp` and `contracts/schemas/ai-*.schema.json`
+  publish the shared Local/Cloud interface through the Contract Hub.
+- `apps/local-admin-dashboard/src/pages/CostLedger.tsx` displays live total
+  spend, token-class breakdown, per-agent/provider/model summaries, budget
+  status, and cloud sync state using the V2 usage summary plus SSE.
 
-Next recommended implementation steps are a signed price catalog definition, a
-browser extension observation plane for supported web AI apps, and provider
-admin/billing reconciliation for enterprise accounts.
+Next recommended implementation steps are provider billing reconciliation
+adapters, signed production price catalog distribution, and stronger collection
+planes for browser-hosted AI where exact token counts are unavailable today.

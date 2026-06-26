@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.pollen.dev/schemas/ai-usage-rollup.v1.schema.json",
+  "title": "AiUsageRollupV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "bucket_start",
+    "bucket_size",
+    "tenant_id",
+    "request_count",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "total_cost",
+    "currency"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "ai-usage-rollup.v1" },
+    "bucket_start": { "type": "string", "format": "date-time" },
+    "bucket_size": { "type": "string" },
+    "tenant_id": { "type": "string" },
+    "workspace_id": { "type": "string" },
+    "device_id": { "type": "string" },
+    "agent_id": { "type": "string" },
+    "agent_type": { "type": "string" },
+    "provider": { "type": "string" },
+    "model": { "type": "string" },
+    "surface": { "type": "string" },
+    "tool_id": { "type": "string" },
+    "resource_id": { "type": "string" },
+    "request_count": { "type": "integer" },
+    "input_tokens": { "type": "integer" },
+    "output_tokens": { "type": "integer" },
+    "total_tokens": { "type": "integer" },
+    "cached_input_tokens": { "type": "integer" },
+    "cache_write_input_tokens": { "type": "integer" },
+    "reasoning_output_tokens": { "type": "integer" },
+    "total_cost": { "type": "number" },
+    "currency": { "type": "string" }
+  }
+}

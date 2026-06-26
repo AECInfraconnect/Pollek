@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.pollen.dev/schemas/ai-budget-limit.v1.schema.json",
+  "title": "AiBudgetLimitV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "budget_id",
+    "tenant_id",
+    "scope_type",
+    "scope_id",
+    "window",
+    "currency",
+    "action_on_soft",
+    "action_on_hard",
+    "enabled",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "ai-budget-limit.v1" },
+    "budget_id": { "type": "string" },
+    "tenant_id": { "type": "string" },
+    "scope_type": { "type": "string", "enum": ["tenant", "workspace", "device", "agent", "agent_type", "provider", "model", "task", "session", "surface", "tool"] },
+    "scope_id": { "type": "string" },
+    "window": { "type": "string", "enum": ["minute", "hour", "day", "month", "task", "session"] },
+    "currency": { "type": "string" },
+    "soft_cost_limit": { "type": "number" },
+    "hard_cost_limit": { "type": "number" },
+    "soft_token_limit": { "type": "integer" },
+    "hard_token_limit": { "type": "integer" },
+    "action_on_soft": { "type": "string", "enum": ["observe", "warn", "approval", "require_approval", "throttle", "deny"] },
+    "action_on_hard": { "type": "string", "enum": ["warn", "approval", "require_approval", "throttle", "deny", "degrade_model"] },
+    "enabled": { "type": "boolean" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

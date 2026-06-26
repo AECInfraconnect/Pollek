@@ -973,6 +973,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tenants/{tenant_id}/usage/agents/{agent_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get canonical AI usage summary for one agent */
+        get: operations["AiUsageApi_getAgentUsageSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/usage/budgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List AI budget policies */
+        get: operations["AiUsageApi_listUsageBudgets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/usage/budgets/{budget_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Upsert an AI budget policy */
+        put: operations["AiUsageApi_upsertUsageBudget"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/usage/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List canonical AI usage events */
+        get: operations["AiUsageApi_listUsageEvents"];
+        put?: never;
+        /** @description Ingest one canonical AI usage event */
+        post: operations["AiUsageApi_ingestUsageEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/usage/events/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Ingest canonical AI usage events in batch */
+        post: operations["AiUsageApi_ingestUsageEventsBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/usage/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List canonical AI usage ledger events */
+        get: operations["AiUsageApi_getUsageLedger"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/usage/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Accept provider billing reconciliation metadata */
+        post: operations["AiUsageApi_reconcileUsage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tenants/{tenant_id}/usage/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get canonical AI usage summary */
+        get: operations["AiUsageApi_getUsageSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1041,6 +1178,209 @@ export interface components {
             /** Format: int64 */
             tokens: number;
         };
+        /** @enum {string} */
+        AiAgentType: "local_agent" | "browser_ai" | "coding_agent" | "claude_code" | "codex_cli" | "cursor" | "mcp_client" | "mcp_server_agent" | "a2a_agent" | "managed_agent" | "gateway_agent" | "shadow_ai" | "unknown";
+        AiBudgetLimitListV1: {
+            /** @enum {string} */
+            schema_version: "ai-budget-limit-list.v1";
+            items: components["schemas"]["AiBudgetLimitV1"][];
+        };
+        AiBudgetLimitV1: {
+            /** @enum {string} */
+            schema_version: "ai-budget-limit.v1";
+            budget_id: string;
+            tenant_id: string;
+            scope_type: string;
+            scope_id: string;
+            window: string;
+            currency: string;
+            /** Format: float */
+            soft_cost_limit?: number;
+            /** Format: float */
+            hard_cost_limit?: number;
+            /** Format: int64 */
+            soft_token_limit?: number;
+            /** Format: int64 */
+            hard_token_limit?: number;
+            action_on_soft: string;
+            action_on_hard: string;
+            enabled: boolean;
+            created_at: string;
+            updated_at: string;
+        };
+        /** @enum {string} */
+        AiCostSource: "provider_reported" | "price_catalog_exact" | "price_catalog_tiered" | "estimated_tokenizer" | "billing_reconciled" | "unknown";
+        AiUsageBatchIngestRequestV1: {
+            events: components["schemas"]["AiUsageEventV1"][];
+        };
+        AiUsageBatchIngestResponseV1: {
+            /** @enum {string} */
+            schema_version: "ai-usage-batch-ingest-response.v1";
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            rejected: number;
+        };
+        AiUsageBreakdownV1: {
+            key: string;
+            label: string;
+            agent_type?: string;
+            /** Format: int64 */
+            request_count: number;
+            /** Format: int64 */
+            total_tokens: number;
+            /** Format: float */
+            total_cost: number;
+            budget?: components["schemas"]["AiUsageBudgetStatusV1"];
+        };
+        AiUsageBudgetStatusV1: {
+            window: string;
+            /** Format: float */
+            hard_cost_limit?: number;
+            /** Format: int64 */
+            hard_token_limit?: number;
+            /** Format: float */
+            remaining_cost?: number;
+            /** Format: int64 */
+            remaining_tokens?: number;
+            status: string;
+        };
+        /** @enum {string} */
+        AiUsageEventKind: "agent_run_started" | "agent_run_completed" | "agent_step_started" | "agent_step_completed" | "model_call_started" | "model_call_chunk" | "model_call_completed" | "tool_call_started" | "tool_call_completed" | "resource_access" | "budget_preflight" | "budget_alert" | "budget_blocked" | "usage_reconciled";
+        AiUsageEventPageV1: {
+            /** @enum {string} */
+            schema_version: "ai-usage-event-page.v1";
+            items: components["schemas"]["AiUsageEventV1"][];
+            next_cursor?: string;
+        };
+        AiUsageEventV1: {
+            /** @enum {string} */
+            schema_version: "ai-usage-event.v1";
+            event_id: string;
+            event_kind: components["schemas"]["AiUsageEventKind"];
+            /** Format: date-time */
+            occurred_at: string;
+            /** Format: date-time */
+            received_at: string;
+            tenant_id: string;
+            workspace_id?: string;
+            device_id?: string;
+            actor_id_hash?: string;
+            actor_kind?: string;
+            trace_id: string;
+            span_id: string;
+            parent_span_id?: string;
+            session_id?: string;
+            task_id?: string;
+            agent_run_id?: string;
+            agent_step_id?: string;
+            invocation_id?: string;
+            agent_id?: string;
+            agent_instance_id?: string;
+            agent_type: components["schemas"]["AiAgentType"];
+            parent_agent_id?: string;
+            subagent_id?: string;
+            shadow_candidate_id?: string;
+            provider?: string;
+            provider_api?: string;
+            provider_request_id?: string;
+            model?: string;
+            model_version?: string;
+            service_tier?: string;
+            inference_region?: string;
+            surface: string;
+            pep_type?: string;
+            control_mode?: string;
+            policy_ids: string[];
+            tokens: components["schemas"]["CanonicalTokenUsageV1"];
+            cost: components["schemas"]["CanonicalCostBreakdownV1"];
+            tool_id?: string;
+            tool_name?: string;
+            mcp_server_id?: string;
+            resource_id?: string;
+            resource_type?: string;
+            /** Format: int64 */
+            latency_ms?: number;
+            status: string;
+            error_code?: string;
+            provider_usage_raw: Record<string, never>;
+            metadata: Record<string, never>;
+            /** Format: int64 */
+            local_sequence?: number;
+            cloud_sync_status?: string;
+            idempotency_key: string;
+        };
+        AiUsageLedgerV1: {
+            /** @enum {string} */
+            schema_version: "ai-usage-ledger.v1";
+            items: components["schemas"]["AiUsageEventV1"][];
+        };
+        AiUsageReconcileResponseV1: {
+            /** @enum {string} */
+            schema_version: "ai-usage-reconcile-response.v1";
+            tenant_id: string;
+            status: string;
+            received: unknown;
+        };
+        AiUsageSeriesPointV1: {
+            /** Format: date-time */
+            bucket_start: string;
+            /** Format: int64 */
+            request_count: number;
+            /** Format: int64 */
+            input_tokens: number;
+            /** Format: int64 */
+            output_tokens: number;
+            /** Format: int64 */
+            cached_input_tokens: number;
+            /** Format: int64 */
+            reasoning_output_tokens: number;
+            /** Format: int64 */
+            total_tokens: number;
+            /** Format: float */
+            total_cost: number;
+        };
+        /** @enum {string} */
+        AiUsageSource: "provider_response" | "provider_streaming_final" | "provider_billing_export" | "sdk_instrumentation" | "proxy_observation" | "browser_estimate" | "local_tokenizer_estimate" | "manual_import" | "reconciled" | "unknown";
+        AiUsageSummaryV1: {
+            /** @enum {string} */
+            schema_version: "ai-usage-summary.v1";
+            tenant_id: string;
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            bucket: string;
+            currency: string;
+            totals: components["schemas"]["AiUsageTotalsV1"];
+            by_agent: components["schemas"]["AiUsageBreakdownV1"][];
+            by_provider: components["schemas"]["AiUsageBreakdownV1"][];
+            by_model: components["schemas"]["AiUsageBreakdownV1"][];
+            series: components["schemas"]["AiUsageSeriesPointV1"][];
+            budgets: components["schemas"]["AiBudgetLimitV1"][];
+        };
+        AiUsageTotalsV1: {
+            /** Format: int64 */
+            request_count: number;
+            /** Format: int64 */
+            input_tokens: number;
+            /** Format: int64 */
+            output_tokens: number;
+            /** Format: int64 */
+            cached_input_tokens: number;
+            /** Format: int64 */
+            cache_write_input_tokens: number;
+            /** Format: int64 */
+            reasoning_output_tokens: number;
+            /** Format: int64 */
+            tool_tokens: number;
+            /** Format: int64 */
+            multimodal_tokens: number;
+            /** Format: int64 */
+            total_tokens: number;
+            /** Format: float */
+            total_cost: number;
+        };
         BrowserAiObservationScope: {
             base_name?: string;
             display_name?: string;
@@ -1073,6 +1413,70 @@ export interface components {
             /** Format: int32 */
             generation?: number;
             envelope?: unknown;
+        };
+        CanonicalCostBreakdownV1: {
+            currency: string;
+            /** Format: float */
+            input_cost: number;
+            /** Format: float */
+            output_cost: number;
+            /** Format: float */
+            cached_input_cost: number;
+            /** Format: float */
+            cache_write_input_cost: number;
+            /** Format: float */
+            reasoning_output_cost: number;
+            /** Format: float */
+            tool_cost: number;
+            /** Format: float */
+            image_cost: number;
+            /** Format: float */
+            audio_cost: number;
+            /** Format: float */
+            total_cost: number;
+            price_catalog_version?: string;
+            pricing_tier_id?: string;
+            cost_source: components["schemas"]["AiCostSource"];
+            estimated: boolean;
+            cost_details_ext: Record<string, never>;
+        };
+        CanonicalTokenUsageV1: {
+            /** Format: int64 */
+            input_tokens: number;
+            /** Format: int64 */
+            output_tokens: number;
+            /** Format: int64 */
+            total_tokens: number;
+            /** Format: int64 */
+            cached_input_tokens: number;
+            /** Format: int64 */
+            cache_write_input_tokens: number;
+            /** Format: int64 */
+            cache_write_input_tokens_5m?: number;
+            /** Format: int64 */
+            cache_write_input_tokens_1h?: number;
+            /** Format: int64 */
+            reasoning_output_tokens: number;
+            /** Format: int64 */
+            reasoning_input_tokens?: number;
+            /** Format: int64 */
+            tool_prompt_tokens: number;
+            /** Format: int64 */
+            tool_result_tokens: number;
+            /** Format: int64 */
+            image_input_tokens: number;
+            /** Format: int64 */
+            image_output_tokens: number;
+            /** Format: int64 */
+            audio_input_tokens: number;
+            /** Format: int64 */
+            audio_output_tokens: number;
+            /** Format: int64 */
+            video_input_tokens: number;
+            by_modality: Record<string, never>;
+            usage_details_ext: Record<string, never>;
+            estimated: boolean;
+            source: components["schemas"]["AiUsageSource"];
         };
         ContractDiscoveryResponse: {
             /** @enum {string} */
@@ -1629,6 +2033,39 @@ export interface components {
     };
     responses: never;
     parameters: {
+        "AiUsageAgentSummaryQueryParams.agent_type": string;
+        "AiUsageAgentSummaryQueryParams.bucket": string;
+        "AiUsageAgentSummaryQueryParams.from": string;
+        "AiUsageAgentSummaryQueryParams.group_by": string;
+        "AiUsageAgentSummaryQueryParams.model": string;
+        "AiUsageAgentSummaryQueryParams.provider": string;
+        "AiUsageAgentSummaryQueryParams.session_id": string;
+        "AiUsageAgentSummaryQueryParams.surface": string;
+        "AiUsageAgentSummaryQueryParams.task_id": string;
+        "AiUsageAgentSummaryQueryParams.to": string;
+        "AiUsageQueryParams.agent_id": string;
+        "AiUsageQueryParams.agent_type": string;
+        "AiUsageQueryParams.cursor": string;
+        "AiUsageQueryParams.from": string;
+        "AiUsageQueryParams.limit": number;
+        "AiUsageQueryParams.model": string;
+        "AiUsageQueryParams.provider": string;
+        "AiUsageQueryParams.session_id": string;
+        "AiUsageQueryParams.surface": string;
+        "AiUsageQueryParams.sync_status": string;
+        "AiUsageQueryParams.task_id": string;
+        "AiUsageQueryParams.to": string;
+        "AiUsageSummaryQueryParams.agent_id": string;
+        "AiUsageSummaryQueryParams.agent_type": string;
+        "AiUsageSummaryQueryParams.bucket": string;
+        "AiUsageSummaryQueryParams.from": string;
+        "AiUsageSummaryQueryParams.group_by": string;
+        "AiUsageSummaryQueryParams.model": string;
+        "AiUsageSummaryQueryParams.provider": string;
+        "AiUsageSummaryQueryParams.session_id": string;
+        "AiUsageSummaryQueryParams.surface": string;
+        "AiUsageSummaryQueryParams.task_id": string;
+        "AiUsageSummaryQueryParams.to": string;
         "PollenHeaders.contractVersion": string;
         "PollenHeaders.deviceId": string;
         "PollenHeaders.tenantId": string;
@@ -3880,6 +4317,392 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Tool"];
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    AiUsageApi_getAgentUsageSummary: {
+        parameters: {
+            query?: {
+                from?: components["parameters"]["AiUsageAgentSummaryQueryParams.from"];
+                to?: components["parameters"]["AiUsageAgentSummaryQueryParams.to"];
+                bucket?: components["parameters"]["AiUsageAgentSummaryQueryParams.bucket"];
+                group_by?: components["parameters"]["AiUsageAgentSummaryQueryParams.group_by"];
+                agent_type?: components["parameters"]["AiUsageAgentSummaryQueryParams.agent_type"];
+                provider?: components["parameters"]["AiUsageAgentSummaryQueryParams.provider"];
+                model?: components["parameters"]["AiUsageAgentSummaryQueryParams.model"];
+                task_id?: components["parameters"]["AiUsageAgentSummaryQueryParams.task_id"];
+                session_id?: components["parameters"]["AiUsageAgentSummaryQueryParams.session_id"];
+                surface?: components["parameters"]["AiUsageAgentSummaryQueryParams.surface"];
+            };
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path: {
+                tenant_id: string;
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiUsageSummaryV1"];
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    AiUsageApi_listUsageBudgets: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiBudgetLimitListV1"];
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    AiUsageApi_upsertUsageBudget: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path: {
+                tenant_id: string;
+                budget_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiBudgetLimitV1"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        item: components["schemas"]["AiBudgetLimitV1"];
+                    };
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    AiUsageApi_listUsageEvents: {
+        parameters: {
+            query?: {
+                from?: components["parameters"]["AiUsageQueryParams.from"];
+                to?: components["parameters"]["AiUsageQueryParams.to"];
+                agent_id?: components["parameters"]["AiUsageQueryParams.agent_id"];
+                agent_type?: components["parameters"]["AiUsageQueryParams.agent_type"];
+                provider?: components["parameters"]["AiUsageQueryParams.provider"];
+                model?: components["parameters"]["AiUsageQueryParams.model"];
+                task_id?: components["parameters"]["AiUsageQueryParams.task_id"];
+                session_id?: components["parameters"]["AiUsageQueryParams.session_id"];
+                surface?: components["parameters"]["AiUsageQueryParams.surface"];
+                sync_status?: components["parameters"]["AiUsageQueryParams.sync_status"];
+                limit?: components["parameters"]["AiUsageQueryParams.limit"];
+                cursor?: components["parameters"]["AiUsageQueryParams.cursor"];
+            };
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiUsageEventPageV1"];
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    AiUsageApi_ingestUsageEvent: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiUsageEventV1"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        item: components["schemas"]["AiUsageEventV1"];
+                    };
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    AiUsageApi_ingestUsageEventsBatch: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiUsageBatchIngestRequestV1"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiUsageBatchIngestResponseV1"];
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    AiUsageApi_getUsageLedger: {
+        parameters: {
+            query?: {
+                from?: components["parameters"]["AiUsageQueryParams.from"];
+                to?: components["parameters"]["AiUsageQueryParams.to"];
+                agent_id?: components["parameters"]["AiUsageQueryParams.agent_id"];
+                agent_type?: components["parameters"]["AiUsageQueryParams.agent_type"];
+                provider?: components["parameters"]["AiUsageQueryParams.provider"];
+                model?: components["parameters"]["AiUsageQueryParams.model"];
+                task_id?: components["parameters"]["AiUsageQueryParams.task_id"];
+                session_id?: components["parameters"]["AiUsageQueryParams.session_id"];
+                surface?: components["parameters"]["AiUsageQueryParams.surface"];
+                sync_status?: components["parameters"]["AiUsageQueryParams.sync_status"];
+                limit?: components["parameters"]["AiUsageQueryParams.limit"];
+                cursor?: components["parameters"]["AiUsageQueryParams.cursor"];
+            };
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiUsageLedgerV1"];
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    AiUsageApi_reconcileUsage: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiUsageReconcileResponseV1"];
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    AiUsageApi_getUsageSummary: {
+        parameters: {
+            query?: {
+                from?: components["parameters"]["AiUsageSummaryQueryParams.from"];
+                to?: components["parameters"]["AiUsageSummaryQueryParams.to"];
+                bucket?: components["parameters"]["AiUsageSummaryQueryParams.bucket"];
+                group_by?: components["parameters"]["AiUsageSummaryQueryParams.group_by"];
+                agent_id?: components["parameters"]["AiUsageSummaryQueryParams.agent_id"];
+                agent_type?: components["parameters"]["AiUsageSummaryQueryParams.agent_type"];
+                provider?: components["parameters"]["AiUsageSummaryQueryParams.provider"];
+                model?: components["parameters"]["AiUsageSummaryQueryParams.model"];
+                task_id?: components["parameters"]["AiUsageSummaryQueryParams.task_id"];
+                session_id?: components["parameters"]["AiUsageSummaryQueryParams.session_id"];
+                surface?: components["parameters"]["AiUsageSummaryQueryParams.surface"];
+            };
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiUsageSummaryV1"];
                 };
             };
             /** @description An unexpected error response. */

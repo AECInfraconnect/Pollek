@@ -1858,6 +1858,7 @@ dependencies = [
  "dirs 6.0.0",
  "opentelemetry 0.21.0",
  "pollen-contract",
+ "regex",
  "rusqlite",
  "serde",
  "serde_json",

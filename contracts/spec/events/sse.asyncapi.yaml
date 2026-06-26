@@ -37,6 +37,11 @@ channels:
     messages:
       IdentityAccess:
         $ref: "#/components/messages/IdentityAccess"
+  usageStream:
+    address: /v1/tenants/{tenantId}/usage/stream
+    messages:
+      AiUsageStreamEvent:
+        $ref: "#/components/messages/AiUsageStreamEvent"
 operations:
   receiveBundleEvents:
     action: receive
@@ -58,6 +63,10 @@ operations:
     action: receive
     channel:
       $ref: "#/channels/inventoryIdentities"
+  receiveUsageStream:
+    action: receive
+    channel:
+      $ref: "#/channels/usageStream"
 components:
   messages:
     BundleReady:
@@ -90,6 +99,11 @@ components:
       title: IdentityAccess
       payload:
         $ref: "#/components/schemas/IdentityAccessPayload"
+    AiUsageStreamEvent:
+      name: AiUsageStreamEvent
+      title: AiUsageStreamEvent
+      payload:
+        $ref: "#/components/schemas/AiUsageStreamPayload"
   schemas:
     AgentObservationPayload:
       type: object
@@ -103,6 +117,17 @@ components:
     IdentityAccessPayload:
       type: object
       additionalProperties: true
+    AiUsageStreamPayload:
+      type: object
+      additionalProperties: false
+      required: [type, data]
+      properties:
+        type:
+          type: string
+          enum: [ai_usage_event, ai_budget_alert]
+        data:
+          type: object
+          additionalProperties: true
     BundleReadyPayload:
       type: object
       additionalProperties: false

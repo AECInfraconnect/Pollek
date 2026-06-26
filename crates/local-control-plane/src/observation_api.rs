@@ -49,7 +49,7 @@ async fn ingest_observation(
         );
     }
 
-    // 4. Calculate Cost Ledger Entry
+    // 4. Calculate V1 Cost Ledger Entry and bridge to canonical V2 usage.
     let catalog_path = std::path::PathBuf::from("pollen-local-data/price_catalog.v1.json");
     let catalog: dek_agent_observer::cost::PriceCatalog = if catalog_path.exists() {
         let content = std::fs::read_to_string(&catalog_path).unwrap_or_default();
@@ -66,37 +66,57 @@ async fn ingest_observation(
         }
     };
 
-    let provider = ev.provider.clone().unwrap_or_else(|| "openai".into());
-    if let Some(cost_entry) = dek_agent_observer::cost::calculate_cost(&ev, &provider, &catalog) {
-        if let Err(e) = state
-            .observability_store
-            .insert_cost_ledger(&cost_entry)
-            .await
+    let mut ai_usage_event =
+        dek_agent_observer::usage_model::AiUsageEventV1::from_legacy_observation(
+            &ev,
+            ev.provider.clone(),
+        );
+    if let Some(provider) = ev.provider.clone() {
+        if let Some(cost_entry) = dek_agent_observer::cost::calculate_cost(&ev, &provider, &catalog)
         {
-            tracing::error!("Failed to insert cost ledger: {}", e);
-        } else {
-            // Check budget after successful insert
-            // In a real implementation, policy would be fetched dynamically.
-            let policy = dek_agent_observer::cost::BudgetPolicy {
-                agent_id: ev.agent_id.clone().unwrap_or_else(|| "unknown".into()),
-                daily_cost_cap_usd: 5.0, // Hardcoded for demo
-                daily_token_cap: 1000000,
+            ai_usage_event.cost = dek_agent_observer::usage_model::CanonicalCostBreakdown {
+                currency: cost_entry.currency.clone(),
+                input_cost: cost_entry.input_cost,
+                output_cost: cost_entry.output_cost,
+                total_cost: cost_entry.total_cost,
+                price_catalog_version: Some(catalog.catalog_version.clone()),
+                cost_source: dek_agent_observer::usage_model::CostSource::PriceCatalogExact,
+                estimated: cost_entry.estimated,
+                ..dek_agent_observer::usage_model::CanonicalCostBreakdown::default()
             };
-            // Assuming today's entries can be fetched (Mock empty for now as check_budget just evaluates)
-            let todays_entries = vec![cost_entry];
-            match dek_agent_observer::cost::check_budget(&policy, &todays_entries) {
-                dek_agent_observer::cost::BudgetDecision::CostExceeded
-                | dek_agent_observer::cost::BudgetDecision::TokenExceeded => {
-                    tracing::warn!("Budget exceeded for agent {:?}", ev.agent_id);
-                    // Emit alert or notify PEP
-                }
-                dek_agent_observer::cost::BudgetDecision::WithinBudget => {}
+            if let Err(e) = state
+                .observability_store
+                .insert_cost_ledger(&cost_entry)
+                .await
+            {
+                tracing::error!("Failed to insert cost ledger: {}", e);
             }
         }
     }
 
     // OTel metrics
     dek_agent_observer::otel::emit_span(&ev);
+    if ev.token_usage.is_some() || ev.provider.is_some() {
+        ai_usage_event = ai_usage_event.finalize();
+        if let Err(e) = state
+            .observability_store
+            .insert_ai_usage_event(&ai_usage_event)
+            .await
+        {
+            tracing::error!("Failed to insert AI usage event: {}", e);
+        }
+        if let Err(e) = state
+            .observability_store
+            .upsert_ai_usage_rollup(&ai_usage_event)
+            .await
+        {
+            tracing::error!("Failed to upsert AI usage rollup: {}", e);
+        }
+        if let Err(e) = crate::usage_api::publish_ai_usage_event(&state, &ai_usage_event).await {
+            tracing::error!("Failed to publish AI usage telemetry: {}", e);
+        }
+        dek_agent_observer::otel::emit_usage_span(&ai_usage_event);
+    }
 
     // 5. Generate Policy Suggestions
     // We mock passing all events by just passing this one event

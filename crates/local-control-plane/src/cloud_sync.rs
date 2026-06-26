@@ -234,8 +234,18 @@ pub async fn start_cloud_registry_sync_loop(state: AppState) -> anyhow::Result<(
 
                     let mut envelopes = Vec::new();
                     let mut ids_to_delete = Vec::new();
+                    let mut ai_usage_event_ids = Vec::new();
                     for (id, bytes) in records {
                         if let Ok(env) = serde_json::from_slice::<serde_json::Value>(&bytes) {
+                            if env.get("event_type").and_then(|value| value.as_str())
+                                == Some("ai_usage_event")
+                            {
+                                if let Some(event_id) =
+                                    env.get("event_id").and_then(|value| value.as_str())
+                                {
+                                    ai_usage_event_ids.push(event_id.to_string());
+                                }
+                            }
                             envelopes.push(env);
                             ids_to_delete.push(id);
                         }
@@ -264,6 +274,16 @@ pub async fn start_cloud_registry_sync_loop(state: AppState) -> anyhow::Result<(
                                 if let Err(e) = state.secure_spool.delete_batch(&ids_to_delete) {
                                     warn!(
                                         "Cloud Sync Loop: Failed to delete spooled telemetry: {}",
+                                        e
+                                    );
+                                }
+                                if let Err(e) = state
+                                    .observability_store
+                                    .mark_ai_usage_events_sync_status(&ai_usage_event_ids, "acked")
+                                    .await
+                                {
+                                    warn!(
+                                        "Cloud Sync Loop: Failed to mark AI usage telemetry acked: {}",
                                         e
                                     );
                                 }
