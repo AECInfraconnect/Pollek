@@ -22,6 +22,8 @@ import { EntityCard } from "../components/master-detail/EntityCard";
 import { DetailPane } from "../components/master-detail/DetailPane";
 import { EmptyState } from "../components/master-detail/EmptyState";
 import type { UiStatus } from "../lib/status";
+import { Entity360Layout } from "../features/entity-360/Entity360Layout";
+import { useEntity360 } from "../features/entity-graph/useEntity360";
 
 function SummaryMetric({
   label,
@@ -39,6 +41,22 @@ function SummaryMetric({
       {helper && <p className="mt-1 text-xs text-muted-foreground">{helper}</p>}
     </div>
   );
+}
+
+function resourceStatus(resource: UnifiedResource): {
+  status: UiStatus;
+  label: string;
+} {
+  if (!resource.is_registered) {
+    return { status: "idle", label: "Observed" };
+  }
+  if (resource.classification === "restricted") {
+    return { status: "failed", label: "Restricted" };
+  }
+  if (resource.classification === "confidential") {
+    return { status: "degraded", label: "Confidential" };
+  }
+  return { status: "ok", label: "Protected" };
 }
 
 export function Resources() {
@@ -81,7 +99,7 @@ export function Resources() {
         });
       }
 
-      for (const o of (obsRes.items || [])) {
+      for (const o of obsRes.items || []) {
         const uri = o.target_redacted;
         if (unifiedMap.has(uri)) {
           const existing = unifiedMap.get(uri)!;
@@ -90,7 +108,7 @@ export function Resources() {
         } else {
           unifiedMap.set(uri, {
             id: o.resource_id || uri,
-            name: uri.split('/').pop() || uri,
+            name: uri.split("/").pop() || uri,
             resource_type: o.kind,
             uri: uri,
             classification: o.classification,
@@ -103,7 +121,8 @@ export function Resources() {
 
       setResources(
         Array.from(unifiedMap.values()).filter((r) => {
-          const haystack = `${r.name} ${r.resource_type} ${r.uri} ${r.classification ?? ""}`.toLowerCase();
+          const haystack =
+            `${r.name} ${r.resource_type} ${r.uri} ${r.classification ?? ""}`.toLowerCase();
           const matchesSearch = haystack.includes(search.trim().toLowerCase());
           const matchesKind =
             kindFilter === "all" || r.resource_type === kindFilter;
@@ -176,7 +195,11 @@ export function Resources() {
               POLLEK is observing simulated cloud egress for testing.
             </h3>
             <div className="mt-1 text-sm text-blue-700">
-              <p>Real network enforcement is not enabled yet. This device can currently Observe cloud egress. Blocking requires OS network integration.</p>
+              <p>
+                Real network enforcement is not enabled yet. This device can
+                currently Observe cloud egress. Blocking requires OS network
+                integration.
+              </p>
             </div>
           </div>
         </div>
@@ -255,19 +278,8 @@ export function Resources() {
           />
         }
         renderCard={(r: UnifiedResource, selected) => {
-          let status: UiStatus = "ok";
-          let label = "Protected";
+          const { status, label } = resourceStatus(r);
           const observed = r.observed_details;
-          if (!r.is_registered) {
-            status = "idle";
-            label = "Observed";
-          } else if (r.classification === "restricted") {
-            status = "failed";
-            label = "Restricted";
-          } else if (r.classification === "confidential") {
-            status = "degraded";
-            label = "Confidential";
-          }
 
           return (
             <EntityCard
@@ -285,7 +297,9 @@ export function Resources() {
                 { label: "URI", value: r.uri },
                 {
                   label: "Scope",
-                  value: observed?.scope ?? (r.uri.startsWith("http") ? "cloud" : "local"),
+                  value:
+                    observed?.scope ??
+                    (r.uri.startsWith("http") ? "cloud" : "local"),
                 },
               ]}
               actions={[
@@ -299,138 +313,177 @@ export function Resources() {
             />
           );
         }}
-        renderDetail={(r: UnifiedResource) => {
-          let status: UiStatus = "ok";
-          let label = "Protected";
-          if (!r.is_registered) {
-            status = "idle";
-            label = "Observed";
-          } else if (r.classification === "restricted") {
-            status = "failed";
-            label = "Restricted";
-          } else if (r.classification === "confidential") {
-            status = "degraded";
-            label = "Confidential";
-          }
-
-          return (
-            <DetailPane
-              title={r.name}
-              subtitle={r.resource_type}
-              status={status}
-              statusLabel={label}
-              actions={[
-                {
-                  label: r.is_registered ? "Apply Policy" : "Protect",
-                  primary: true,
-                  onClick: () => {
-                    /* Open Wizard or apply policy */
-                  },
-                },
-                r.is_registered
-                  ? {
-                      label: "Delete",
-                      danger: true,
-                      onClick: () => deleteResource(r.id),
-                    }
-                  : undefined,
-              ].filter(Boolean) as any}
-              tabs={[
-                {
-                  id: "overview",
-                  label: "Overview",
-                  content: (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <SummaryMetric
-                          label="What POLLEK saw"
-                          value={r.uri}
-                          helper={`${r.resource_type} - ${r.is_registered ? "registered" : "observed only"}`}
-                        />
-                        <SummaryMetric
-                          label="Sensitivity"
-                          value={r.classification || "Unclassified"}
-                          helper="Used for policy suggestions and default guardrails."
-                        />
-                        {r.is_observed && r.observed_details && (
-                          <>
-                            <SummaryMetric
-                              label="Last access"
-                              value={new Date(
-                                r.observed_details.last_access,
-                              ).toLocaleString()}
-                              helper={`${r.observed_details.access_count} total observed access event(s).`}
-                            />
-                            <SummaryMetric
-                              label="Agents touching it"
-                              value={r.observed_details.agents.length}
-                              helper={r.observed_details.agents.join(", ") || "No agent linked yet."}
-                            />
-                            <SummaryMetric
-                              label="Access modes"
-                              value={r.observed_details.modes.join(", ") || "Unknown"}
-                              helper="Read/write/connect actions grouped from telemetry."
-                            />
-                            <SummaryMetric
-                              label="Governance"
-                              value={
-                                r.observed_details.governed
-                                  ? "Policy attached"
-                                  : "Needs policy"
-                              }
-                              helper={
-                                r.is_registered
-                                  ? "Registered resource can be targeted directly."
-                                  : "Protect will create a policy target for this observed resource."
-                              }
-                            />
-                          </>
-                        )}
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium mb-2 flex items-center gap-2 text-sm">
-                          <Info className="h-4 w-4" /> Raw JSON
-                        </h4>
-                        <pre className="text-[10px] font-mono bg-muted/50 p-4 rounded-lg overflow-x-auto border">
-                          {JSON.stringify(r, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                  ),
-                },
-                {
-                  id: "access",
-                  label: "Access Policies",
-                  content: (
-                    <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed rounded-lg text-muted-foreground">
-                      <FileKey className="h-8 w-8 mb-4 opacity-50" />
-                      <p className="text-sm mb-4">
-                        Protect this resource by assigning an access policy to specific agents.
-                      </p>
-                      <button 
-                        className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90"
-                        onClick={() => {
-                          toast.success("Policy draft created. Redirecting to policy editor...");
-                          // Here we would navigate to the policy editor with pre-filled target
-                        }}
-                      >
-                        Create Policy
-                      </button>
-                    </div>
-                  ),
-                },
-                {
-                  id: "activity",
-                  label: "Activity",
-                  content: <ResourceActivityTimeline resource={r} />,
-                },
-              ]}
-            />
-          );
-        }}
+        renderDetail={(r: UnifiedResource) => (
+          <Resource360Detail
+            resource={r}
+            onDelete={() => deleteResource(r.id)}
+          />
+        )}
       />
     </div>
+  );
+}
+
+function ResourceFriendlyOverview({ resource }: { resource: UnifiedResource }) {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+        <SummaryMetric
+          label="What POLLEK saw"
+          value={resource.uri}
+          helper={`${resource.resource_type} - ${
+            resource.is_registered ? "registered" : "observed only"
+          }`}
+        />
+        <SummaryMetric
+          label="Sensitivity"
+          value={resource.classification || "Unclassified"}
+          helper="Used for policy suggestions and default guardrails."
+        />
+        {resource.is_observed && resource.observed_details && (
+          <>
+            <SummaryMetric
+              label="Last access"
+              value={new Date(
+                resource.observed_details.last_access,
+              ).toLocaleString()}
+              helper={`${resource.observed_details.access_count} total observed access event(s).`}
+            />
+            <SummaryMetric
+              label="Agents touching it"
+              value={resource.observed_details.agents.length}
+              helper={
+                resource.observed_details.agents.join(", ") ||
+                "No agent linked yet."
+              }
+            />
+            <SummaryMetric
+              label="Access modes"
+              value={resource.observed_details.modes.join(", ") || "Unknown"}
+              helper="Read/write/connect actions grouped from telemetry."
+            />
+            <SummaryMetric
+              label="Governance"
+              value={
+                resource.observed_details.governed
+                  ? "Policy attached"
+                  : "Needs policy"
+              }
+              helper={
+                resource.is_registered
+                  ? "Registered resource can be targeted directly."
+                  : "Protect will create a policy target for this observed resource."
+              }
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ResourcePolicyPrompt({ resource }: { resource: UnifiedResource }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+      <FileKey className="mb-4 h-8 w-8 opacity-50" />
+      <p className="mb-4 text-sm">
+        Protect this resource by assigning an access policy to specific agents.
+      </p>
+      <button
+        type="button"
+        className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+        onClick={() => {
+          toast.success(`Policy draft requested for ${resource.name}.`);
+        }}
+      >
+        Create Policy
+      </button>
+    </div>
+  );
+}
+
+function Resource360Detail({
+  resource,
+  onDelete,
+}: {
+  resource: UnifiedResource;
+  onDelete: () => void;
+}) {
+  const { data } = useEntity360("resource", resource.id);
+  const { status, label } = resourceStatus(resource);
+  const protect = () =>
+    toast.success(`Policy draft requested for ${resource.name}.`);
+  const actions = (
+    <>
+      <button
+        type="button"
+        onClick={protect}
+        className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+      >
+        {resource.is_registered ? "Apply Policy" : "Protect"}
+      </button>
+      {resource.is_registered && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="inline-flex h-9 items-center rounded-md border border-red-500/30 bg-red-500/10 px-4 text-sm font-medium text-red-600 hover:bg-red-500/15"
+        >
+          Delete
+        </button>
+      )}
+    </>
+  );
+
+  if (data) {
+    return (
+      <Entity360Layout
+        data={data}
+        actions={actions}
+        overview={<ResourceFriendlyOverview resource={resource} />}
+      />
+    );
+  }
+
+  return (
+    <DetailPane
+      title={resource.name}
+      subtitle={resource.resource_type}
+      status={status}
+      statusLabel={label}
+      actions={
+        [
+          {
+            label: resource.is_registered ? "Apply Policy" : "Protect",
+            primary: true,
+            onClick: protect,
+          },
+          resource.is_registered
+            ? {
+                label: "Delete",
+                danger: true,
+                onClick: onDelete,
+              }
+            : undefined,
+        ].filter(Boolean) as any
+      }
+      tabs={[
+        {
+          id: "overview",
+          label: "Overview",
+          content: <ResourceFriendlyOverview resource={resource} />,
+        },
+        {
+          id: "access",
+          label: "Access Policies",
+          content: <ResourcePolicyPrompt resource={resource} />,
+        },
+        {
+          id: "activity",
+          label: "Activity",
+          content: <ResourceActivityTimeline resource={resource} />,
+        },
+      ]}
+    />
   );
 }
 
@@ -447,10 +500,17 @@ function ResourceActivityTimeline({ resource }: { resource: UnifiedResource }) {
         setLoading(false);
       }
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [resource.uri]);
 
-  if (loading) return <div className="p-8 text-center text-sm text-muted-foreground">Loading activity...</div>;
+  if (loading)
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        Loading activity...
+      </div>
+    );
   if (events.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed rounded-lg text-muted-foreground">
@@ -464,11 +524,16 @@ function ResourceActivityTimeline({ resource }: { resource: UnifiedResource }) {
     <div className="space-y-4">
       {events.map((ev, i) => (
         <div key={i} className="flex gap-4 p-4 border rounded-lg bg-card">
-          <div className="mt-1"><Activity className="h-4 w-4 text-primary" /></div>
+          <div className="mt-1">
+            <Activity className="h-4 w-4 text-primary" />
+          </div>
           <div>
-            <p className="text-sm font-medium">Access by Agent: {ev.agent_id || "Unknown"}</p>
+            <p className="text-sm font-medium">
+              Access by Agent: {ev.agent_id || "Unknown"}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Mode: {ev.details?.mode || ev.mode || "read"} • {new Date(ev.observed_at || ev.timestamp).toLocaleString()}
+              Mode: {ev.details?.mode || ev.mode || "read"} •{" "}
+              {new Date(ev.observed_at || ev.timestamp).toLocaleString()}
             </p>
           </div>
         </div>

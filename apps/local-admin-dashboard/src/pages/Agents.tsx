@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { Plus, Users, Cpu, Info } from "lucide-react";
+import { Plus, Users, Cpu } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { RegistryApi } from "../services/api";
 import type { AiAgent } from "../services/api";
@@ -12,6 +12,8 @@ import type { UiStatus } from "../lib/status";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { AgentEnforcementTab } from "../components/agents/AgentEnforcementTab";
 import { AgentActivityTab } from "../components/agents/AgentActivityTab";
+import { Entity360Layout } from "../features/entity-360/Entity360Layout";
+import { useEntity360 } from "../features/entity-graph/useEntity360";
 
 function SummaryMetric({
   label,
@@ -29,6 +31,19 @@ function SummaryMetric({
       {helper && <p className="mt-1 text-xs text-muted-foreground">{helper}</p>}
     </div>
   );
+}
+
+function agentStatus(agent: AiAgent): { status: UiStatus; label: string } {
+  if (agent.enforcement_mode === "Enforce") {
+    return { status: "ok", label: "Protected" };
+  }
+  if (agent.enforcement_mode === "Observe") {
+    return { status: "info", label: "Observing" };
+  }
+  if (agent.enforcement_mode === "Shadow") {
+    return { status: "degraded", label: "Shadow AI" };
+  }
+  return { status: "ok", label: agent.enforcement_mode || "Registered" };
 }
 
 export function Agents({ hideHeader = false }: { hideHeader?: boolean }) {
@@ -130,19 +145,7 @@ export function Agents({ hideHeader = false }: { hideHeader?: boolean }) {
           />
         }
         renderCard={(a, selected) => {
-          let status: UiStatus = "ok";
-          let label = a.enforcement_mode || "Registered";
-
-          if (a.enforcement_mode === "Enforce") {
-            status = "ok";
-            label = "🛡️ Protected";
-          } else if (a.enforcement_mode === "Observe") {
-            status = "info";
-            label = "👁️ Observing";
-          } else if (a.enforcement_mode === "Shadow") {
-            status = "degraded";
-            label = "🔧 Shadow AI";
-          }
+          const { status, label } = agentStatus(a);
 
           return (
             <EntityCard
@@ -162,127 +165,148 @@ export function Agents({ hideHeader = false }: { hideHeader?: boolean }) {
             />
           );
         }}
-        renderDetail={(a) => {
-          let status: UiStatus = "ok";
-          let label = a.enforcement_mode || "Registered";
-
-          if (a.enforcement_mode === "Enforce") {
-            status = "ok";
-            label = "🛡️ Protected";
-          } else if (a.enforcement_mode === "Observe") {
-            status = "info";
-            label = "👁️ Observing";
-          } else if (a.enforcement_mode === "Shadow") {
-            status = "degraded";
-            label = "🔧 Shadow AI";
-          }
-
-          return (
-            <DetailPane
-              title={a.name}
-              subtitle={a.runtime.runtime_name || "Unknown"}
-              status={status}
-              statusLabel={label}
-              actions={[
-                {
-                  label: "Apply Policy",
-                  primary: true,
-                  onClick: () => navigate(`/protect?agent=${a.agent_id}`),
-                },
-                {
-                  label: "Delete",
-                  danger: true,
-                  onClick: () => deleteAgent(a.agent_id),
-                },
-              ]}
-              tabs={[
-                {
-                  id: "overview",
-                  label: "Overview",
-                  content: (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <SummaryMetric
-                          label="Cloud trace identity"
-                          value={a.identity?.spiffe_id || "Not bound yet"}
-                          helper={
-                            a.identity?.spiffe_id
-                              ? "Used as the canonical workload identity when this agent reports to Pollek Cloud."
-                              : "Local mode works, but Cloud control should bind a SPIFFE ID before enforcement at fleet scale."
-                          }
-                        />
-                        <SummaryMetric
-                          label="Token bindings"
-                          value={a.identity?.token_bindings?.length ?? 0}
-                          helper={
-                            a.identity?.token_bindings?.length
-                              ? a.identity.token_bindings
-                                  .map(
-                                    (binding) =>
-                                      `${binding.provider}:${binding.kind}`,
-                                  )
-                                  .join(", ")
-                              : "No OAuth/OIDC/SVID token bindings recorded."
-                          }
-                        />
-                        <SummaryMetric
-                          label="Runtime identity"
-                          value={a.identity?.user_subject || "Local process"}
-                          helper={
-                            a.identity?.process_path
-                              ? `Process: ${a.identity.process_path}`
-                              : "Process path not confirmed yet."
-                          }
-                        />
-                        <SummaryMetric
-                          label="Signing key"
-                          value={
-                            a.identity?.signing_key_fingerprint
-                              ? "Fingerprint present"
-                              : "Not available"
-                          }
-                          helper="Fingerprints only; private keys and OAuth tokens are never stored here."
-                        />
-                      </div>
-
-                      <div className="p-4 bg-muted/30 rounded-xl border space-y-3">
-                        <h4 className="text-sm font-semibold">Capabilities</h4>
-                        <ul className="text-sm space-y-1.5 text-muted-foreground">
-                          {a.capabilities?.map((cap: string) => (
-                            <li key={cap} className="flex items-center gap-2">
-                              <div className="h-1.5 w-1.5 rounded-full bg-primary/50" />
-                              <span className="text-foreground/80">{cap}</span>
-                            </li>
-                          )) || <li>No specific capabilities</li>}
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium mb-2 flex items-center gap-2 text-sm">
-                          <Info className="h-4 w-4" /> Raw JSON
-                        </h4>
-                        <pre className="text-[10px] font-mono bg-muted/50 p-4 rounded-lg overflow-x-auto border">
-                          {JSON.stringify(a, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                  ),
-                },
-                {
-                  id: "enforcement",
-                  label: "Enforcement",
-                  content: <AgentEnforcementTab agentId={a.agent_id} />,
-                },
-                {
-                  id: "activity",
-                  label: "Activity (Live)",
-                  content: <AgentActivityTab agentId={a.agent_id} />,
-                },
-              ]}
-            />
-          );
-        }}
+        renderDetail={(a) => (
+          <Agent360Detail
+            agent={a}
+            onApplyPolicy={() => navigate(`/protect?agent=${a.agent_id}`)}
+            onDelete={() => deleteAgent(a.agent_id)}
+          />
+        )}
       />
     </div>
+  );
+}
+
+function AgentFriendlyOverview({ agent }: { agent: AiAgent }) {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <SummaryMetric
+          label="Cloud trace identity"
+          value={agent.identity?.spiffe_id || "Not bound yet"}
+          helper={
+            agent.identity?.spiffe_id
+              ? "Used as the canonical workload identity when this agent reports to Pollek Cloud."
+              : "Local mode works, but Cloud control should bind a SPIFFE ID before fleet enforcement."
+          }
+        />
+        <SummaryMetric
+          label="Token bindings"
+          value={agent.identity?.token_bindings?.length ?? 0}
+          helper={
+            agent.identity?.token_bindings?.length
+              ? agent.identity.token_bindings
+                  .map((binding) => `${binding.provider}:${binding.kind}`)
+                  .join(", ")
+              : "No OAuth/OIDC/SVID token bindings recorded."
+          }
+        />
+        <SummaryMetric
+          label="Runtime identity"
+          value={agent.identity?.user_subject || "Local process"}
+          helper={
+            agent.identity?.process_path
+              ? `Process: ${agent.identity.process_path}`
+              : "Process path not confirmed yet."
+          }
+        />
+        <SummaryMetric
+          label="Signing key"
+          value={
+            agent.identity?.signing_key_fingerprint
+              ? "Fingerprint present"
+              : "Not available"
+          }
+          helper="Fingerprints only; private keys and OAuth tokens are never stored here."
+        />
+      </div>
+
+      <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+        <h4 className="text-sm font-semibold">Capabilities</h4>
+        <ul className="space-y-1.5 text-sm text-muted-foreground">
+          {agent.capabilities?.length ? (
+            agent.capabilities.map((cap: string) => (
+              <li key={cap} className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-primary/50" />
+                <span className="text-foreground/80">{cap}</span>
+              </li>
+            ))
+          ) : (
+            <li>No specific capabilities</li>
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function Agent360Detail({
+  agent,
+  onApplyPolicy,
+  onDelete,
+}: {
+  agent: AiAgent;
+  onApplyPolicy: () => void;
+  onDelete: () => void;
+}) {
+  const { data } = useEntity360("agent", agent.agent_id);
+  const { status, label } = agentStatus(agent);
+  const actions = (
+    <>
+      <button
+        type="button"
+        onClick={onApplyPolicy}
+        className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+      >
+        Apply Policy
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="inline-flex h-9 items-center rounded-md border border-red-500/30 bg-red-500/10 px-4 text-sm font-medium text-red-600 hover:bg-red-500/15"
+      >
+        Delete
+      </button>
+    </>
+  );
+
+  if (data) {
+    return (
+      <Entity360Layout
+        data={data}
+        actions={actions}
+        overview={<AgentFriendlyOverview agent={agent} />}
+      />
+    );
+  }
+
+  return (
+    <DetailPane
+      title={agent.name}
+      subtitle={agent.runtime.runtime_name || "Unknown"}
+      status={status}
+      statusLabel={label}
+      actions={[
+        { label: "Apply Policy", primary: true, onClick: onApplyPolicy },
+        { label: "Delete", danger: true, onClick: onDelete },
+      ]}
+      tabs={[
+        {
+          id: "overview",
+          label: "Overview",
+          content: <AgentFriendlyOverview agent={agent} />,
+        },
+        {
+          id: "enforcement",
+          label: "Enforcement",
+          content: <AgentEnforcementTab agentId={agent.agent_id} />,
+        },
+        {
+          id: "activity",
+          label: "Activity (Live)",
+          content: <AgentActivityTab agentId={agent.agent_id} />,
+        },
+      ]}
+    />
   );
 }

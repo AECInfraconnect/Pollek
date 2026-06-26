@@ -1,18 +1,24 @@
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, X, UploadCloud, Trash2, Pencil } from "lucide-react";
 import { PolicyApi } from "../services/api";
 import type { PolicyDraft, PolicyType } from "../services/api";
 import { MasterDetailLayout } from "../components/layout/MasterDetailLayout";
 import { EntityCard } from "../components/shared/EntityCard";
 import type { EntityCardProps } from "../components/shared/EntityCard";
+import { Entity360Layout } from "../features/entity-360/Entity360Layout";
+import { useEntity360 } from "../features/entity-graph/useEntity360";
 
 export function Policies() {
   const { confirm } = useConfirm();
+  const [params, setParams] = useSearchParams();
 
   const [policies, setPolicies] = useState<PolicyDraft[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
+  const [selectedPolicyId, setSelectedPolicyIdState] = useState<string | null>(
+    () => params.get("selected"),
+  );
   const [editorState, setEditorState] = useState<{
     mode: "create" | "edit" | "view";
     policy?: PolicyDraft;
@@ -31,6 +37,22 @@ export function Policies() {
   useEffect(() => {
     reload();
   }, []);
+
+  useEffect(() => {
+    setSelectedPolicyIdState(params.get("selected"));
+  }, [params]);
+
+  const setSelectedPolicyId = (policyId: string | null) => {
+    setSelectedPolicyIdState(policyId);
+    setParams((next) => {
+      if (policyId) {
+        next.set("selected", policyId);
+      } else {
+        next.delete("selected");
+      }
+      return next;
+    });
+  };
 
   const onDelete = async (policyId: string) => {
     if (
@@ -118,84 +140,13 @@ export function Policies() {
   );
 
   const detailContent = selectedPolicy ? (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-bold">{selectedPolicy.name}</h3>
-        <p className="text-sm text-muted-foreground font-mono mt-1">
-          {selectedPolicy.policy_id}
-        </p>
-      </div>
-
-      <div className="flex gap-2">
-        <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border">
-          Type: {selectedPolicy.policy_type}
-        </span>
-        <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border">
-          Status: {selectedPolicy.meta.status}
-        </span>
-      </div>
-
-      <div className="space-y-4">
-        <div className="p-4 bg-muted/50 rounded-lg border">
-          <h4 className="text-sm font-semibold mb-2">Policy Source</h4>
-          <pre className="text-xs font-mono overflow-x-auto p-4 bg-black/50 text-green-400 rounded border">
-            {selectedPolicy.source?.kind === "raw_text"
-              ? selectedPolicy.source.text
-              : JSON.stringify(selectedPolicy.source, null, 2)}
-          </pre>
-        </div>
-
-        <div className="p-4 bg-muted/50 rounded-lg border">
-          <h4 className="text-sm font-semibold mb-2">Details</h4>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Created By</dt>
-            <dd>{selectedPolicy.meta.created_by}</dd>
-            <dt className="text-muted-foreground">Source</dt>
-            <dd>{selectedPolicy.meta.source}</dd>
-            <dt className="text-muted-foreground">Targets</dt>
-            <dd>
-              {selectedPolicy.targets.agent_ids.length} agents,{" "}
-              {selectedPolicy.targets.tool_ids.length} tools
-            </dd>
-          </dl>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2 justify-end">
-        <button
-          onClick={() =>
-            setEditorState({ mode: "edit", policy: selectedPolicy })
-          }
-          disabled={
-            selectedPolicy.meta.source === "cloud_sync" ||
-            selectedPolicy.meta.created_by !== "local-admin"
-          }
-          className="px-4 py-2 bg-muted text-foreground border border-border rounded-md text-sm font-medium hover:bg-muted/80 disabled:opacity-50 inline-flex items-center gap-2"
-        >
-          <Pencil className="h-4 w-4" /> Edit
-        </button>
-        <button
-          onClick={() => onPublish(selectedPolicy.policy_id)}
-          disabled={publishing === selectedPolicy.policy_id}
-          className="px-4 py-2 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-md text-sm font-medium hover:bg-blue-500/20 disabled:opacity-50 inline-flex items-center gap-2"
-        >
-          <UploadCloud className="h-4 w-4" />
-          {publishing === selectedPolicy.policy_id
-            ? "Publishing..."
-            : "Publish"}
-        </button>
-        <button
-          onClick={() => onDelete(selectedPolicy.policy_id)}
-          disabled={
-            selectedPolicy.meta.source === "cloud_sync" ||
-            selectedPolicy.meta.created_by !== "local-admin"
-          }
-          className="px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-md text-sm font-medium hover:bg-red-500/20 disabled:opacity-50 inline-flex items-center gap-2"
-        >
-          <Trash2 className="h-4 w-4" /> Delete
-        </button>
-      </div>
-    </div>
+    <Policy360Detail
+      policy={selectedPolicy}
+      publishing={publishing === selectedPolicy.policy_id}
+      onEdit={() => setEditorState({ mode: "edit", policy: selectedPolicy })}
+      onPublish={() => onPublish(selectedPolicy.policy_id)}
+      onDelete={() => onDelete(selectedPolicy.policy_id)}
+    />
   ) : null;
 
   return (
@@ -237,6 +188,156 @@ export function Policies() {
         />
       )}
     </>
+  );
+}
+
+function policyTargetCount(policy: PolicyDraft) {
+  return (
+    policy.targets.agent_ids.length +
+    policy.targets.tool_ids.length +
+    policy.targets.resource_ids.length +
+    policy.targets.entity_ids.length
+  );
+}
+
+function policySourceText(policy: PolicyDraft) {
+  return policy.source?.kind === "raw_text"
+    ? policy.source.text
+    : JSON.stringify(policy.source, null, 2);
+}
+
+function PolicyFriendlyOverview({ policy }: { policy: PolicyDraft }) {
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-lg border bg-muted/30 p-4">
+          <div className="text-xs text-muted-foreground">Policy type</div>
+          <div className="mt-1 text-sm font-medium">{policy.policy_type}</div>
+        </div>
+        <div className="rounded-lg border bg-muted/30 p-4">
+          <div className="text-xs text-muted-foreground">Status</div>
+          <div className="mt-1 text-sm font-medium">{policy.meta.status}</div>
+        </div>
+        <div className="rounded-lg border bg-muted/30 p-4">
+          <div className="text-xs text-muted-foreground">Targets</div>
+          <div className="mt-1 text-sm font-medium">
+            {policyTargetCount(policy)}
+          </div>
+        </div>
+        <div className="rounded-lg border bg-muted/30 p-4">
+          <div className="text-xs text-muted-foreground">Source</div>
+          <div className="mt-1 text-sm font-medium">{policy.meta.source}</div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <h4 className="mb-3 text-sm font-semibold">Target Summary</h4>
+        <dl className="grid gap-3 text-sm md:grid-cols-2">
+          <div>
+            <dt className="text-muted-foreground">Agents</dt>
+            <dd>{policy.targets.agent_ids.join(", ") || "No agent targets"}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Tools</dt>
+            <dd>{policy.targets.tool_ids.join(", ") || "No tool targets"}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Resources</dt>
+            <dd>
+              {policy.targets.resource_ids.join(", ") || "No resource targets"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Identities</dt>
+            <dd>
+              {policy.targets.entity_ids.join(", ") || "No identity targets"}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <h4 className="mb-2 text-sm font-semibold">Policy Source Preview</h4>
+        <pre className="max-h-72 overflow-auto rounded-md border bg-background p-4 font-mono text-xs">
+          {policySourceText(policy)}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+function Policy360Detail({
+  policy,
+  publishing,
+  onEdit,
+  onPublish,
+  onDelete,
+}: {
+  policy: PolicyDraft;
+  publishing: boolean;
+  onEdit: () => void;
+  onPublish: () => void;
+  onDelete: () => void;
+}) {
+  const { data } = useEntity360("policy", policy.policy_id);
+  const canEdit =
+    policy.meta.source !== "cloud_sync" &&
+    policy.meta.created_by === "local-admin";
+  const actions = (
+    <>
+      <button
+        type="button"
+        onClick={onEdit}
+        disabled={!canEdit}
+        className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium hover:bg-muted disabled:opacity-50"
+      >
+        <Pencil className="h-4 w-4" />
+        Edit
+      </button>
+      <button
+        type="button"
+        onClick={onPublish}
+        disabled={publishing}
+        className="inline-flex h-9 items-center gap-2 rounded-md border border-blue-500/25 bg-blue-500/10 px-3 text-sm font-medium text-blue-600 hover:bg-blue-500/15 disabled:opacity-50"
+      >
+        <UploadCloud className="h-4 w-4" />
+        {publishing ? "Publishing..." : "Publish"}
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={!canEdit}
+        className="inline-flex h-9 items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 text-sm font-medium text-red-600 hover:bg-red-500/15 disabled:opacity-50"
+      >
+        <Trash2 className="h-4 w-4" />
+        Delete
+      </button>
+    </>
+  );
+
+  if (data) {
+    return (
+      <Entity360Layout
+        data={data}
+        actions={actions}
+        overview={<PolicyFriendlyOverview policy={policy} />}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h3 className="text-xl font-bold">{policy.name}</h3>
+          <p className="mt-1 font-mono text-sm text-muted-foreground">
+            {policy.policy_id}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">{actions}</div>
+      </div>
+      <PolicyFriendlyOverview policy={policy} />
+    </div>
   );
 }
 

@@ -48,4 +48,5 @@ pub mod policy_deploy_api;
 pub mod deployment_orchestrator;
 
 pub mod deployment_api;
+pub mod entity_graph;
 pub mod policy_first_api;

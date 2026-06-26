@@ -11,7 +11,6 @@ import { Resources } from "./pages/Resources";
 import { Policies } from "./pages/Policies";
 import { Simulator } from "./pages/Simulator";
 import { Bundles } from "./pages/Bundles";
-import { DecisionLogs } from "./pages/DecisionLogs";
 import { Settings } from "./pages/Settings";
 import { PdpRoutingPage } from "./pages/PdpRoutingPage";
 import { AutoDiscovery } from "./pages/AutoDiscovery";
@@ -30,6 +29,8 @@ import { IdentityNetwork } from "./pages/Data/IdentityNetwork";
 import { AlertsAndShadowAI } from "./pages/Monitoring/AlertsAndShadowAI";
 import { Entities } from "./pages/Entities";
 import { Tools } from "./pages/Tools";
+import { ActivityTimelineV2 } from "./features/activity/ActivityTimelineV2";
+import { EntityGraphPage } from "./features/entity-graph/EntityGraphPage";
 
 import { Deployments } from "./pages/Deployments";
 import { LocalEvidence } from "./pages/LocalEvidence";
@@ -99,9 +100,13 @@ function App() {
                   path="pdp-engines"
                   element={<Placeholder name="PDP Engines" />}
                 />
-                <Route path="timeline" element={<DecisionLogs />} />
+                <Route
+                  path="timeline"
+                  element={<Navigate to="/activity-timeline" replace />}
+                />
                 <Route path="local-evidence" element={<LocalEvidence />} />
                 <Route path="health" element={<Health />} />
+                <Route path="entity-graph" element={<EntityGraphPage />} />
 
                 {/* AI Ecosystem */}
                 <Route path="agents" element={<AgentsAndModels />} />
@@ -129,11 +134,21 @@ function App() {
                 {/* Monitoring & Activity */}
                 <Route
                   path="activity"
-                  element={<Navigate to="/audit" replace />}
+                  element={<Navigate to="/activity-timeline" replace />}
+                />
+                <Route
+                  path="activity-timeline"
+                  element={<ActivityTimelineV2 />}
                 />
                 <Route path="alerts" element={<AlertsAndShadowAI />} />
-                <Route path="audit" element={<DecisionLogs />} />
-                <Route path="decision-logs" element={<DecisionLogs />} />
+                <Route
+                  path="audit"
+                  element={<Navigate to="/activity-timeline" replace />}
+                />
+                <Route
+                  path="decision-logs"
+                  element={<Navigate to="/activity-timeline" replace />}
+                />
                 <Route path="cost-ledger" element={<CostLedger />} />
 
                 {/* System & Settings */}
@@ -154,7 +169,7 @@ function App() {
                 <Route path="entities" element={<Entities />} />
                 <Route
                   path="relationships"
-                  element={<Navigate to="/identities" replace />}
+                  element={<Navigate to="/entity-graph" replace />}
                 />
                 <Route
                   path="shadow-ai"

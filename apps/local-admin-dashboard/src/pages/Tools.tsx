@@ -25,6 +25,8 @@ import { EmptyState } from "../components/master-detail/EmptyState";
 import { RegisterControlBar } from "../components/RegisterControlBar";
 import type { UiStatus } from "../lib/status";
 import { useConfirm } from "../components/ui/ConfirmDialog";
+import { Entity360Layout } from "../features/entity-360/Entity360Layout";
+import { useEntity360 } from "../features/entity-graph/useEntity360";
 
 function SummaryMetric({
   label,
@@ -42,6 +44,25 @@ function SummaryMetric({
       {helper && <p className="mt-1 text-xs text-muted-foreground">{helper}</p>}
     </div>
   );
+}
+
+function toolStatus(tool: UnifiedTool): { status: UiStatus; label: string } {
+  if (!tool.is_registered) {
+    return { status: "idle", label: "Observed" };
+  }
+  if (tool.risk_level === "high" || tool.risk_level === "critical") {
+    return {
+      status: "failed",
+      label: tool.risk_level ? tool.risk_level.toUpperCase() : "HIGH",
+    };
+  }
+  if (tool.risk_level === "medium") {
+    return { status: "degraded", label: "MEDIUM" };
+  }
+  return {
+    status: "ok",
+    label: tool.risk_level ? tool.risk_level.toUpperCase() : "UNKNOWN",
+  };
 }
 
 export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
@@ -81,7 +102,7 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
         });
       }
 
-      for (const o of (obsRes.items || [])) {
+      for (const o of obsRes.items || []) {
         const id = o.tool_id;
         if (unifiedMap.has(id)) {
           const existing = unifiedMap.get(id)!;
@@ -227,12 +248,8 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
           />
         }
         renderCard={(t: UnifiedTool, selected) => {
-          let status: UiStatus = "ok";
+          const { status, label } = toolStatus(t);
           const observed = t.observed_details;
-          if (!t.is_registered) status = "idle";
-          else if (t.risk_level === "high" || t.risk_level === "critical")
-            status = "failed";
-          else if (t.risk_level === "medium") status = "degraded";
 
           return (
             <EntityCard
@@ -245,9 +262,7 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
               }
               icon={Wrench}
               status={status}
-              statusLabel={
-                !t.is_registered ? "Observed" : t.risk_level ? t.risk_level.toUpperCase() : "UNKNOWN"
-              }
+              statusLabel={label}
               meta={[
                 { label: "Data Access", value: t.data_access_level },
                 { label: "Side Effect", value: t.side_effect_level },
@@ -263,150 +278,204 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
             />
           );
         }}
-        renderDetail={(t: UnifiedTool) => {
-          let status: UiStatus = "ok";
-          if (!t.is_registered) status = "idle";
-          else if (t.risk_level === "high" || t.risk_level === "critical")
-            status = "failed";
-          else if (t.risk_level === "medium") status = "degraded";
-
-          return (
-            <DetailPane
-              title={t.name}
-              subtitle={t.description}
-              status={status}
-              statusLabel={
-                !t.is_registered ? "Observed" : t.risk_level ? t.risk_level.toUpperCase() : "UNKNOWN"
-              }
-              actions={
-                t.is_registered
-                  ? [
-                      {
-                        label: "Delete",
-                        danger: true,
-                        onClick: () => deleteTool(t.tool_id),
-                      },
-                    ]
-                  : [
-                      {
-                        label: "Protect Tool",
-                        primary: true,
-                        onClick: () => {},
-                      },
-                    ]
-              }
-              tabs={[
-                {
-                  id: "overview",
-                  label: "Overview",
-                  content: (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <SummaryMetric
-                          label="What POLLEK saw"
-                          value={t.name}
-                          helper={
-                            t.observed_details
-                              ? `${t.observed_details.tool_kind} - ${t.observed_details.server || "local"}`
-                              : t.is_registered
-                                ? "Registered tool definition"
-                                : "Observed tool"
-                          }
-                        />
-                        <SummaryMetric
-                          label="Risk"
-                          value={t.risk_level || "unknown"}
-                          helper={`Data: ${t.data_access_level || "unknown"} - Effects: ${t.side_effect_level || "unknown"}`}
-                        />
-                        {t.is_observed && t.observed_details && (
-                          <>
-                            <SummaryMetric
-                              label="Last used"
-                              value={new Date(
-                                t.observed_details.last_used,
-                              ).toLocaleString()}
-                              helper={`${t.observed_details.use_count} observed invocation(s).`}
-                            />
-                            <SummaryMetric
-                              label="Agents invoking it"
-                              value={t.observed_details.agents.length}
-                              helper={t.observed_details.agents.join(", ") || "No agent linked yet."}
-                            />
-                            <SummaryMetric
-                              label="Governance"
-                              value={
-                                t.observed_details.governed
-                                  ? "Policy attached"
-                                  : "Needs policy"
-                              }
-                              helper={
-                                t.is_registered
-                                  ? "Registered tool can be targeted directly."
-                                  : "Protect will create a policy target for this observed tool."
-                              }
-                            />
-                          </>
-                        )}
-                      </div>
-
-                      <div className="p-4 bg-muted/30 rounded-xl border">
-                        <h4 className="text-sm font-semibold mb-2">
-                          Registration Status
-                        </h4>
-                        <RegisterControlBar
-                          agentId={t.tool_id}
-                          tenantId="local"
-                          onSuccess={() => fetchTools()}
-                        />
-                      </div>
-                    </div>
-                  ),
-                },
-                {
-                  id: "schema",
-                  label: "Schema",
-                  content: (
-                    <div>
-                      <h4 className="font-medium mb-2 flex items-center gap-2 text-sm">
-                        <Info className="h-4 w-4" /> JSON Schema
-                      </h4>
-                      <pre className="text-[10px] font-mono bg-muted/50 p-4 rounded-lg overflow-x-auto border">
-                        {JSON.stringify((t as any).schema, null, 2)}
-                      </pre>
-                    </div>
-                  ),
-                },
-                {
-                  id: "policies",
-                  label: "Policies",
-                  content: (
-                    <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed rounded-lg text-muted-foreground">
-                      <FileKey className="h-8 w-8 mb-4 opacity-50" />
-                      <p className="text-sm mb-4">
-                        Protect this tool by assigning an access policy.
-                      </p>
-                      <button 
-                        className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90"
-                        onClick={() => {
-                          toast.success("Policy draft created. Redirecting to policy editor...");
-                        }}
-                      >
-                        Create Policy
-                      </button>
-                    </div>
-                  ),
-                },
-                {
-                  id: "activity",
-                  label: "Activity",
-                  content: <ToolActivityTimeline tool={t} />,
-                },
-              ]}
-            />
-          );
-        }}
+        renderDetail={(t: UnifiedTool) => (
+          <Tool360Detail
+            tool={t}
+            onDelete={() => deleteTool(t.tool_id)}
+            onRegistered={() => fetchTools()}
+          />
+        )}
       />
     </div>
+  );
+}
+
+function ToolFriendlyOverview({
+  tool,
+  onRegistered,
+}: {
+  tool: UnifiedTool;
+  onRegistered: () => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+        <SummaryMetric
+          label="What POLLEK saw"
+          value={tool.name}
+          helper={
+            tool.observed_details
+              ? `${tool.observed_details.tool_kind} - ${
+                  tool.observed_details.server || "local"
+                }`
+              : tool.is_registered
+                ? "Registered tool definition"
+                : "Observed tool"
+          }
+        />
+        <SummaryMetric
+          label="Risk"
+          value={tool.risk_level || "unknown"}
+          helper={`Data: ${tool.data_access_level || "unknown"} - Effects: ${
+            tool.side_effect_level || "unknown"
+          }`}
+        />
+        {tool.is_observed && tool.observed_details && (
+          <>
+            <SummaryMetric
+              label="Last used"
+              value={new Date(tool.observed_details.last_used).toLocaleString()}
+              helper={`${tool.observed_details.use_count} observed invocation(s).`}
+            />
+            <SummaryMetric
+              label="Agents invoking it"
+              value={tool.observed_details.agents.length}
+              helper={
+                tool.observed_details.agents.join(", ") ||
+                "No agent linked yet."
+              }
+            />
+            <SummaryMetric
+              label="Governance"
+              value={
+                tool.observed_details.governed
+                  ? "Policy attached"
+                  : "Needs policy"
+              }
+              helper={
+                tool.is_registered
+                  ? "Registered tool can be targeted directly."
+                  : "Protect will create a policy target for this observed tool."
+              }
+            />
+          </>
+        )}
+      </div>
+
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <h4 className="mb-2 text-sm font-semibold">Registration Status</h4>
+        <RegisterControlBar
+          agentId={tool.tool_id}
+          tenantId="local"
+          onSuccess={onRegistered}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ToolPolicyPrompt({ tool }: { tool: UnifiedTool }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+      <FileKey className="mb-4 h-8 w-8 opacity-50" />
+      <p className="mb-4 text-sm">
+        Protect this tool by assigning an access policy.
+      </p>
+      <button
+        type="button"
+        className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+        onClick={() => {
+          toast.success(`Policy draft requested for ${tool.name}.`);
+        }}
+      >
+        Create Policy
+      </button>
+    </div>
+  );
+}
+
+function ToolSchemaPanel({ tool }: { tool: UnifiedTool }) {
+  return (
+    <div>
+      <h4 className="mb-2 flex items-center gap-2 text-sm font-medium">
+        <Info className="h-4 w-4" /> JSON Schema
+      </h4>
+      <pre className="overflow-x-auto rounded-lg border bg-muted/50 p-4 font-mono text-[10px]">
+        {JSON.stringify((tool as any).schema, null, 2)}
+      </pre>
+    </div>
+  );
+}
+
+function Tool360Detail({
+  tool,
+  onDelete,
+  onRegistered,
+}: {
+  tool: UnifiedTool;
+  onDelete: () => void;
+  onRegistered: () => void;
+}) {
+  const { data } = useEntity360("tool", tool.tool_id);
+  const { status, label } = toolStatus(tool);
+  const protect = () =>
+    toast.success(`Policy draft requested for ${tool.name}.`);
+  const actions = tool.is_registered ? (
+    <button
+      type="button"
+      onClick={onDelete}
+      className="inline-flex h-9 items-center rounded-md border border-red-500/30 bg-red-500/10 px-4 text-sm font-medium text-red-600 hover:bg-red-500/15"
+    >
+      Delete
+    </button>
+  ) : (
+    <button
+      type="button"
+      onClick={protect}
+      className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+    >
+      Protect Tool
+    </button>
+  );
+
+  if (data) {
+    return (
+      <Entity360Layout
+        data={data}
+        actions={actions}
+        overview={
+          <ToolFriendlyOverview tool={tool} onRegistered={onRegistered} />
+        }
+      />
+    );
+  }
+
+  return (
+    <DetailPane
+      title={tool.name}
+      subtitle={tool.description}
+      status={status}
+      statusLabel={label}
+      actions={
+        tool.is_registered
+          ? [{ label: "Delete", danger: true, onClick: onDelete }]
+          : [{ label: "Protect Tool", primary: true, onClick: protect }]
+      }
+      tabs={[
+        {
+          id: "overview",
+          label: "Overview",
+          content: (
+            <ToolFriendlyOverview tool={tool} onRegistered={onRegistered} />
+          ),
+        },
+        {
+          id: "schema",
+          label: "Schema",
+          content: <ToolSchemaPanel tool={tool} />,
+        },
+        {
+          id: "policies",
+          label: "Policies",
+          content: <ToolPolicyPrompt tool={tool} />,
+        },
+        {
+          id: "activity",
+          label: "Activity",
+          content: <ToolActivityTimeline tool={tool} />,
+        },
+      ]}
+    />
   );
 }
 
@@ -417,16 +486,25 @@ function ToolActivityTimeline({ tool }: { tool: UnifiedTool }) {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    TelemetryApi.getObservations({ toolId: tool.tool_id || tool.name }).then((res) => {
-      if (mounted) {
-        setEvents(res.items || []);
-        setLoading(false);
-      }
-    });
-    return () => { mounted = false; };
+    TelemetryApi.getObservations({ toolId: tool.tool_id || tool.name }).then(
+      (res) => {
+        if (mounted) {
+          setEvents(res.items || []);
+          setLoading(false);
+        }
+      },
+    );
+    return () => {
+      mounted = false;
+    };
   }, [tool.tool_id, tool.name]);
 
-  if (loading) return <div className="p-8 text-center text-sm text-muted-foreground">Loading activity...</div>;
+  if (loading)
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        Loading activity...
+      </div>
+    );
   if (events.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed rounded-lg text-muted-foreground">
@@ -440,11 +518,20 @@ function ToolActivityTimeline({ tool }: { tool: UnifiedTool }) {
     <div className="space-y-4">
       {events.map((ev, i) => (
         <div key={i} className="flex gap-4 p-4 border rounded-lg bg-card">
-          <div className="mt-1"><Activity className="h-4 w-4 text-primary" /></div>
+          <div className="mt-1">
+            <Activity className="h-4 w-4 text-primary" />
+          </div>
           <div>
-            <p className="text-sm font-medium">Invoked by Agent: {ev.agent_id || "Unknown"}</p>
+            <p className="text-sm font-medium">
+              Invoked by Agent: {ev.agent_id || "Unknown"}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Method: {ev.details?.tool_name || ev.details?.tool_kind || ev.tool_name || "execute"} • {new Date(ev.observed_at || ev.timestamp).toLocaleString()}
+              Method:{" "}
+              {ev.details?.tool_name ||
+                ev.details?.tool_kind ||
+                ev.tool_name ||
+                "execute"}{" "}
+              • {new Date(ev.observed_at || ev.timestamp).toLocaleString()}
             </p>
           </div>
         </div>
