@@ -17,11 +17,20 @@ channels:
         $ref: "#/components/messages/BundleReady"
       ContractDeprecated:
         $ref: "#/components/messages/ContractDeprecated"
+  telemetryObservations:
+    address: /v1/tenants/{tenantId}/telemetry/observations/stream
+    messages:
+      AgentObservation:
+        $ref: "#/components/messages/AgentObservation"
 operations:
   receiveBundleEvents:
     action: receive
     channel:
       $ref: "#/channels/bundleEvents"
+  receiveTelemetryObservations:
+    action: receive
+    channel:
+      $ref: "#/channels/telemetryObservations"
 components:
   messages:
     BundleReady:
@@ -34,7 +43,15 @@ components:
       title: ContractDeprecated
       payload:
         $ref: "#/components/schemas/ContractDeprecatedPayload"
+    AgentObservation:
+      name: AgentObservation
+      title: AgentObservation
+      payload:
+        $ref: "#/components/schemas/AgentObservationPayload"
   schemas:
+    AgentObservationPayload:
+      type: object
+      additionalProperties: true
     BundleReadyPayload:
       type: object
       additionalProperties: false

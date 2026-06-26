@@ -47,8 +47,39 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Ingest a batch of telemetry events. */
         post: operations["TelemetryApi_ingestBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/telemetry/enforcement-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TelemetryApi_enforcementStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/telemetry/observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TelemetryApi_listObservations"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -932,6 +963,18 @@ export interface components {
         AgentObservationEventListResponse: {
             items: components["schemas"]["AgentObservationEvent"][];
         };
+        AgentObservationPayload: {
+            agent_id: string;
+            agent_label: string;
+            domain: components["schemas"]["ControlDomain"];
+            action: string;
+            target?: string;
+            decision: components["schemas"]["DecisionOutcome"];
+            control_method?: components["schemas"]["ControlMethod"];
+            enforced_for_real: boolean;
+            reason_th?: string;
+            reason_en?: string;
+        };
         AgentTrustScore: {
             /** @enum {string} */
             schema_version: "agent-trust-score.v1";
@@ -988,6 +1031,21 @@ export interface components {
             sunset?: Record<string, never>;
             capabilities: string[];
         };
+        ControlBindingChangedPayload: {
+            agent_id: string;
+            policy_id: string;
+            bindings: {
+                domain: components["schemas"]["ControlDomain"];
+                method: components["schemas"]["ControlMethod"];
+                level: components["schemas"]["ControlLevel"];
+            }[];
+        };
+        /** @enum {string} */
+        ControlDomain: "network" | "file_system" | "process" | "mcp_tool" | "dns";
+        /** @enum {string} */
+        ControlLevel: "observe" | "warn" | "ask" | "enforce";
+        /** @enum {string} */
+        ControlMethod: "mcp_stdio" | "mcp_http" | "linux_landlock" | "linux_ebpf" | "linux_seccomp" | "windows_wfp_um" | "windows_wfp_callout" | "windows_etw" | "macos_netext" | "macos_endpoint_security";
         CostLedgerEntry: {
             event_id: string;
             agent_id: string;
@@ -1026,6 +1084,8 @@ export interface components {
             agent_token_breakdown: Record<string, never>;
             agent_usage_breakdown: Record<string, never>;
         };
+        /** @enum {string} */
+        DecisionOutcome: "allow" | "deny" | "redact" | "warn" | "observed";
         DiscoveryCandidate: {
             candidate_id: string;
             tenant_id: string;
@@ -1040,6 +1100,43 @@ export interface components {
         };
         DiscoveryCandidateListResponse: {
             items: components["schemas"]["DiscoveryCandidate"][];
+        };
+        /** @enum {string} */
+        EnforcePlaneState: "enforcing" | "observing" | "degraded" | "failed";
+        EnforcementResultPayload: {
+            agent_id: string;
+            policy_id: string;
+            control_method: components["schemas"]["ControlMethod"];
+            domain: components["schemas"]["ControlDomain"];
+            requested_level: components["schemas"]["ControlLevel"];
+            effective_level: components["schemas"]["ControlLevel"];
+            plane_state: components["schemas"]["EnforcePlaneState"];
+            success: boolean;
+            os: string;
+            message_th?: string;
+            message_en?: string;
+            user_action_th?: string;
+            user_action_en?: string;
+        };
+        EnforcementStatusList: {
+            /** @enum {string} */
+            schema_version: "enforcement-status.v1";
+            items: {
+                /** @enum {string} */
+                schema_version: "telemetry-envelope.v1";
+                event_id: string;
+                event_type: components["schemas"]["TelemetryEventType"];
+                /** Format: date-time */
+                timestamp: string;
+                tenant_id: string;
+                workspace_id?: string;
+                environment_id?: string;
+                device_id: string;
+                trace_id?: string;
+                span_id?: string;
+                redaction_applied: boolean;
+                payload: components["schemas"]["EnforcementResultPayload"];
+            }[];
         };
         MissingControl: {
             control_type: string;
@@ -1059,6 +1156,34 @@ export interface components {
             source: string;
             status: string;
             tags: string[];
+        };
+        ObservationPage: {
+            /** @enum {string} */
+            schema_version: "observation-page.v1";
+            items: {
+                /** @enum {string} */
+                schema_version: "telemetry-envelope.v1";
+                event_id: string;
+                event_type: components["schemas"]["TelemetryEventType"];
+                /** Format: date-time */
+                timestamp: string;
+                tenant_id: string;
+                workspace_id?: string;
+                environment_id?: string;
+                device_id: string;
+                trace_id?: string;
+                span_id?: string;
+                redaction_applied: boolean;
+                payload: components["schemas"]["AgentObservationPayload"];
+            }[];
+            next_cursor?: string;
+        };
+        ObservationQuery: {
+            agent_id?: string;
+            /** Format: date-time */
+            since?: string;
+            /** Format: int32 */
+            limit?: number;
         };
         /** @enum {string} */
         PdpFailureBehavior: "deny" | "fallback" | "last_known_good" | "allow" | "not_applicable";
@@ -1260,8 +1385,25 @@ export interface components {
             tenant_id: string;
             device_id: string;
             batch_id: string;
-            events: unknown[];
+            events: {
+                /** @enum {string} */
+                schema_version: "telemetry-envelope.v1";
+                event_id: string;
+                event_type: components["schemas"]["TelemetryEventType"];
+                /** Format: date-time */
+                timestamp: string;
+                tenant_id: string;
+                workspace_id?: string;
+                environment_id?: string;
+                device_id: string;
+                trace_id?: string;
+                span_id?: string;
+                redaction_applied: boolean;
+                payload: unknown;
+            }[];
         };
+        /** @enum {string} */
+        TelemetryEventType: "agent_observation" | "enforcement_result" | "control_binding_changed" | "health";
         TelemetryIngestResponse: {
             /** @enum {string} */
             schema_version: "telemetry-ingest-response.v1";
@@ -1420,6 +1562,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TelemetryIngestResponse"];
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    TelemetryApi_enforcementStatus: {
+        parameters: {
+            query?: {
+                agent_id?: string;
+            };
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnforcementStatusList"];
+                };
+            };
+            /** @description An unexpected error response. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollenError"];
+                };
+            };
+        };
+    };
+    TelemetryApi_listObservations: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
+                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
+                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObservationQuery"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationPage"];
                 };
             };
             /** @description An unexpected error response. */

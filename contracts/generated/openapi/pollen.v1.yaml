@@ -75,7 +75,6 @@ paths:
   /v1/telemetry/batches:
     post:
       operationId: TelemetryApi_ingestBatch
-      description: Ingest a batch of telemetry events.
       parameters:
         - $ref: '#/components/parameters/PollenHeaders.contractVersion'
         - $ref: '#/components/parameters/PollenHeaders.deviceId'
@@ -101,6 +100,62 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TelemetryBatchRequest'
+  /v1/telemetry/enforcement-status:
+    get:
+      operationId: TelemetryApi_enforcementStatus
+      parameters:
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - name: agent_id
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnforcementStatusList'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Telemetry
+  /v1/telemetry/observations:
+    get:
+      operationId: TelemetryApi_listObservations
+      parameters:
+        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollenHeaders.deviceId'
+        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObservationPage'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollenError'
+      tags:
+        - Telemetry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ObservationQuery'
   /v1/tenants/local/capability-snapshot:
     get:
       operationId: LocalDashboardApi_getLocalCapabilitySnapshot
@@ -1845,6 +1900,36 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AgentObservationEvent'
+    AgentObservationPayload:
+      type: object
+      required:
+        - agent_id
+        - agent_label
+        - domain
+        - action
+        - decision
+        - enforced_for_real
+      properties:
+        agent_id:
+          type: string
+        agent_label:
+          type: string
+        domain:
+          $ref: '#/components/schemas/ControlDomain'
+        action:
+          type: string
+        target:
+          type: string
+        decision:
+          $ref: '#/components/schemas/DecisionOutcome'
+        control_method:
+          $ref: '#/components/schemas/ControlMethod'
+        enforced_for_real:
+          type: boolean
+        reason_th:
+          type: string
+        reason_en:
+          type: string
     AgentTrustScore:
       type: object
       required:
@@ -1978,6 +2063,60 @@ components:
           type: array
           items:
             type: string
+    ControlBindingChangedPayload:
+      type: object
+      required:
+        - agent_id
+        - policy_id
+        - bindings
+      properties:
+        agent_id:
+          type: string
+        policy_id:
+          type: string
+        bindings:
+          type: array
+          items:
+            type: object
+            properties:
+              domain:
+                $ref: '#/components/schemas/ControlDomain'
+              method:
+                $ref: '#/components/schemas/ControlMethod'
+              level:
+                $ref: '#/components/schemas/ControlLevel'
+            required:
+              - domain
+              - method
+              - level
+    ControlDomain:
+      type: string
+      enum:
+        - network
+        - file_system
+        - process
+        - mcp_tool
+        - dns
+    ControlLevel:
+      type: string
+      enum:
+        - observe
+        - warn
+        - ask
+        - enforce
+    ControlMethod:
+      type: string
+      enum:
+        - mcp_stdio
+        - mcp_http
+        - linux_landlock
+        - linux_ebpf
+        - linux_seccomp
+        - windows_wfp_um
+        - windows_wfp_callout
+        - windows_etw
+        - macos_netext
+        - macos_endpoint_security
     CostLedgerEntry:
       type: object
       required:
@@ -2081,6 +2220,14 @@ components:
           type: object
           unevaluatedProperties:
             $ref: '#/components/schemas/AgentUsageSummary'
+    DecisionOutcome:
+      type: string
+      enum:
+        - allow
+        - deny
+        - redact
+        - warn
+        - observed
     DiscoveryCandidate:
       type: object
       required:
@@ -2120,6 +2267,103 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DiscoveryCandidate'
+    EnforcePlaneState:
+      type: string
+      enum:
+        - enforcing
+        - observing
+        - degraded
+        - failed
+    EnforcementResultPayload:
+      type: object
+      required:
+        - agent_id
+        - policy_id
+        - control_method
+        - domain
+        - requested_level
+        - effective_level
+        - plane_state
+        - success
+        - os
+      properties:
+        agent_id:
+          type: string
+        policy_id:
+          type: string
+        control_method:
+          $ref: '#/components/schemas/ControlMethod'
+        domain:
+          $ref: '#/components/schemas/ControlDomain'
+        requested_level:
+          $ref: '#/components/schemas/ControlLevel'
+        effective_level:
+          $ref: '#/components/schemas/ControlLevel'
+        plane_state:
+          $ref: '#/components/schemas/EnforcePlaneState'
+        success:
+          type: boolean
+        os:
+          type: string
+        message_th:
+          type: string
+        message_en:
+          type: string
+        user_action_th:
+          type: string
+        user_action_en:
+          type: string
+    EnforcementStatusList:
+      type: object
+      required:
+        - schema_version
+        - items
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - enforcement-status.v1
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - schema_version
+              - event_id
+              - event_type
+              - timestamp
+              - tenant_id
+              - device_id
+              - redaction_applied
+              - payload
+            properties:
+              schema_version:
+                type: string
+                enum:
+                  - telemetry-envelope.v1
+              event_id:
+                type: string
+              event_type:
+                $ref: '#/components/schemas/TelemetryEventType'
+              timestamp:
+                type: string
+                format: date-time
+              tenant_id:
+                type: string
+              workspace_id:
+                type: string
+              environment_id:
+                type: string
+              device_id:
+                type: string
+              trace_id:
+                type: string
+              span_id:
+                type: string
+              redaction_applied:
+                type: boolean
+              payload:
+                $ref: '#/components/schemas/EnforcementResultPayload'
     MissingControl:
       type: object
       required:
@@ -2175,6 +2419,70 @@ components:
           type: array
           items:
             type: string
+    ObservationPage:
+      type: object
+      required:
+        - schema_version
+        - items
+      properties:
+        schema_version:
+          type: string
+          enum:
+            - observation-page.v1
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - schema_version
+              - event_id
+              - event_type
+              - timestamp
+              - tenant_id
+              - device_id
+              - redaction_applied
+              - payload
+            properties:
+              schema_version:
+                type: string
+                enum:
+                  - telemetry-envelope.v1
+              event_id:
+                type: string
+              event_type:
+                $ref: '#/components/schemas/TelemetryEventType'
+              timestamp:
+                type: string
+                format: date-time
+              tenant_id:
+                type: string
+              workspace_id:
+                type: string
+              environment_id:
+                type: string
+              device_id:
+                type: string
+              trace_id:
+                type: string
+              span_id:
+                type: string
+              redaction_applied:
+                type: boolean
+              payload:
+                $ref: '#/components/schemas/AgentObservationPayload'
+        next_cursor:
+          type: string
+    ObservationQuery:
+      type: object
+      properties:
+        agent_id:
+          type: string
+        since:
+          type: string
+          format: date-time
+        limit:
+          type: integer
+          format: int32
     PdpFailureBehavior:
       type: string
       enum:
@@ -2758,7 +3066,51 @@ components:
           type: string
         events:
           type: array
-          items: {}
+          items:
+            type: object
+            required:
+              - schema_version
+              - event_id
+              - event_type
+              - timestamp
+              - tenant_id
+              - device_id
+              - redaction_applied
+              - payload
+            properties:
+              schema_version:
+                type: string
+                enum:
+                  - telemetry-envelope.v1
+              event_id:
+                type: string
+              event_type:
+                $ref: '#/components/schemas/TelemetryEventType'
+              timestamp:
+                type: string
+                format: date-time
+              tenant_id:
+                type: string
+              workspace_id:
+                type: string
+              environment_id:
+                type: string
+              device_id:
+                type: string
+              trace_id:
+                type: string
+              span_id:
+                type: string
+              redaction_applied:
+                type: boolean
+              payload: {}
+    TelemetryEventType:
+      type: string
+      enum:
+        - agent_observation
+        - enforcement_result
+        - control_binding_changed
+        - health
     TelemetryIngestResponse:
       type: object
       required:
