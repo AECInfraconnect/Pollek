@@ -1,4 +1,4 @@
-Write-Host "Starting Pollen DEK Local Control Plane..." -ForegroundColor Cyan
+Write-Host "Starting Pollek DEK Local Control Plane..." -ForegroundColor Cyan
 
 Write-Host "Building Local Admin Dashboard..." -ForegroundColor Yellow
 Push-Location "apps\local-admin-dashboard"

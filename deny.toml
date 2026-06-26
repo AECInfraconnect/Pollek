@@ -23,27 +23,27 @@ license-files = [
 
 [advisories]
 ignore = [
-    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1001, reason: Awaiting upstream patch from ring/aws-lc-rs for exploitability
+    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/Pollek/issues/1001, reason: Awaiting upstream patch from ring/aws-lc-rs for exploitability
     "RUSTSEC-2025-0134",
-    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1002, reason: Under investigation for impact on local-control-plane
+    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/Pollek/issues/1002, reason: Under investigation for impact on local-control-plane
     "RUSTSEC-2026-0086",
-    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1003, reason: Waiting for tracing-subscriber fix release
+    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/Pollek/issues/1003, reason: Waiting for tracing-subscriber fix release
     "RUSTSEC-2026-0088",
-    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1004, reason: Not exploitable in our environment, awaiting dependency bump
+    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/Pollek/issues/1004, reason: Not exploitable in our environment, awaiting dependency bump
     "RUSTSEC-2026-0089",
-    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1005, reason: Awaiting fix for async-trait issue
+    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/Pollek/issues/1005, reason: Awaiting fix for async-trait issue
     "RUSTSEC-2026-0094",
-    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1006, reason: Awaiting fix for reqwest TLS vulnerability
+    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/Pollek/issues/1006, reason: Awaiting fix for reqwest TLS vulnerability
     "RUSTSEC-2026-0095",
-    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1007, reason: Awaiting tokio patch for timer exploit
+    # owner: @AECInfraconnect/security, expiry: 2026-09-20, issue: https://github.com/AECInfraconnect/Pollek/issues/1007, reason: Awaiting tokio patch for timer exploit
     "RUSTSEC-2026-0096",
-    # owner: @AECInfraconnect/security, expiry: 2026-12-31, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1008, reason: derivative is unmaintained, transitive from keyring/zbus, no patch available
+    # owner: @AECInfraconnect/security, expiry: 2026-12-31, issue: https://github.com/AECInfraconnect/Pollek/issues/1008, reason: derivative is unmaintained, transitive from keyring/zbus, no patch available
     "RUSTSEC-2024-0388",
-    # owner: @AECInfraconnect/security, expiry: 2026-12-31, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1009, reason: fxhash is unmaintained, transitive from wasmtime, no patch available
+    # owner: @AECInfraconnect/security, expiry: 2026-12-31, issue: https://github.com/AECInfraconnect/Pollek/issues/1009, reason: fxhash is unmaintained, transitive from wasmtime, no patch available
     "RUSTSEC-2025-0057",
-    # owner: @AECInfraconnect/security, expiry: 2026-12-31, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1010, reason: instant is unmaintained, transitive from fastrand
+    # owner: @AECInfraconnect/security, expiry: 2026-12-31, issue: https://github.com/AECInfraconnect/Pollek/issues/1010, reason: instant is unmaintained, transitive from fastrand
     "RUSTSEC-2024-0384",
-    # owner: @AECInfraconnect/security, expiry: 2026-12-31, issue: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/issues/1011, reason: paste is unmaintained, transitive from wasmtime
+    # owner: @AECInfraconnect/security, expiry: 2026-12-31, issue: https://github.com/AECInfraconnect/Pollek/issues/1011, reason: paste is unmaintained, transitive from wasmtime
     "RUSTSEC-2024-0436",
 ]
 

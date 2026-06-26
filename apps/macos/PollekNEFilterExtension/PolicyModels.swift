@@ -1,21 +1,21 @@
 import Foundation
 
-enum PollenVerdictAction: String, Codable {
+enum PollekVerdictAction: String, Codable {
     case allow
     case block
     case needMoreRules
 }
 
-struct PollenPolicyBundle: Codable {
+struct PollekPolicyBundle: Codable {
     let version: String
     let generatedAt: Date
-    let defaultAction: PollenVerdictAction
-    let rules: [PollenRule]
+    let defaultAction: PollekVerdictAction
+    let rules: [PollekRule]
 }
 
-struct PollenRule: Codable {
+struct PollekRule: Codable {
     let id: String
-    let action: PollenVerdictAction
+    let action: PollekVerdictAction
     let remoteHostSuffixes: [String]
     let remotePorts: [Int]
     let processBundleIds: [String]
@@ -33,7 +33,7 @@ struct FlowMetadata: Codable {
 }
 
 struct PolicyDecision: Codable {
-    let action: PollenVerdictAction
+    let action: PollekVerdictAction
     let ruleId: String?
     let reason: String
     let auditRequired: Bool

@@ -7,8 +7,8 @@ cargo test -p local-control-plane
 
 $env:DEK_LCP_AUTH_DISABLE="1"
 $env:DEK_LCP_BIND = if ($env:DEK_LCP_BIND) { $env:DEK_LCP_BIND } else { "127.0.0.1:5174" }
-$env:DEK_LCP_DB="sqlite://./target/e2e/pollen-local.db?mode=rwc"
-$env:DEK_LCP_DATA="./target/e2e/pollen-local-data"
+$env:DEK_LCP_DB="sqlite://./target/e2e/pollek-local.db?mode=rwc"
+$env:DEK_LCP_DATA="./target/e2e/pollek-local-data"
 if (Test-Path "./target/e2e") {
     Remove-Item -Recurse -Force -Path "./target/e2e" | Out-Null
 }

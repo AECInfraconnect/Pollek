@@ -1,11 +1,11 @@
 openapi: 3.0.3
 info:
-  title: Pollen Cloud DEK API
+  title: Pollek Cloud DEK API
   version: 1.0.0
-  description: APIs for DEK Agent to interact with Pollen Cloud for Enrollment, Config, Telemetry, and SVID renewals.
+  description: APIs for DEK Agent to interact with Pollek Cloud for Enrollment, Config, Telemetry, and SVID renewals.
 
 servers:
-  - url: https://api.pollen.cloud
+  - url: https://api.pollek.cloud
     description: Production Server
 
 paths:

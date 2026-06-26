@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://contracts.pollen.dev/schemas/ai-budget-event.v1.schema.json",
+  "$id": "https://contracts.pollek.dev/schemas/ai-budget-event.v1.schema.json",
   "title": "AiBudgetEventV1",
   "type": "object",
   "additionalProperties": false,

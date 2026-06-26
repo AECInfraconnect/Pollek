@@ -29,7 +29,7 @@
 
 ## Preflight Doctor Checks
 
-If \pollen-dek doctor\ fails, review the check that failed. Common issues:
+If \pollek-dek doctor\ fails, review the check that failed. Common issues:
 
 - **WinDivert missing**: Re-run the installer as Administrator.
 - **Port 43889 in use**: Check \

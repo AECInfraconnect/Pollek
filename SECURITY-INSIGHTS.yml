@@ -9,9 +9,9 @@ security-contacts:
     value: "security@aecinfraconnect.com"
 security-testing:
   - type: "fuzzing"
-    url: "https://github.com/AECInfraconnect/AntiG_Pollen_DEK/actions/workflows/fuzz.yml"
+    url: "https://github.com/AECInfraconnect/Pollek/actions/workflows/fuzz.yml"
   - type: "sast"
-    url: "https://github.com/AECInfraconnect/AntiG_Pollen_DEK/actions/workflows/codeql.yml"
+    url: "https://github.com/AECInfraconnect/Pollek/actions/workflows/codeql.yml"
 vulnerability-reporting:
   accepts-vulnerability-reports: true
   email: "security@aecinfraconnect.com"

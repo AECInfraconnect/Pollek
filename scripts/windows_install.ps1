@@ -1,7 +1,7 @@
 param (
-    [string]$InstallPath = "C:\Program Files\PollenDEK",
+    [string]$InstallPath = "C:\Program Files\PollekDEK",
     [string]$Version = "latest",
-    [string]$Repo = "AECInfraconnect/AntiG_Pollen_DEK"
+    [string]$Repo = "AECInfraconnect/Pollek"
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,7 +12,7 @@ if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
     exit 1
 }
 
-Write-Host "Installing Pollen DEK to $InstallPath..."
+Write-Host "Installing Pollek DEK to $InstallPath..."
 
 # 2. Resolve version and download
 if ($Version -eq "latest") {
@@ -63,7 +63,7 @@ Write-Host "▶ 5/5 ติดตั้ง + เริ่มบริการ"
 if (!(Test-Path $InstallPath)) {
     New-Item -ItemType Directory -Force -Path $InstallPath | Out-Null
 }
-$DataDir = "C:\ProgramData\PollenDEK"
+$DataDir = "C:\ProgramData\PollekDEK"
 if (!(Test-Path $DataDir)) {
     New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 }
@@ -77,8 +77,8 @@ if (!(Test-Path $WebView2RegPath) -and !(Test-Path $WebView2UserRegPath)) {
     Write-Host "Warning: Edge WebView2 runtime is not installed."
 }
 
-Copy-Item "$env:TEMP\$Bin" "$InstallPath\pollen-dek.exe" -Force
-& "$InstallPath\pollen-dek.exe" service install
-& "$InstallPath\pollen-dek.exe" service start
+Copy-Item "$env:TEMP\$Bin" "$InstallPath\pollek-dek.exe" -Force
+& "$InstallPath\pollek-dek.exe" service install
+& "$InstallPath\pollek-dek.exe" service start
 
-Write-Host "✅ เสร็จ — เปิด dashboard ที่ http://127.0.0.1:43891 หรือรัน: pollen-dek wizard"
+Write-Host "✅ เสร็จ — เปิด dashboard ที่ http://127.0.0.1:43891 หรือรัน: pollek-dek wizard"

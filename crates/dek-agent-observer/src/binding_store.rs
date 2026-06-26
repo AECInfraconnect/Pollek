@@ -11,7 +11,7 @@ impl AgentBindingStore {
     pub fn new() -> Result<Self> {
         let db_path = dirs::data_local_dir()
             .unwrap_or_else(|| std::path::PathBuf::from("."))
-            .join("pollen_dek")
+            .join("pollek_dek")
             .join("binding_store.db");
 
         if let Some(parent) = db_path.parent() {

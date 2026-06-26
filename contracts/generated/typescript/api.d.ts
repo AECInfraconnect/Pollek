@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/.well-known/pollen-contract": {
+    "/.well-known/pollek-contract": {
         parameters: {
             query?: never;
             header?: never;
@@ -1717,7 +1717,7 @@ export interface components {
         /** @enum {string} */
         PdpFailureBehavior: "deny" | "fallback" | "last_known_good" | "allow" | "not_applicable";
         /** @enum {string} */
-        PdpKind: "policy_router" | "cedar_local" | "opa_wasm" | "wasm_plugin" | "opa_server" | "openfga_server" | "cedar_http" | "custom_http" | "custom_grpc" | "pollen_cloud_pdp";
+        PdpKind: "policy_router" | "cedar_local" | "opa_wasm" | "wasm_plugin" | "opa_server" | "openfga_server" | "cedar_http" | "custom_http" | "custom_grpc" | "pollek_cloud_pdp";
         PdpProbeResult: {
             ok: boolean;
             effect: string;
@@ -1780,7 +1780,7 @@ export interface components {
             updated_at: string;
         };
         /** @enum {string} */
-        PdpRuntimeCategory: "local_engine" | "remote_connector" | "pollen_cloud";
+        PdpRuntimeCategory: "local_engine" | "remote_connector" | "pollek_cloud";
         PdpRuntimeListResponse: {
             items: components["schemas"]["PdpRuntime"][];
         };
@@ -1828,7 +1828,7 @@ export interface components {
         PolicySuggestionListResponse: {
             items: components["schemas"]["PolicySuggestion"][];
         };
-        PollenError: {
+        PollekError: {
             code: string;
             message: string;
             trace_id?: string;
@@ -2095,9 +2095,9 @@ export interface components {
         "AiUsageSummaryQueryParams.surface": string;
         "AiUsageSummaryQueryParams.task_id": string;
         "AiUsageSummaryQueryParams.to": string;
-        "PollenHeaders.contractVersion": string;
-        "PollenHeaders.deviceId": string;
-        "PollenHeaders.tenantId": string;
+        "PollekHeaders.contractVersion": string;
+        "PollekHeaders.deviceId": string;
+        "PollekHeaders.tenantId": string;
     };
     requestBodies: never;
     headers: never;
@@ -2109,9 +2109,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2133,7 +2133,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2142,9 +2142,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2170,7 +2170,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2179,9 +2179,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2207,7 +2207,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2218,9 +2218,9 @@ export interface operations {
                 agent_id?: string;
             };
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2242,7 +2242,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2254,9 +2254,9 @@ export interface operations {
                 scope?: components["schemas"]["AccessScope"];
             };
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2278,7 +2278,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2287,9 +2287,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2315,7 +2315,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2327,9 +2327,9 @@ export interface operations {
                 scope?: components["schemas"]["AccessScope"];
             };
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2351,7 +2351,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2362,9 +2362,9 @@ export interface operations {
                 agent_id?: string;
             };
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2386,7 +2386,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2395,9 +2395,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2419,7 +2419,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2428,9 +2428,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2456,7 +2456,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2465,9 +2465,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 id: string;
@@ -2491,7 +2491,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2500,9 +2500,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 id: string;
@@ -2525,7 +2525,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2534,9 +2534,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 id: string;
@@ -2558,7 +2558,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2567,9 +2567,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2591,7 +2591,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2600,9 +2600,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2628,7 +2628,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2637,9 +2637,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2661,7 +2661,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2670,9 +2670,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path?: never;
             cookie?: never;
@@ -2692,7 +2692,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2701,9 +2701,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 scan_id: string;
@@ -2727,7 +2727,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2736,9 +2736,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 scan_id: string;
@@ -2760,7 +2760,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2769,9 +2769,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -2795,7 +2795,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2804,9 +2804,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -2829,7 +2829,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2838,9 +2838,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -2863,7 +2863,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2872,9 +2872,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -2897,7 +2897,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2906,9 +2906,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -2931,7 +2931,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2940,9 +2940,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -2964,7 +2964,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -2973,9 +2973,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3011,7 +3011,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3020,9 +3020,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3047,7 +3047,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3056,9 +3056,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3082,7 +3082,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3091,9 +3091,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3117,7 +3117,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3126,9 +3126,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3154,7 +3154,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3163,9 +3163,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3190,7 +3190,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3199,9 +3199,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3226,7 +3226,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3235,9 +3235,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3262,7 +3262,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3271,9 +3271,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3297,7 +3297,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3306,9 +3306,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3336,7 +3336,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3345,9 +3345,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3372,7 +3372,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3381,9 +3381,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3412,7 +3412,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3421,9 +3421,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3446,7 +3446,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3455,9 +3455,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3481,7 +3481,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3490,9 +3490,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3517,7 +3517,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3526,9 +3526,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3557,7 +3557,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3566,9 +3566,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3591,7 +3591,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3600,9 +3600,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3625,7 +3625,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3634,9 +3634,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3665,7 +3665,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3674,9 +3674,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3701,7 +3701,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3710,9 +3710,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3736,7 +3736,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3745,9 +3745,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3775,7 +3775,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3784,9 +3784,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3810,7 +3810,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3819,9 +3819,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3846,7 +3846,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3855,9 +3855,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3886,7 +3886,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3895,9 +3895,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3926,7 +3926,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3935,9 +3935,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -3966,7 +3966,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -3975,9 +3975,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4001,7 +4001,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4010,9 +4010,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4034,7 +4034,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4043,9 +4043,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4070,7 +4070,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4079,9 +4079,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4104,7 +4104,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4113,9 +4113,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4138,7 +4138,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4147,9 +4147,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4172,7 +4172,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4181,9 +4181,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4206,7 +4206,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4215,9 +4215,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4241,7 +4241,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4250,9 +4250,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4280,7 +4280,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4289,9 +4289,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4315,7 +4315,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4324,9 +4324,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4354,7 +4354,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4374,9 +4374,9 @@ export interface operations {
                 surface?: components["parameters"]["AiUsageAgentSummaryQueryParams.surface"];
             };
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4401,7 +4401,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4410,9 +4410,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4436,7 +4436,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4445,9 +4445,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4478,7 +4478,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4500,9 +4500,9 @@ export interface operations {
                 cursor?: components["parameters"]["AiUsageQueryParams.cursor"];
             };
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4526,7 +4526,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4535,9 +4535,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4567,7 +4567,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4576,9 +4576,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4606,7 +4606,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4628,9 +4628,9 @@ export interface operations {
                 cursor?: components["parameters"]["AiUsageQueryParams.cursor"];
             };
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4654,7 +4654,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4663,9 +4663,9 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4693,7 +4693,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };
@@ -4714,9 +4714,9 @@ export interface operations {
                 surface?: components["parameters"]["AiUsageSummaryQueryParams.surface"];
             };
             header: {
-                "X-Pollen-Contract-Version": components["parameters"]["PollenHeaders.contractVersion"];
-                "X-Pollen-Device-Id"?: components["parameters"]["PollenHeaders.deviceId"];
-                "X-Pollen-Tenant-Id"?: components["parameters"]["PollenHeaders.tenantId"];
+                "X-Pollek-Contract-Version": components["parameters"]["PollekHeaders.contractVersion"];
+                "X-Pollek-Device-Id"?: components["parameters"]["PollekHeaders.deviceId"];
+                "X-Pollek-Tenant-Id"?: components["parameters"]["PollekHeaders.tenantId"];
             };
             path: {
                 tenant_id: string;
@@ -4740,7 +4740,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PollenError"];
+                    "application/json": components["schemas"]["PollekError"];
                 };
             };
         };

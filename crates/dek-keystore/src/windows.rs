@@ -19,7 +19,7 @@ impl DpapiKeystore {
     pub fn new() -> Self {
         let mut dir =
             dirs_next::data_local_dir().unwrap_or_else(|| PathBuf::from("C:\\ProgramData"));
-        dir.push("pollen-dek");
+        dir.push("pollek-dek");
         dir.push("keystore");
         let _ = fs::create_dir_all(&dir);
         Self { store_dir: dir }

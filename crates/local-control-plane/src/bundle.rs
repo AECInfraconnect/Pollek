@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-//! bundle.rs — build signed policy bundles in the SAME format as Pollen Cloud
+//! bundle.rs — build signed policy bundles in the SAME format as Pollek Cloud
 
 use crate::error::{ApiError, ApiResult};
 use crate::state::AppState;
@@ -12,7 +12,7 @@ use axum::{
 };
 use dek_bundle_format::{
     ActivationConfig, BundleArtifact, BundleCompatibility, BundleMetadata, OsModulesConfig,
-    PollenPolicyBundle,
+    PollekPolicyBundle,
 };
 use serde_json::Value;
 
@@ -26,7 +26,7 @@ pub struct CompiledArtifact {
 }
 
 pub struct SignedBundle {
-    pub manifest: PollenPolicyBundle,
+    pub manifest: PollekPolicyBundle,
     pub envelope: serde_json::Value,
     pub blobs: Vec<(String, Vec<u8>)>,
 }
@@ -85,7 +85,7 @@ pub async fn build_signed_bundle(
         });
     }
 
-    let manifest = PollenPolicyBundle {
+    let manifest = PollekPolicyBundle {
         api_version: "<your-cloud-domain>/v1alpha1".to_string(),
         kind: "Bundle".to_string(),
         metadata: BundleMetadata {
@@ -135,7 +135,7 @@ pub async fn build_signed_bundle(
     })
 }
 
-pub fn verify_bundle(_manifest: &PollenPolicyBundle, _public_b64: &str) -> bool {
+pub fn verify_bundle(_manifest: &PollekPolicyBundle, _public_b64: &str) -> bool {
     // In v1, signature is verified against the outer SignedBundle or HTTP headers.
     // Stubbing to true for local-control-plane.
     true
@@ -248,7 +248,7 @@ async fn get_mock_config(
         .await
     {
         if let Some(inner) = manifest_val.get("manifest") {
-            if let Ok(manifest) = serde_json::from_value::<PollenPolicyBundle>(inner.clone()) {
+            if let Ok(manifest) = serde_json::from_value::<PollekPolicyBundle>(inner.clone()) {
                 for artifact in manifest.artifacts {
                     if artifact.r#type == "cedar_text" {
                         if let Ok(Some(bytes)) =
@@ -426,7 +426,7 @@ async fn deploy_to_pep(
     // Validation logic
     if let Some(manifest_val) = val.get("manifest") {
         if let Ok(manifest) =
-            serde_json::from_value::<dek_bundle_format::PollenPolicyBundle>(manifest_val.clone())
+            serde_json::from_value::<dek_bundle_format::PollekPolicyBundle>(manifest_val.clone())
         {
             let mut has_yaml = false;
             let mut has_rego = false;

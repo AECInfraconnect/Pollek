@@ -19,7 +19,7 @@ sha2 = "0.11.0"
 tokio = { workspace = true, features = ["fs", "sync"] }
 chrono.workspace = true
 rusqlite = { version = "0.32", features = ["bundled"] }
-pollen-contract = { path = "../../contracts/generated/rust/pollen-contract" }
+pollek-contract = { path = "../../contracts/generated/rust/pollek-contract" }
 dek-config = { path = "../dek-config" }
 anyhow = "1"
 [target.'cfg(windows)'.dependencies]

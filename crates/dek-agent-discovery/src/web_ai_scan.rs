@@ -605,7 +605,7 @@ fn read_session_file_bytes(path: &Path) -> Result<Vec<u8>> {
                 .and_then(|v| v.to_str())
                 .unwrap_or("session.bin");
             let temp_path = std::env::temp_dir().join(format!(
-                "pollen_session_{}_{}",
+                "pollek_session_{}_{}",
                 uuid::Uuid::new_v4(),
                 file_name
             ));

@@ -2,7 +2,7 @@ version: 1
 capabilities:
   - id: contract.discovery.v1
     owner: platform
-    description: Supports /.well-known/pollen-contract discovery.
+    description: Supports /.well-known/pollek-contract discovery.
   - id: bundle.signed-envelope.v1
     owner: bundle
     description: Supports signed bundle envelope { manifest, signatures }.

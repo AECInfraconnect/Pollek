@@ -167,7 +167,7 @@ impl CloudTelemetrySink {
             .with_reader(reader)
             .with_resource(Resource::new(vec![KeyValue::new(
                 "service.name",
-                "pollen-dek",
+                "pollek-dek",
             )]))
             .build();
 

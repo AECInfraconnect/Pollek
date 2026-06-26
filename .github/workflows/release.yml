@@ -48,22 +48,22 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: pollen-dek-linux-amd64
+            artifact_name: pollek-dek-linux-amd64
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            artifact_name: pollen-dek-linux-arm64
+            artifact_name: pollek-dek-linux-arm64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: pollen-dek-windows-amd64.exe
+            artifact_name: pollek-dek-windows-amd64.exe
           - os: windows-latest
             target: aarch64-pc-windows-msvc
-            artifact_name: pollen-dek-windows-arm64.exe
+            artifact_name: pollek-dek-windows-arm64.exe
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: pollen-dek-macos-amd64
+            artifact_name: pollek-dek-macos-amd64
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: pollen-dek-macos-arm64
+            artifact_name: pollek-dek-macos-arm64
 
     steps:
       - name: Checkout Code
@@ -234,13 +234,13 @@ jobs:
       - run: cargo binstall -y cargo-cyclonedx
 
       - name: Generate CycloneDX SBOM
-        run: cargo cyclonedx --format json --all-features -o pollen-dek.cdx.json
+        run: cargo cyclonedx --format json --all-features -o pollek-dek.cdx.json
 
       - name: Upload SBOM
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: pollen-dek-sboms
-          path: "pollen-dek.cdx.json"
+          name: pollek-dek-sboms
+          path: "pollek-dek.cdx.json"
 
   release:
     name: Publish Release
@@ -299,7 +299,7 @@ jobs:
         uses: actions/attest-sbom@5122b253c73d544ca1c5f71dd022f470df08b461 # v2.1.0
         with:
           subject-path: "release_artifacts/*.tar.gz"
-          sbom-path: "release_artifacts/pollen-dek.cdx.json"
+          sbom-path: "release_artifacts/pollek-dek.cdx.json"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
@@ -317,11 +317,11 @@ jobs:
 #
 # 2. Verify Cosign Keyless Signatures:
 #    cosign verify-blob \
-#      --certificate pollen-dek-linux-amd64.tar.gz.pem \
-#      --signature pollen-dek-linux-amd64.tar.gz.sig \
+#      --certificate pollek-dek-linux-amd64.tar.gz.pem \
+#      --signature pollek-dek-linux-amd64.tar.gz.sig \
 #      --certificate-identity-regexp "^https://github.com/AECInfraconnect/AntiG_Pollen_DEK/.*" \
 #      --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-#      pollen-dek-linux-amd64.tar.gz
+#      pollek-dek-linux-amd64.tar.gz
 #
 # 3. Audit Binaries for Vulnerabilities (Since they are built with cargo-auditable):
 #    cargo audit bin dek-mcp-proxy

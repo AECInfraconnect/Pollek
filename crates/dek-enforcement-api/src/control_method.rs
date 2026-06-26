@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use pollen_contract::{
+use pollek_contract::{
     AgentObservationPayload, AgentObservationPayloadControlMethod, EnforcementResultPayload,
-    IdentityAccessPayload, PollenTelemetryEnvelopeV1, ResourceAccessPayload, ToolUsagePayload,
+    IdentityAccessPayload, PollekTelemetryEnvelopeV1, ResourceAccessPayload, ToolUsagePayload,
 };
 use serde_json::Value;
 
@@ -23,12 +23,12 @@ pub struct EmitCtx {
 }
 
 impl EmitCtx {
-    pub fn envelope(&self, event_type: &str, payload: Value) -> PollenTelemetryEnvelopeV1 {
+    pub fn envelope(&self, event_type: &str, payload: Value) -> PollekTelemetryEnvelopeV1 {
         let mut map = serde_json::Map::new();
         if let Value::Object(obj) = payload {
             map = obj;
         }
-        PollenTelemetryEnvelopeV1 {
+        PollekTelemetryEnvelopeV1 {
             schema_version: "telemetry-envelope.v1".to_string(),
             event_id: uuid::Uuid::new_v4().to_string(),
             event_type: event_type.to_string(),
@@ -47,7 +47,7 @@ impl EmitCtx {
 
 #[derive(Clone)]
 pub struct TelemetrySink {
-    pub tx: tokio::sync::mpsc::Sender<PollenTelemetryEnvelopeV1>,
+    pub tx: tokio::sync::mpsc::Sender<PollekTelemetryEnvelopeV1>,
     pub ctx: std::sync::Arc<EmitCtx>,
 }
 

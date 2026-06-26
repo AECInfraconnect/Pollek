@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Pollen DEK Plugin Manifest",
+  "title": "Pollek DEK Plugin Manifest",
   "type": "object",
   "properties": {
     "api_version": {

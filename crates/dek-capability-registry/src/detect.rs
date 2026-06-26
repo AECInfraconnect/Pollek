@@ -141,7 +141,7 @@ fn detect_ebpf() -> PepCapability {
 fn detect_windows_wfp() -> PepCapability {
     let bfe_running = command_stdout_contains("sc", &["query", "BFE"], "RUNNING");
     let service_running = env_is("POLLEK_WFP_SERVICE_READY", "1")
-        || ["PollenDEK", "PollenDEKCore", "PollekWFP"]
+        || ["PollekDEK", "PollekDEKCore", "PollekWFP"]
             .iter()
             .any(|service| command_stdout_contains("sc", &["query", service], "RUNNING"));
     let driver_present = env_is("POLLEK_WFP_DRIVER_PRESENT", "1") || service_running;
@@ -175,13 +175,13 @@ fn detect_macos_nefilter() -> PepCapability {
         .map(|out| String::from_utf8_lossy(&out.stdout).to_string())
         .unwrap_or_default();
     let extension_present = env_is("POLLEK_NEFILTER_EXTENSION_PRESENT", "1")
-        || extension_list.contains("com.aecinfraconnect.pollen.dek.nefilter")
-        || extension_list.contains("com.pollen.nefilter");
+        || extension_list.contains("com.aecinfraconnect.pollek.dek.nefilter")
+        || extension_list.contains("com.pollek.nefilter");
     let approved = env_is("POLLEK_NEFILTER_APPROVED", "1")
         || extension_list.contains("[activated enabled]")
         || extension_list.contains("activated enabled");
     let socket_ready = env_is("POLLEK_NEFILTER_SOCKET_READY", "1")
-        || std::path::Path::new("/var/run/pollen/nefilter.sock").exists();
+        || std::path::Path::new("/var/run/pollek/nefilter.sock").exists();
     let warm_check_passed = env_is("POLLEK_NEFILTER_WARM_CHECK", "passed")
         || (approved && socket_ready && env_is("POLLEK_NEFILTER_SYNTHETIC_DENY_PASSED", "1"));
 

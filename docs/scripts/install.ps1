@@ -1,16 +1,16 @@
 <#
 .SYNOPSIS
-Pollen DEK Installation Script (Windows)
+Pollek DEK Installation Script (Windows)
 
 .DESCRIPTION
-Installs Pollen DEK Core and sets up the Windows Service.
+Installs Pollek DEK Core and sets up the Windows Service.
 #>
 
-Write-Host "Installing Pollen DEK v1.0.0-beta..."
+Write-Host "Installing Pollek DEK v1.0.0-beta..."
 
-$InstallDir = "$env:ProgramFiles\PollenDEK"
-$ConfigDir = "$env:ProgramData\PollenDEK\Config"
-$DataDir = "$env:ProgramData\PollenDEK\Data"
+$InstallDir = "$env:ProgramFiles\PollekDEK"
+$ConfigDir = "$env:ProgramData\PollekDEK\Config"
+$DataDir = "$env:ProgramData\PollekDEK\Data"
 
 # Check Admin
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -39,7 +39,7 @@ Write-Host "Binaries copied to $InstallDir"
 $CorePath = Join-Path $InstallDir "dek-core.exe"
 
 # Alternatively, create the service explicitly:
-$ServiceName = "PollenDEKCore"
+$ServiceName = "PollekDEKCore"
 $ExistingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if ($ExistingService) {
@@ -47,7 +47,7 @@ if ($ExistingService) {
     sc.exe delete $ServiceName
 }
 
-New-Service -Name $ServiceName -BinaryPathName $CorePath -DisplayName "Pollen DEK Core Service" -StartupType Automatic | Out-Null
+New-Service -Name $ServiceName -BinaryPathName $CorePath -DisplayName "Pollek DEK Core Service" -StartupType Automatic | Out-Null
 
 Start-Service -Name $ServiceName
-Write-Host "Pollen DEK Core Service Installed and Started." -ForegroundColor Green
+Write-Host "Pollek DEK Core Service Installed and Started." -ForegroundColor Green

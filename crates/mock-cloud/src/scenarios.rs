@@ -55,7 +55,7 @@ async fn ext_authz_check() -> axum::response::Result<Json<serde_json::Value>, ax
         },
         "dynamic_metadata": {
             "fields": {
-                "pollen.authz": {
+                "pollek.authz": {
                     "kind": "Struct",
                     "fields": {
                         "decision": { "kind": "StringValue", "string_value": "Allow" }

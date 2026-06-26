@@ -1,7 +1,7 @@
 ﻿// SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
-//! dek-auth โ€” shared JWT verification for Pollen DEK PEPs (proxy + stdio-wrapper).
+//! dek-auth โ€” shared JWT verification for Pollek DEK PEPs (proxy + stdio-wrapper).
 //!
 //! Extracts the JWT logic that previously lived inline in `dek-mcp-proxy` and
 //! fixes the P1 security gap: expiry and audience are now ENFORCED, and only

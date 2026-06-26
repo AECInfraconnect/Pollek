@@ -3,7 +3,7 @@ import "@typespec/rest";
 using TypeSpec.Http;
 using TypeSpec.Rest;
 
-namespace Pollen.Contract;
+namespace Pollek.Contract;
 
 model A2AMessage {
   schema_version: "a2a-message.v1";
@@ -25,7 +25,7 @@ interface A2AApi {
   @doc("Send an Inter-Agent Trust Protocol (IATP) message via the DEK mediator.")
   @post
   sendMessage(
-    ...PollenHeaders,
+    ...PollekHeaders,
     @body body: A2AMessage
-  ): A2AMessageResponse | PollenError;
+  ): A2AMessageResponse | PollekError;
 }

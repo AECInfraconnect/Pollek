@@ -38,7 +38,7 @@ pub fn compile_policy(policy: &Policy, target: CompilerTarget) -> Result<Compile
         CompilerTarget::Rego => Ok(CompiledPolicy {
             target: "rego".to_string(),
             source_code: format!(
-                "package pollen.authz\n\ndefault allow = false\n\n# Simulated Rego for Policy {}\nallow {{\n    input.action == \"*\"\n}}",
+                "package pollek.authz\n\ndefault allow = false\n\n# Simulated Rego for Policy {}\nallow {{\n    input.action == \"*\"\n}}",
                 policy.policy_id
             ),
             compiled_binary_b64: None,

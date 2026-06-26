@@ -101,7 +101,7 @@ fn derive_target(backup: &Path) -> PathBuf {
 fn restart_service() -> Result<()> {
     // absolute path to avoid PATH hijack (P2 security note)
     let status = std::process::Command::new("/usr/bin/systemctl")
-        .args(["restart", "pollen-dek"])
+        .args(["restart", "pollek-dek"])
         .status()
         .context("spawn systemctl")?;
     if !status.success() {
@@ -114,7 +114,7 @@ fn restart_service() -> Result<()> {
 fn restart_service() -> Result<()> {
     // sc.exe is in System32 (on PATH for services); use explicit verb sequence.
     let _ = std::process::Command::new("sc")
-        .args(["start", "PollenDEK"])
+        .args(["start", "PollekDEK"])
         .status();
     Ok(())
 }
@@ -122,7 +122,7 @@ fn restart_service() -> Result<()> {
 #[cfg(target_os = "macos")]
 fn restart_service() -> Result<()> {
     let _ = std::process::Command::new("/bin/launchctl")
-        .args(["kickstart", "-k", "system/com.pollen.dek"])
+        .args(["kickstart", "-k", "system/com.pollek.dek"])
         .status();
     Ok(())
 }

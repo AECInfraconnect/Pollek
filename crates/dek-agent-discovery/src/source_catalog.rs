@@ -37,13 +37,13 @@ pub fn load_default_catalog() -> SourceCatalog {
 
     if is_valid {
         serde_json::from_str(EMBEDDED).unwrap_or_else(|_| SourceCatalog {
-            schema_version: "pollen.agent_signature_catalog.v2".into(),
+            schema_version: "pollek.agent_signature_catalog.v2".into(),
             catalog_version: "fallback".into(),
             signatures: vec![],
         })
     } else {
         SourceCatalog {
-            schema_version: "pollen.agent_signature_catalog.v2".into(),
+            schema_version: "pollek.agent_signature_catalog.v2".into(),
             catalog_version: "invalid_signature_fallback".into(),
             signatures: vec![],
         }

@@ -1,7 +1,7 @@
 import Foundation
 
 final class PolicyEngine {
-    private var bundle: PollenPolicyBundle?
+    private var bundle: PollekPolicyBundle?
     private let lock = NSLock()
 
     init() {
@@ -48,7 +48,7 @@ final class PolicyEngine {
         )
     }
 
-    private func matches(rule: PollenRule, flow: FlowMetadata) -> Bool {
+    private func matches(rule: PollekRule, flow: FlowMetadata) -> Bool {
         if !rule.remoteHostSuffixes.isEmpty {
             guard let host = flow.remoteHostname?.lowercased() else { return false }
             let matched = rule.remoteHostSuffixes.contains { suffix in

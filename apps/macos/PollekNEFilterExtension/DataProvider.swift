@@ -4,20 +4,20 @@ import Foundation
 
 final class DataProvider: NEFilterDataProvider {
     private let logger = Logger(
-        subsystem: "com.aecinfraconnect.pollen.dek.nefilter",
+        subsystem: "com.aecinfraconnect.pollek.dek.nefilter",
         category: "DataProvider"
     )
 
     private var policyEngine = PolicyEngine()
 
     override func startFilter(completionHandler: @escaping (Error?) -> Void) {
-        logger.info("Starting Pollen DEK NEFilterDataProvider")
+        logger.info("Starting Pollek DEK NEFilterDataProvider")
         policyEngine.reload()
         completionHandler(nil)
     }
 
     override func stopFilter(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
-        logger.info("Stopping Pollen DEK NEFilterDataProvider: \(String(describing: reason))")
+        logger.info("Stopping Pollek DEK NEFilterDataProvider: \(String(describing: reason))")
         completionHandler()
     }
 

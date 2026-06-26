@@ -36,8 +36,8 @@ async fn ui_index() -> impl IntoResponse {
         </head>
         <body>
             <div class="container">
-                <h1>Pollen Mock Cloud Simulator</h1>
-                <p style="color: #94a3b8;">Welcome to the local cloud simulator for Pollen DEK. Select a module below to inspect state.</p>
+                <h1>Pollek Mock Cloud Simulator</h1>
+                <p style="color: #94a3b8;">Welcome to the local cloud simulator for Pollek DEK. Select a module below to inspect state.</p>
                 
                 <div class="grid">
                     <div class="card">

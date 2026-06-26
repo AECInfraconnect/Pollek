@@ -41,7 +41,7 @@ export function OpenFgaWizard({ isOpen, onClose, onComplete }: Props) {
       const res = await fetch("http://localhost:8080/stores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "pollen-dek-store" }),
+        body: JSON.stringify({ name: "pollek-dek-store" }),
       });
       if (!res.ok) {
         throw new Error("Failed to create store");
@@ -160,7 +160,7 @@ export function OpenFgaWizard({ isOpen, onClose, onComplete }: Props) {
                     <Database className="h-8 w-8 text-muted-foreground" />
                     <div>
                       <div className="font-medium">
-                        Store Name: pollen-dek-store
+                        Store Name: pollek-dek-store
                       </div>
                       <div className="text-xs text-muted-foreground">
                         This store will hold all relationship tuples managed by

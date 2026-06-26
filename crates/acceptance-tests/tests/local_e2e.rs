@@ -16,7 +16,7 @@
 //!         -> decision-log (DEK telemetry lands back in local-cp; dashboard reads it)
 //!
 //! This proves the invariant that the SAME DEK speaks the SAME contract to a
-//! Local control plane as to Pollen Cloud — only endpoint + trust store differ.
+//! Local control plane as to Pollek Cloud — only endpoint + trust store differ.
 //!
 //! Run: cargo test -p acceptance-tests --test local_e2e -- --ignored --nocapture
 

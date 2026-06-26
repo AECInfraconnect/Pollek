@@ -68,7 +68,7 @@ mod linux {
     use tokio::task::{self, JoinHandle};
     use tracing::{info, warn};
 
-    pub const BPFFS_PATH: &str = "/sys/fs/bpf/pollen-dek";
+    pub const BPFFS_PATH: &str = "/sys/fs/bpf/pollek-dek";
 
     /// Owns the loaded eBPF object + background tasks for the process lifetime.
     /// Dropping it aborts the tasks and detaches all programs cleanly.

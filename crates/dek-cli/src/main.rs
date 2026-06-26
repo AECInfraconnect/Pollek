@@ -18,7 +18,7 @@ use tokio::net::TcpStream;
 use tracing::{error, info};
 
 #[derive(Parser)]
-#[command(name = "dek-cli", about = "Pollen DEK Command Line Interface")]
+#[command(name = "dek-cli", about = "Pollek DEK Command Line Interface")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -34,7 +34,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Update Pollen DEK (Proxy to dek-updater)
+    /// Update Pollek DEK (Proxy to dek-updater)
     Update {
         #[arg(long, default_value = "beta")]
         channel: String,
@@ -55,7 +55,7 @@ enum Commands {
         #[command(subcommand)]
         agent_command: AgentCommands,
     },
-    /// Trigger an emergency rollback of the Pollen DEK Core
+    /// Trigger an emergency rollback of the Pollek DEK Core
     Rollback,
     /// Unenroll device (removes local identity and config)
     Unenroll {
@@ -405,22 +405,22 @@ async fn main() -> Result<()> {
             let manager = OsServiceManager::new();
             match action.as_str() {
                 "install" => {
-                    info!("Installing Pollen DEK service...");
+                    info!("Installing Pollek DEK service...");
                     manager.install()?;
                     info!("Service installed successfully.");
                 }
                 "uninstall" => {
-                    info!("Uninstalling Pollen DEK service...");
+                    info!("Uninstalling Pollek DEK service...");
                     manager.uninstall()?;
                     info!("Service uninstalled successfully.");
                 }
                 "start" => {
-                    info!("Starting Pollen DEK service...");
+                    info!("Starting Pollek DEK service...");
                     manager.start()?;
                     info!("Service started.");
                 }
                 "stop" => {
-                    info!("Stopping Pollen DEK service...");
+                    info!("Stopping Pollek DEK service...");
                     manager.stop()?;
                     info!("Service stopped.");
                 }
@@ -572,7 +572,7 @@ async fn main() -> Result<()> {
             let consent_store = dek_consent::ConsentStore::new(consent_store_path);
 
             // In a real CLI flow we would present the text and ask for confirmation
-            println!("By running this tool, you agree to the Pollen DEK EULA and Privacy Policy.");
+            println!("By running this tool, you agree to the Pollek DEK EULA and Privacy Policy.");
 
             let user = std::env::var("USER")
                 .or_else(|_| std::env::var("USERNAME"))

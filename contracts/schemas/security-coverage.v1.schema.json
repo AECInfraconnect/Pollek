@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://contracts.pollen.dev/schemas/security-coverage.v1.schema.json",
+  "$id": "https://contracts.pollek.dev/schemas/security-coverage.v1.schema.json",
   "title": "PolicyCoverageReport",
   "type": "object",
   "additionalProperties": false,

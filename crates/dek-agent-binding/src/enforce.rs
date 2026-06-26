@@ -48,7 +48,7 @@ pub fn derive_enforcement(cap: &CapabilityDescriptor) -> EnforcementHooks {
 
     EnforcementHooks {
         agent_signature_id: cap.agent_signature_id.clone(),
-        default_policy_refs: vec!["pollen.baseline.agent".into()],
+        default_policy_refs: vec!["pollek.baseline.agent".into()],
         tool_guards,
         resource_limits: ResourceLimits {
             max_calls_per_min: Some(if has_critical { 30 } else { 120 }),

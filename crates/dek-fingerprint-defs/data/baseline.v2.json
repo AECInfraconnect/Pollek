@@ -1,5 +1,5 @@
 {
-  "schema_version": "pollen.fingerprint_def.v2",
+  "schema_version": "pollek.fingerprint_def.v2",
   "definition_version": 20260621000,
   "released_at": "2026-06-21T00:00:00Z",
   "min_engine_version": "1.0.0",
@@ -997,7 +997,7 @@
       "agent_type": "desktop_agent",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Anthropic Claude Desktop app with MCP support",
         "references": [
           "https://anthropic.com/claude"
@@ -1039,7 +1039,7 @@
       "agent_type": "ide",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Cursor AI Code Editor",
         "references": [
           "https://cursor.sh"
@@ -1078,7 +1078,7 @@
       "agent_type": "ide",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Visual Studio Code",
         "references": [
           "https://code.visualstudio.com"
@@ -1117,7 +1117,7 @@
       "agent_type": "ide",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Codeium Windsurf IDE",
         "references": [
           "https://codeium.com/windsurf"
@@ -1156,7 +1156,7 @@
       "agent_type": "cli_agent",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Cline CLI Agent",
         "references": [
           "https://github.com/cline/cline"
@@ -1195,7 +1195,7 @@
       "agent_type": "cli_agent",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Anthropic Claude Code CLI tool",
         "references": [
           "https://anthropic.com"
@@ -1234,7 +1234,7 @@
       "agent_type": "local_model",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Ollama local LLM runner",
         "references": [
           "https://ollama.com"
@@ -1271,7 +1271,7 @@
       "agent_type": "local_model",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "LM Studio local LLM runner",
         "references": [
           "https://lmstudio.ai"
@@ -1311,7 +1311,7 @@
       "vendor": "OpenClaw",
       "product": "OpenClaw Personal AI Gateway",
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Self-hosted Node.js AI assistant gateway; multi-channel, browser/file tools, auto credential provisioning (high Shadow-AI risk)",
         "references": [
           "https://github.com/openclaw/openclaw",
@@ -1404,7 +1404,7 @@
       "vendor": "agentscope-ai",
       "product": "HiClaw Multi-Agent Control Plane",
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Kubernetes-native multi-agent orchestrator; manages OpenClaw/QwenPaw/Hermes workers via Matrix",
         "references": [
           "https://github.com/agentscope-ai/hiclaw"
@@ -1475,7 +1475,7 @@
       "vendor": "Enderfga",
       "product": "claw-orchestrator unified coding runtime",
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Wraps Claude Code/Codex/Gemini/Cursor as one MCP runtime (65 tools); registers in ~/.openclaw/openclaw.json",
         "references": [
           "https://github.com/Enderfga/claw-orchestrator"
@@ -1538,7 +1538,7 @@
       "agent_type": "desktop_agent",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Manus AI Agent",
         "references": [],
         "added_in": "20260623000",
@@ -1582,7 +1582,7 @@
       "agent_type": "web_agent",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Claude Web App",
         "references": [
           "https://claude.ai"
@@ -1626,7 +1626,7 @@
       "agent_type": "web_agent",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "ChatGPT Web App",
         "references": [
           "https://chatgpt.com"
@@ -1672,7 +1672,7 @@
       "agent_type": "web_agent",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Deepseek Web App",
         "references": [
           "https://chat.deepseek.com"
@@ -1717,7 +1717,7 @@
       "agent_type": "desktop_agent",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Antigravity App using Gemini Pro",
         "references": [],
         "added_in": "20260623000",
@@ -1760,7 +1760,7 @@
       "agent_type": "automation_agent",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "Claw Orchestrator MCP server",
         "references": [],
         "added_in": "20260621000",
@@ -1808,7 +1808,7 @@
       "agent_type": "automation_agent",
       "revision": 1,
       "meta": {
-        "author": "pollen-threat-intel",
+        "author": "pollek-threat-intel",
         "description": "n8n workflow automation",
         "references": [
           "https://n8n.io"

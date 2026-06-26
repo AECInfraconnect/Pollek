@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://contracts.pollen.dev/schemas/bundle-signature.v1.schema.json",
-  "title": "PollenBundleSignatureV1",
+  "$id": "https://contracts.pollek.dev/schemas/bundle-signature.v1.schema.json",
+  "title": "PollekBundleSignatureV1",
   "type": "object",
   "additionalProperties": false,
   "required": ["key_id", "alg", "signature", "signed_at"],

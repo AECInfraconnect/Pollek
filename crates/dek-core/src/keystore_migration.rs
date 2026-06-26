@@ -8,8 +8,8 @@ use std::fs;
 use std::path::Path;
 use tracing::{error, info, warn};
 
-pub async fn run_migration(bootstrap: &BootstrapConfig, pollen_cloud_url: &str) -> bool {
-    if pollen_cloud_url.starts_with("http://") {
+pub async fn run_migration(bootstrap: &BootstrapConfig, pollek_cloud_url: &str) -> bool {
+    if pollek_cloud_url.starts_with("http://") {
         info!("Plain HTTP mode detected (Local/Dev). Skipping mTLS keystore migration.");
         return true;
     }
@@ -62,7 +62,7 @@ pub async fn run_migration(bootstrap: &BootstrapConfig, pollen_cloud_url: &str) 
     if let Some(key_data) = key_in_keystore {
         info!(
             "Verifying keystore material with mTLS handshake to {}...",
-            pollen_cloud_url
+            pollek_cloud_url
         );
 
         let root_ca_der = fs::read(&bootstrap.mtls.root_ca_path).unwrap_or_default();
@@ -107,7 +107,7 @@ pub async fn run_migration(bootstrap: &BootstrapConfig, pollen_cloud_url: &str) 
         };
 
         // Try a simple request to verify the handshake
-        let test_url = format!("{}/health", pollen_cloud_url);
+        let test_url = format!("{}/health", pollek_cloud_url);
         match client.get(&test_url).send().await {
             Ok(resp) => {
                 info!("Verify-by-use successful! (Status: {})", resp.status());

@@ -1,5 +1,5 @@
 {
-  "schema_version": "pollen.pep-deployment.v1",
+  "schema_version": "pollek.pep-deployment.v1",
   "pep_deployment_id": "pep-mcp-1",
   "tenant_id": "tenant-acme-prod",
   "device_id": "device-dek-001",

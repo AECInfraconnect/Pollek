@@ -114,7 +114,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Spawn TelemetrySink Background Loop
     let (telemetry_mpsc_tx, mut telemetry_mpsc_rx) =
-        tokio::sync::mpsc::channel::<pollen_contract::PollenTelemetryEnvelopeV1>(1000);
+        tokio::sync::mpsc::channel::<pollek_contract::PollekTelemetryEnvelopeV1>(1000);
 
     let spool = state.secure_spool.clone();
     let sse_tx = state.telemetry_tx.clone();
@@ -180,7 +180,7 @@ async fn main() -> anyhow::Result<()> {
     // 3.2 Observe -> Suggest -> Enforce Loop
     let _ = local_control_plane::governance::start_governance_loop(state.clone()).await;
 
-    // Phase 5: Pollen Cloud Registry Sync Loop
+    // Phase 5: Pollek Cloud Registry Sync Loop
     let _ = local_control_plane::cloud_sync::start_cloud_registry_sync_loop(state.clone()).await;
 
     let listener = TcpListener::bind(&cfg.bind_addr).await?;

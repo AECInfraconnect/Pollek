@@ -22,19 +22,19 @@ test_bootstrap.json
 /FIX_*.md
 
 *.cdx.json
-*pollen-dek-sbom.json*
+*pollek-dek-sbom.json*
 
 .cargo/config.toml
 ~ $ *  
  
 # Workspace instruction files
-POLLEN_*.md
-Pollen_*.md
+POLLEK_*.md
+Pollek_*.md
 AI_INSTRUCTIONS.md
 
-pollen-local.db
-pollen-local.db-shm
-pollen-local.db-wal
+pollek-local.db
+pollek-local.db-shm
+pollek-local.db-wal
 *.pdb
 **/temp_*.rs
 /query/
@@ -45,4 +45,4 @@ POLLEK_*
 
 # Context documents
 POLLEK_*.md
-POLLEN_*.md
+POLLEK_*.md

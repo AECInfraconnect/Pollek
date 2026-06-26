@@ -26,5 +26,5 @@ pub struct AppState {
     pub latest_snapshot:
         Arc<tokio::sync::RwLock<Option<dek_capability_registry::LocalCapabilitySnapshot>>>,
     pub secure_spool: Arc<dek_secure_spool::sqlite_spool::SqliteSpool>,
-    pub telemetry_tx: tokio::sync::broadcast::Sender<pollen_contract::PollenTelemetryEnvelopeV1>,
+    pub telemetry_tx: tokio::sync::broadcast::Sender<pollek_contract::PollekTelemetryEnvelopeV1>,
 }

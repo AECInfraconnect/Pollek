@@ -57,7 +57,7 @@ pub fn build_linker(engine: &Engine) -> Result<Linker<HostState>> {
 
     // Example host import: emit audit from plugin.
     linker.func_wrap(
-        "pollen_host",
+        "pollek_host",
         "audit",
         |mut caller: Caller<'_, HostState>, ptr: i32, len: i32| -> i32 {
             // In production, read guest memory safely and enforce max size.
@@ -69,7 +69,7 @@ pub fn build_linker(engine: &Engine) -> Result<Linker<HostState>> {
     )?;
 
     // Example host import: get monotonic time.
-    linker.func_wrap("pollen_host", "now_ms", || -> i64 {
+    linker.func_wrap("pollek_host", "now_ms", || -> i64 {
         use std::time::{SystemTime, UNIX_EPOCH};
         SystemTime::now()
             .duration_since(UNIX_EPOCH)

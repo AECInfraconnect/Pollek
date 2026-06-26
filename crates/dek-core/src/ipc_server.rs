@@ -198,7 +198,7 @@ pub async fn spawn_ipc_server_task(
                                         } else {
                                             warn!("Failed to parse IPC message from line: {}", line);
                                             sink_clone.emit_async(json!({
-                                                "event_type": "pollen.dek.ipc_error",
+                                                "event_type": "pollek.dek.ipc_error",
                                                 "error": "parse_failure"
                                             }), dek_telemetry::spooler::Priority::Normal);
                                             let err_msg = IpcMessage {

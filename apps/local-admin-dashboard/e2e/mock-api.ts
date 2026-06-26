@@ -16,11 +16,11 @@ export async function installMockApi(page: Page) {
 
   const policies: any[] = [];
 
-  await page.route("**/.well-known/pollen-contract", (route) =>
+  await page.route("**/.well-known/pollek-contract", (route) =>
     json(route, {
       schema_version: "contract-discovery.v1",
-      preferred: "pollen.v1",
-      supported: ["pollen.v1"],
+      preferred: "pollek.v1",
+      supported: ["pollek.v1"],
       capabilities: ["local-admin-dashboard", "policy-publish"],
     }),
   );

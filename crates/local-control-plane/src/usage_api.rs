@@ -383,7 +383,7 @@ pub async fn publish_ai_usage_event(
     event: &AiUsageEventV1,
 ) -> anyhow::Result<()> {
     let payload = to_payload_map(serde_json::to_value(event)?);
-    let envelope = pollen_contract::PollenTelemetryEnvelopeV1 {
+    let envelope = pollek_contract::PollekTelemetryEnvelopeV1 {
         schema_version: "telemetry-envelope.v1".to_string(),
         event_id: event.event_id.clone(),
         event_type: "ai_usage_event".to_string(),
@@ -448,7 +448,7 @@ async fn emit_budget_alerts(state: &AppState, event: &AiUsageEventV1) {
             "usage_event_id": event.event_id,
             "evaluation": evaluation,
         });
-        let envelope = pollen_contract::PollenTelemetryEnvelopeV1 {
+        let envelope = pollek_contract::PollekTelemetryEnvelopeV1 {
             schema_version: "telemetry-envelope.v1".to_string(),
             event_id: format!("budget_alert_{}", event.event_id),
             event_type: "ai_budget_alert".to_string(),
@@ -473,7 +473,7 @@ async fn emit_budget_alerts(state: &AppState, event: &AiUsageEventV1) {
 
 pub(crate) async fn publish_telemetry_envelope(
     state: &AppState,
-    envelope: pollen_contract::PollenTelemetryEnvelopeV1,
+    envelope: pollek_contract::PollekTelemetryEnvelopeV1,
 ) -> anyhow::Result<()> {
     let bytes = serde_json::to_vec(&envelope)?;
     state
@@ -495,7 +495,7 @@ pub(crate) async fn publish_telemetry_envelope(
 
 async fn publish_envelope(
     state: &AppState,
-    envelope: pollen_contract::PollenTelemetryEnvelopeV1,
+    envelope: pollek_contract::PollekTelemetryEnvelopeV1,
 ) -> anyhow::Result<()> {
     publish_telemetry_envelope(state, envelope).await
 }
@@ -839,7 +839,7 @@ pub(crate) fn merge_usage_metadata(existing: Value, extra: Value) -> Value {
 }
 
 fn load_price_catalog_v2() -> Option<PriceCatalogV2> {
-    let path = std::path::PathBuf::from("pollen-local-data/price_catalog.v2.json");
+    let path = std::path::PathBuf::from("pollek-local-data/price_catalog.v2.json");
     if let Some(catalog) = std::fs::read_to_string(path)
         .ok()
         .and_then(|content| serde_json::from_str(&content).ok())
@@ -851,7 +851,7 @@ fn load_price_catalog_v2() -> Option<PriceCatalogV2> {
 }
 
 fn load_legacy_price_catalog_v1() -> Option<PriceCatalogV2> {
-    let path = std::path::PathBuf::from("pollen-local-data/price_catalog.v1.json");
+    let path = std::path::PathBuf::from("pollek-local-data/price_catalog.v1.json");
     let value: Value = std::fs::read_to_string(path)
         .ok()
         .and_then(|content| serde_json::from_str(&content).ok())?;

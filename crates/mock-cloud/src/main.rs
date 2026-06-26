@@ -52,7 +52,7 @@ use tracing::info;
 
 use crate::state::{AppState, AuditLog, DeviceStatus, PolicyBundle, RegistryState, RolloutConfig};
 use dek_agent_observer::aggregate::{aggregate_identities, aggregate_resources, aggregate_tools};
-use pollen_contract::{IdentityAccessPayload, ResourceAccessPayload, ToolUsagePayload};
+use pollek_contract::{IdentityAccessPayload, ResourceAccessPayload, ToolUsagePayload};
 
 // Static ed25519 seed used to sign policy bundles.
 pub const BUNDLE_SEED: [u8; 32] = [
@@ -82,7 +82,7 @@ async fn main() -> Result<()> {
         .install_default()
         .expect("Failed to install rustls crypto provider"); //
     tracing_subscriber::fmt::init();
-    info!("Starting Mock Pollen Cloud (mTLS API :43891 + HTTPS Enrollment :43892)...");
+    info!("Starting Mock Pollek Cloud (mTLS API :43891 + HTTPS Enrollment :43892)...");
 
     let rsa_public_key_pem = "-----BEGIN PUBLIC KEY-----\n\
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyP1z9L5h2dK+L2wXo9B3\n\
@@ -172,7 +172,7 @@ CwIDAQAB\n-----END PUBLIC KEY-----\n"
             get(openid_configuration),
         )
         .route(
-            "/.well-known/pollen-contract",
+            "/.well-known/pollek-contract",
             get(|| async {
                 Json(serde_json::json!({
                     "schema_version": "contract-discovery.v1",
@@ -487,7 +487,7 @@ async fn get_config(
             "profile": profile,
             "mtls": { "client_cert_path": "certs/client.crt", "client_key_path": "certs/client.key", "root_ca_path": "certs/root_ca.crt" },
             "spire_server": { "endpoint": "https://127.0.0.1:43891/spire" },
-            "jwt_config": { "public_key_pem": state.rsa_public_key_pem.clone(), "issuer_url": "https://127.0.0.1:43891", "audience": ["pollen-dek"] },
+            "jwt_config": { "public_key_pem": state.rsa_public_key_pem.clone(), "issuer_url": "https://127.0.0.1:43891", "audience": ["pollek-dek"] },
             "policy_config": {
                 "version": "1.0",
                 "policy": { "engine": "cedar" },
@@ -520,7 +520,7 @@ async fn handle_push_stream(
         tokio::time::sleep(Duration::from_secs(30)).await;
         // Mock push event every 30 seconds
         let event = Event::default().data(format!(
-            "{{\"event_type\": \"PollenBundleReadyV1\", \"version\": \"v{}\", \"bundle_id\": \"bnd-{}\"}}",
+            "{{\"event_type\": \"PollekBundleReadyV1\", \"version\": \"v{}\", \"bundle_id\": \"bnd-{}\"}}",
             count, count
         ));
         Some((Ok::<_, Infallible>(event), count + 1))

@@ -78,7 +78,7 @@ pub enum PdpKind {
     OpaWasm,
     CedarLocal,
     Openfga,
-    PollenCloud,
+    PollekCloud,
     PluginWasm,
 }
 

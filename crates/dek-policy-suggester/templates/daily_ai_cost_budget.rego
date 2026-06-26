@@ -1,4 +1,4 @@
-package pollen.policies.daily_cost
+package pollek.policies.daily_cost
 import future.keywords.if
 
 default allow := true

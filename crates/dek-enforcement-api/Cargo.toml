@@ -17,7 +17,7 @@ anyhow.workspace = true
 async-trait = "0.1"
 tokio = { workspace = true, features = ["sync"] }
 serde = { version = "1.0", features = ["derive"] }
-pollen-contract = { path = "../../contracts/generated/rust/pollen-contract" }
+pollek-contract = { path = "../../contracts/generated/rust/pollek-contract" }
 serde_json = "1.0"
 uuid = { version = "1.0", features = ["v4"] }
 chrono = "0.4"

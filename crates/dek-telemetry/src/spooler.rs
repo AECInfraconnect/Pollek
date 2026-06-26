@@ -70,7 +70,7 @@ impl Spooler {
     }
 
     fn try_keyring() -> Result<Key<Aes256Gcm>> {
-        let entry = Entry::new("pollen-dek-telemetry", "spool-encryption-key")?;
+        let entry = Entry::new("pollek-dek-telemetry", "spool-encryption-key")?;
         match entry.get_password() {
             Ok(hex_key) => {
                 let key_bytes = hex::decode(hex_key)?;

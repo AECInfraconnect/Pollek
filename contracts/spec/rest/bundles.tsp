@@ -1,6 +1,6 @@
 import "@typespec/http";
 using TypeSpec.Http;
-namespace Pollen.Contract;
+namespace Pollek.Contract;
 
 model BundleFetchRequest {
   tenant_id: string;
@@ -22,9 +22,9 @@ interface BundleApi {
   @doc("Fetch the latest signed policy bundle manifest for a device.")
   @post
   fetchLatest(
-    ...PollenHeaders,
+    ...PollekHeaders,
     @path tenant_id: string,
     @path device_id: string,
     @body body: BundleFetchRequest
-  ): BundleFetchResponse | NotModifiedResponse | PollenError;
+  ): BundleFetchResponse | NotModifiedResponse | PollekError;
 }

@@ -61,7 +61,7 @@ impl SegmentWriter {
             serde_json::to_vec(event).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         let aad = crate::crypto::RecordAad {
-            schema: "pollen.spool.frame.v1".to_string(),
+            schema: "pollek.spool.frame.v1".to_string(),
             tenant_id: self.tenant_id.clone(),
             device_id: self.device_id.clone(),
             segment_id: self.segment_id.clone(),

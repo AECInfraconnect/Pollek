@@ -1,5 +1,5 @@
 {
-  "schema_version": "pollen.resource.v1",
+  "schema_version": "pollek.resource.v1",
   "resource_id": "res-source-code",
   "tenant_id": "tenant-acme-prod",
   "resource_type": "directory",

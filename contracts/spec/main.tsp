@@ -16,12 +16,12 @@ using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
-@service(#{ title: "Pollen DEK Control-Plane API" })
+@service(#{ title: "Pollek DEK Control-Plane API" })
 @info(#{
   version: "1.0.0",
-  contact: #{ name: "Pollen Platform Team", url: "https://your-cloud-domain.com", email: "platform@your-cloud-domain.com" }
+  contact: #{ name: "Pollek Platform Team", url: "https://your-cloud-domain.com", email: "platform@your-cloud-domain.com" }
 })
-@doc("Contract between Pollen Cloud / Local Control Plane and the DEK edge enforcement plane.")
-@server("https://api.pollen.cloud", "Pollen Cloud")
+@doc("Contract between Pollek Cloud / Local Control Plane and the DEK edge enforcement plane.")
+@server("https://api.pollek.cloud", "Pollek Cloud")
 @server("http://127.0.0.1:17891", "Local Control Plane / Mock Cloud")
-namespace Pollen.Contract;
+namespace Pollek.Contract;

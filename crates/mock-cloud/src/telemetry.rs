@@ -27,7 +27,7 @@ use axum::{
     Json, Router,
 };
 use dek_agent_observer::aggregate::{aggregate_identities, aggregate_resources, aggregate_tools};
-use pollen_contract::{IdentityAccessPayload, ResourceAccessPayload, ToolUsagePayload};
+use pollek_contract::{IdentityAccessPayload, ResourceAccessPayload, ToolUsagePayload};
 
 pub fn router() -> Router<AppState> {
     Router::new()

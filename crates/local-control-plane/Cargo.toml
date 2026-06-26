@@ -34,7 +34,7 @@ dek-policy-intent = { version = "1.0.0-beta.1", path = "../dek-policy-intent" }
 dek-bundle-format = { version = "1.0.0-beta.1", path = "../dek-bundle-format" }
 dek-capability-registry = { path = "../dek-capability-registry" }
 dek-policy-compiler = { version = "1.0.0-beta.1", path = "../dek-policy-compiler" }
-pollen-contract = { version = "0.1.0", path = "../../contracts/generated/rust/pollen-contract" }
+pollek-contract = { version = "0.1.0", path = "../../contracts/generated/rust/pollek-contract" }
 dek-policy-router = { version = "0.1.0", path = "../dek-policy-router" }
 dek-plugin-sdk = { version = "1.0.0-beta.10", path = "../dek-plugin-sdk" }
 dek-fingerprint-defs = { path = "../dek-fingerprint-defs" }

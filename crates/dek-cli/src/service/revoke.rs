@@ -13,7 +13,7 @@ pub async fn run(reason: &str) -> Result<()> {
     let config: dek_config::BootstrapConfig =
         serde_json::from_str(&std::fs::read_to_string(&bootstrap_path)?)?;
 
-    info!("Revoking device identity with Pollen Cloud...");
+    info!("Revoking device identity with Pollek Cloud...");
     let url = format!(
         "{}/v1/tenants/{}/devices/{}/revoke",
         config.cloud_url,

@@ -30,7 +30,7 @@ impl WindowsDpapiStore {
         unsafe {
             CryptProtectData(
                 &data_in,
-                windows::core::w!("Pollen DEK spool master key"),
+                windows::core::w!("Pollek DEK spool master key"),
                 None,
                 None,
                 None,

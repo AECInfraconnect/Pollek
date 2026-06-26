@@ -18,7 +18,7 @@ impl KeychainKeystore {
         tracing::warn!("macOS secure Keystore not fully implemented. Falling back to 0600 file-based storage. Hardened key storage will follow in the next Phase.");
         let mut dir = dirs_next::data_local_dir()
             .unwrap_or_else(|| PathBuf::from("/Library/Application Support"));
-        dir.push("pollen-dek");
+        dir.push("pollek-dek");
         dir.push("keystore");
         let _ = fs::create_dir_all(&dir);
         let _ = fs::set_permissions(&dir, fs::Permissions::from_mode(0o700));

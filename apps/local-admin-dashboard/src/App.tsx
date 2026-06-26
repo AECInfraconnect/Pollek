@@ -4,6 +4,7 @@ import {
   Route,
   Navigate,
   Outlet,
+  useLocation,
 } from "react-router-dom";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { Overview } from "./pages/Overview";
@@ -20,6 +21,7 @@ import { PolicyPresets } from "./pages/PolicyPresets";
 import { Wizard } from "./pages/Wizard";
 import { ModeProvider, useMode } from "./context/ModeContext";
 import { Protect } from "./pages/Protect";
+import { NAV } from "./config/navigation";
 
 // Merged composite pages
 import { AgentsAndModels } from "./pages/Ecosystem/AgentsAndModels";
@@ -49,22 +51,19 @@ const Placeholder = ({ name }: { name: string }) => (
 
 const ModeGuard = () => {
   const { mode } = useMode();
-  // Check if current route is allowed in current mode.
-  // We can do a simplistic check: if simple mode, deny known advanced paths.
-  // The requirements say: filter by useMode: simple hides PDP/Routing/Bundles/Presets/Identities/Tools.
-  if (mode === "desktop_simple") {
-    const path = window.location.pathname;
-    if (
-      path.includes("pdp-engines") ||
-      path.includes("pep-layers") ||
-      path.includes("bundles") ||
-      path.includes("policy-presets") ||
-      path.includes("identities") ||
-      path.includes("tools")
-    ) {
-      return <Navigate to="/" replace />;
-    }
+  const { pathname } = useLocation();
+  const navRule = NAV.flatMap((group) => group.items)
+    .filter((item) => item.href !== "/")
+    .sort((a, b) => b.href.length - a.href.length)
+    .find(
+      (item) =>
+        pathname === item.href || pathname.startsWith(`${item.href}/`),
+    );
+
+  if (navRule && !navRule.modes.includes(mode)) {
+    return <Navigate to="/" replace />;
   }
+
   return <Outlet />;
 };
 

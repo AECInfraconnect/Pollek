@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://contracts.pollen.dev/schemas/contract-discovery.v1.schema.json",
-  "title": "PollenContractDiscoveryV1",
+  "$id": "https://contracts.pollek.dev/schemas/contract-discovery.v1.schema.json",
+  "title": "PollekContractDiscoveryV1",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "supported", "preferred", "capabilities"],

@@ -1,12 +1,12 @@
 openapi: 3.1.0
 info:
-  title: Pollen DEK Control-Plane API
+  title: Pollek DEK Control-Plane API
   version: 1.0.0
   contact:
-    name: Pollen Platform Team
+    name: Pollek Platform Team
     url: https://your-cloud-domain.com
     email: platform@your-cloud-domain.com
-  description: Contract between Pollen Cloud / Local Control Plane and the DEK edge enforcement plane.
+  description: Contract between Pollek Cloud / Local Control Plane and the DEK edge enforcement plane.
 tags:
   - name: Discovery
   - name: Bundles
@@ -21,14 +21,14 @@ tags:
   - name: PDPConfig
   - name: LocalDashboard
 paths:
-  /.well-known/pollen-contract:
+  /.well-known/pollek-contract:
     get:
       operationId: ContractDiscoveryApi_getDiscovery
       description: Discover contract capabilities and supported protocol versions.
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -41,7 +41,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Discovery
   /v1/a2a/message:
@@ -49,9 +49,9 @@ paths:
       operationId: A2AApi_sendMessage
       description: Send an Inter-Agent Trust Protocol (IATP) message via the DEK mediator.
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -64,7 +64,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - A2A Mediator
       requestBody:
@@ -77,9 +77,9 @@ paths:
     post:
       operationId: TelemetryApi_ingestBatch
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -92,7 +92,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Telemetry
       requestBody:
@@ -105,9 +105,9 @@ paths:
     get:
       operationId: TelemetryApi_enforcementStatus
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
         - name: agent_id
           in: query
           required: false
@@ -126,16 +126,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Telemetry
   /v1/telemetry/identities:
     get:
       operationId: TelemetryApi_identities
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
         - name: agent_id
           in: query
           required: false
@@ -160,16 +160,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Telemetry
   /v1/telemetry/observations:
     get:
       operationId: TelemetryApi_listObservations
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -182,7 +182,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Telemetry
       requestBody:
@@ -195,9 +195,9 @@ paths:
     get:
       operationId: TelemetryApi_resources
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
         - name: agent_id
           in: query
           required: false
@@ -222,16 +222,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Telemetry
   /v1/telemetry/tools:
     get:
       operationId: TelemetryApi_tools
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
         - name: agent_id
           in: query
           required: false
@@ -250,7 +250,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Telemetry
   /v1/tenants/local/capability-snapshot:
@@ -258,9 +258,9 @@ paths:
       operationId: LocalDashboardApi_getLocalCapabilitySnapshot
       description: Get latest local capability snapshot
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -272,7 +272,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
   /v1/tenants/local/deployment-sessions:
@@ -280,9 +280,9 @@ paths:
       operationId: LocalDashboardApi_createLocalDeploymentSession
       description: Create a deployment session
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -294,7 +294,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
       requestBody:
@@ -312,9 +312,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -326,7 +326,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
   /v1/tenants/local/deployment-sessions/{id}/actions/{action_id}/approve:
@@ -344,9 +344,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -355,7 +355,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
   /v1/tenants/local/deployment-sessions/{id}/events:
@@ -368,9 +368,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -379,7 +379,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
   /v1/tenants/local/health/local-enforcement:
@@ -387,9 +387,9 @@ paths:
       operationId: LocalDashboardApi_getLocalEnforcementHealth
       description: Get health of local enforcement layer
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -401,7 +401,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
   /v1/tenants/local/policies/feasibility:
@@ -409,9 +409,9 @@ paths:
       operationId: LocalDashboardApi_checkLocalPolicyFeasibility
       description: Check policy feasibility
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -423,7 +423,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
       requestBody:
@@ -436,9 +436,9 @@ paths:
       operationId: LocalDashboardApi_listLocalPolicySuggestions
       description: List suggested policies based on capabilities and discovered agents
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -450,7 +450,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
   /v1/tenants/local/scan:
@@ -458,9 +458,9 @@ paths:
       operationId: LocalDashboardApi_startLocalScanSession
       description: Start Local Scan Session
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -469,7 +469,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
   /v1/tenants/local/scans/{scan_id}:
@@ -482,9 +482,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -496,7 +496,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
   /v1/tenants/local/scans/{scan_id}/events:
@@ -509,9 +509,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -520,7 +520,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - LocalDashboard
   /v1/tenants/{tenant_id}/agent-discovery/candidates:
@@ -533,9 +533,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -548,7 +548,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Discovery
   /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/block:
@@ -566,9 +566,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -577,7 +577,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Discovery
   /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/ignore:
@@ -595,9 +595,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -606,7 +606,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Discovery
   /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/observe-only:
@@ -624,9 +624,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -635,7 +635,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Discovery
   /v1/tenants/{tenant_id}/agent-discovery/candidates/{candidate_id}/register:
@@ -653,9 +653,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -664,7 +664,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Discovery
   /v1/tenants/{tenant_id}/agent-discovery/scan:
@@ -677,9 +677,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -688,7 +688,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Discovery
   /v1/tenants/{tenant_id}/devices/{device_id}/bundles/latest:
@@ -696,9 +696,9 @@ paths:
       operationId: BundleApi_fetchLatest
       description: Fetch the latest signed policy bundle manifest for a device.
       parameters:
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
         - name: tenant_id
           in: path
           required: true
@@ -723,7 +723,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Bundles
       requestBody:
@@ -747,9 +747,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -762,7 +762,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Observation
   /v1/tenants/{tenant_id}/observations/costs:
@@ -775,9 +775,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -790,7 +790,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Observation
   /v1/tenants/{tenant_id}/observations/coverage:
@@ -803,9 +803,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -818,7 +818,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Observation
   /v1/tenants/{tenant_id}/observations/events:
@@ -831,9 +831,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -842,7 +842,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Observation
       requestBody:
@@ -868,9 +868,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -883,7 +883,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Observation
   /v1/tenants/{tenant_id}/observations/tools/{tool_id}:
@@ -901,9 +901,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -916,7 +916,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Observation
   /v1/tenants/{tenant_id}/observations/trust/{agent_id}:
@@ -934,9 +934,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -949,7 +949,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Observation
   /v1/tenants/{tenant_id}/pdp/routes:
@@ -962,9 +962,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -977,7 +977,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
   /v1/tenants/{tenant_id}/pdp/routes/simulate:
@@ -990,9 +990,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1005,7 +1005,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
       requestBody:
@@ -1029,9 +1029,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1044,7 +1044,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
     put:
@@ -1061,9 +1061,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1076,7 +1076,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
       requestBody:
@@ -1099,9 +1099,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -1110,7 +1110,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
   /v1/tenants/{tenant_id}/pdp/runtimes:
@@ -1123,9 +1123,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1138,7 +1138,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
   /v1/tenants/{tenant_id}/pdp/runtimes/{runtime_id}:
@@ -1156,9 +1156,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1171,7 +1171,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
     put:
@@ -1188,9 +1188,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1203,7 +1203,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
       requestBody:
@@ -1226,9 +1226,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -1237,7 +1237,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
   /v1/tenants/{tenant_id}/pdp/runtimes/{runtime_id}/clear-cache:
@@ -1255,9 +1255,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -1266,7 +1266,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
   /v1/tenants/{tenant_id}/pdp/runtimes/{runtime_id}/probe:
@@ -1284,9 +1284,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1299,7 +1299,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
       requestBody:
@@ -1322,9 +1322,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1336,7 +1336,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PDPConfig
   /v1/tenants/{tenant_id}/pep-capabilities:
@@ -1349,9 +1349,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1363,7 +1363,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PepCapabilities
   /v1/tenants/{tenant_id}/pep-capabilities/check:
@@ -1376,9 +1376,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1390,7 +1390,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PepCapabilities
       requestBody:
@@ -1408,9 +1408,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1422,7 +1422,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicyPresets
   /v1/tenants/{tenant_id}/policy-presets/{preset_id}:
@@ -1440,9 +1440,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1454,7 +1454,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicyPresets
   /v1/tenants/{tenant_id}/policy-presets/{preset_id}/create-draft:
@@ -1472,9 +1472,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1486,7 +1486,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicyPresets
       requestBody:
@@ -1509,9 +1509,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1523,7 +1523,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicyPresets
       requestBody:
@@ -1546,9 +1546,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1560,7 +1560,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicyPresets
       requestBody:
@@ -1578,9 +1578,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1593,7 +1593,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicySuggestions
   /v1/tenants/{tenant_id}/policy-suggestions/generate:
@@ -1606,9 +1606,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -1617,7 +1617,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicySuggestions
   /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}:
@@ -1635,9 +1635,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1650,7 +1650,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicySuggestions
   /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/approve:
@@ -1668,9 +1668,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -1679,7 +1679,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicySuggestions
   /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/create-draft:
@@ -1697,9 +1697,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -1708,7 +1708,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicySuggestions
   /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/dismiss:
@@ -1726,9 +1726,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -1737,7 +1737,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicySuggestions
   /v1/tenants/{tenant_id}/policy-suggestions/{suggestion_id}/simulate:
@@ -1755,9 +1755,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -1766,7 +1766,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - PolicySuggestions
   /v1/tenants/{tenant_id}/registry/resources:
@@ -1779,9 +1779,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1794,7 +1794,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Registry
     post:
@@ -1806,9 +1806,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1821,7 +1821,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Registry
       requestBody:
@@ -1840,9 +1840,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1855,7 +1855,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Registry
     post:
@@ -1867,9 +1867,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1882,7 +1882,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - Registry
       requestBody:
@@ -1906,9 +1906,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
         - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.from'
         - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.to'
         - $ref: '#/components/parameters/AiUsageAgentSummaryQueryParams.bucket'
@@ -1931,7 +1931,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - AI Usage
   /v1/tenants/{tenant_id}/usage/budgets:
@@ -1944,9 +1944,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1959,7 +1959,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - AI Usage
   /v1/tenants/{tenant_id}/usage/budgets/{budget_id}:
@@ -1977,9 +1977,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -1997,7 +1997,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - AI Usage
       requestBody:
@@ -2016,9 +2016,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -2036,7 +2036,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - AI Usage
       requestBody:
@@ -2054,9 +2054,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
         - $ref: '#/components/parameters/AiUsageQueryParams.from'
         - $ref: '#/components/parameters/AiUsageQueryParams.to'
         - $ref: '#/components/parameters/AiUsageQueryParams.agent_id'
@@ -2081,7 +2081,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - AI Usage
   /v1/tenants/{tenant_id}/usage/events/batch:
@@ -2094,9 +2094,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -2109,7 +2109,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - AI Usage
       requestBody:
@@ -2128,9 +2128,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
         - $ref: '#/components/parameters/AiUsageQueryParams.from'
         - $ref: '#/components/parameters/AiUsageQueryParams.to'
         - $ref: '#/components/parameters/AiUsageQueryParams.agent_id'
@@ -2155,7 +2155,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - AI Usage
   /v1/tenants/{tenant_id}/usage/reconcile:
@@ -2168,9 +2168,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
       responses:
         '200':
           description: The request has succeeded.
@@ -2183,7 +2183,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - AI Usage
       requestBody:
@@ -2201,9 +2201,9 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/PollenHeaders.contractVersion'
-        - $ref: '#/components/parameters/PollenHeaders.deviceId'
-        - $ref: '#/components/parameters/PollenHeaders.tenantId'
+        - $ref: '#/components/parameters/PollekHeaders.contractVersion'
+        - $ref: '#/components/parameters/PollekHeaders.deviceId'
+        - $ref: '#/components/parameters/PollekHeaders.tenantId'
         - $ref: '#/components/parameters/AiUsageSummaryQueryParams.from'
         - $ref: '#/components/parameters/AiUsageSummaryQueryParams.to'
         - $ref: '#/components/parameters/AiUsageSummaryQueryParams.bucket'
@@ -2227,7 +2227,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollenError'
+                $ref: '#/components/schemas/PollekError'
       tags:
         - AI Usage
 components:
@@ -2470,20 +2470,20 @@ components:
         type: string
         format: date-time
       explode: false
-    PollenHeaders.contractVersion:
-      name: X-Pollen-Contract-Version
+    PollekHeaders.contractVersion:
+      name: X-Pollek-Contract-Version
       in: header
       required: true
       schema:
         type: string
-    PollenHeaders.deviceId:
-      name: X-Pollen-Device-Id
+    PollekHeaders.deviceId:
+      name: X-Pollek-Device-Id
       in: header
       required: false
       schema:
         type: string
-    PollenHeaders.tenantId:
-      name: X-Pollen-Tenant-Id
+    PollekHeaders.tenantId:
+      name: X-Pollek-Tenant-Id
       in: header
       required: false
       schema:
@@ -4047,7 +4047,7 @@ components:
         - cedar_http
         - custom_http
         - custom_grpc
-        - pollen_cloud_pdp
+        - pollek_cloud_pdp
     PdpProbeResult:
       type: object
       required:
@@ -4214,7 +4214,7 @@ components:
       enum:
         - local_engine
         - remote_connector
-        - pollen_cloud
+        - pollek_cloud
     PdpRuntimeListResponse:
       type: object
       required:
@@ -4355,7 +4355,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PolicySuggestion'
-    PollenError:
+    PollekError:
       type: object
       required:
         - code
@@ -4976,6 +4976,6 @@ servers:
   - url: http://127.0.0.1:17891
     description: Local Control Plane / Mock Cloud
     variables: {}
-  - url: https://api.pollen.cloud
-    description: Pollen Cloud
+  - url: https://api.pollek.cloud
+    description: Pollek Cloud
     variables: {}

@@ -739,7 +739,7 @@ function ResourceActivityTimeline({ resource }: { resource: UnifiedResource }) {
               {object} by {payload.agent_id || "Unknown agent"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Mode: {ev.details?.mode || ev.mode || "read"} •{" "}
+              Mode: {payload.mode || "read"} -{" "}
               {new Date(payload.observed_at || ev.timestamp).toLocaleString()}
             </p>
             {(details.capture_quality || details.trace_granularity) && (

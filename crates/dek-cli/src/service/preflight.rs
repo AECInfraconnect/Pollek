@@ -234,7 +234,7 @@ fn linux_checks() -> Vec<CheckResult> {
         },
         remediation: (!btf).then(|| Remediation {
             message: "Enable CONFIG_DEBUG_INFO_BTF or update kernel to enforce at OS level".into(),
-            url: Some("https://docs.pollen.dev/install/linux-ebpf".into()),
+            url: Some("https://docs.pollek.dev/install/linux-ebpf".into()),
             auto_command: None,
         }),
         blocking: false,

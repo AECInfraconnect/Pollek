@@ -66,7 +66,7 @@ Pollek Local Enforcement Kit beta 5 brings major stability and edge functionalit
 
 - **Release Provenance & Arm64 Support** — Release pipelines now produce `aarch64` binaries for Linux and macOS. Implemented GitHub Artifact Attestations (`actions/attest-build-provenance`) for all release artifacts, alongside Sigstore keyless cosign and Windows Authenticode signing.
 - **eBPF Hardening** — `dek-ebpfd` now manages periodic DNS LRU cache eviction and dynamically propagates `DekRuntimeMode` (fail-closed vs observe-only default action) to the eBPF datapath. The `dek-ebpfd` build degrades gracefully on Linux hosts missing `bpf-linker`.
-- **Contract Discovery** — Implemented `/.well-known/pollen-contract` discovery endpoint. The Local Admin Dashboard is now wired to consume generated TypeScript API types to discover and render contract capabilities.
+- **Contract Discovery** — Implemented `/.well-known/pollek-contract` discovery endpoint. The Local Admin Dashboard is now wired to consume generated TypeScript API types to discover and render contract capabilities.
 
 - **Dry-run Simulation Engine** — Simulate policies locally without enforcement or side effects via the Local Admin Dashboard.
 - **Audit Export** — Export decision logs as CSV and JSON directly from the dashboard.
@@ -79,7 +79,7 @@ Pollek Local Enforcement Kit beta 5 brings major stability and edge functionalit
 
 - **OS Capability Honesty** — `dek-capability-registry` accurately advertises native OS enforcement modes (e.g. `windows-wfp`, `macos-nefilter`) only if the host OS supports them. Stubs correctly return `NotSupported` errors instead of panicking.
 - Refactored `latency_ms` to `i64` to match typify types and schema definitions.
-- Restored `PollenError` standard envelope across API specs.
+- Restored `PollekError` standard envelope across API specs.
 - Enforced MSRV of Rust 1.85 to support edition 2024 features safely.
 - Genericized Cloud references from `Pollek.ai` to `<your-cloud-domain>`.
 
@@ -143,10 +143,10 @@ control plane (exercised via `mock-cloud` until Pollek Cloud is GA).
 - See [ARCHITECTURE.md](ARCHITECTURE.md) and the security model for the full
   capability matrix.
 
-[1.0.0-beta.10]: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/releases/tag/v1.0.0-beta.10
-[1.0.0-beta.9]: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/releases/tag/v1.0.0-beta.9
-[1.0.0-beta.8]: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/releases/tag/v1.0.0-beta.8
-[1.0.0-beta.7]: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/releases/tag/v1.0.0-beta.7
-[1.0.0-beta.6]: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/releases/tag/v1.0.0-beta.6
-[1.0.0-beta.5]: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/releases/tag/v1.0.0-beta.5
-[1.0.0-beta.1]: https://github.com/AECInfraconnect/AntiG_Pollen_DEK/releases/tag/v1.0.0-beta.1
+[1.0.0-beta.10]: https://github.com/AECInfraconnect/Pollek/releases/tag/v1.0.0-beta.10
+[1.0.0-beta.9]: https://github.com/AECInfraconnect/Pollek/releases/tag/v1.0.0-beta.9
+[1.0.0-beta.8]: https://github.com/AECInfraconnect/Pollek/releases/tag/v1.0.0-beta.8
+[1.0.0-beta.7]: https://github.com/AECInfraconnect/Pollek/releases/tag/v1.0.0-beta.7
+[1.0.0-beta.6]: https://github.com/AECInfraconnect/Pollek/releases/tag/v1.0.0-beta.6
+[1.0.0-beta.5]: https://github.com/AECInfraconnect/Pollek/releases/tag/v1.0.0-beta.5
+[1.0.0-beta.1]: https://github.com/AECInfraconnect/Pollek/releases/tag/v1.0.0-beta.1

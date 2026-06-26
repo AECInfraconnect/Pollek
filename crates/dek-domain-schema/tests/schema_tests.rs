@@ -12,7 +12,7 @@ use dek_domain_schema::tenant::Tenant;
 #[test]
 fn test_valid_tenant() {
     let json_str = r#"{
-        "schema_version": "pollen.tenant.v1",
+        "schema_version": "pollek.tenant.v1",
         "tenant_id": "ten_01HX",
         "tenant_type": "enterprise",
         "display_name": "ACME Bank",
@@ -30,7 +30,7 @@ fn test_valid_tenant() {
 #[test]
 fn test_invalid_tenant() {
     let json_str = r#"{
-        "schema_version": "pollen.tenant.v1",
+        "schema_version": "pollek.tenant.v1",
         "tenant_id": "ten_01HX"
         // missing required fields
     }"#;

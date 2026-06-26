@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>ai.pollen.dek</string>
+    <string>ai.pollek.dek</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/dek-core</string>
@@ -11,7 +11,7 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>DEK_BOOTSTRAP_PATH</key>
-        <string>/Library/Application Support/PollenDEK/bootstrap.json</string>
+        <string>/Library/Application Support/PollekDEK/bootstrap.json</string>
     </dict>
     <key>RunAtLoad</key>
     <true/>

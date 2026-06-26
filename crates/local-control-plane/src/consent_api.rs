@@ -24,14 +24,14 @@ async fn get_agreements(State(_state): State<AppState>) -> Json<serde_json::Valu
             "id": "eula",
             "version": "eula-2026-06",
             "title": "End User License Agreement",
-            "body_markdown": "By using Pollen DEK, you agree to the EULA...",
+            "body_markdown": "By using Pollek DEK, you agree to the EULA...",
             "required": true
         }),
         serde_json::json!({
             "id": "privacy_notice",
             "version": "privacy-2026-06",
             "title": "Privacy Notice",
-            "body_markdown": "Pollen DEK operates locally. No data leaves your machine unless you enable cloud sync.",
+            "body_markdown": "Pollek DEK operates locally. No data leaves your machine unless you enable cloud sync.",
             "required": true
         }),
         serde_json::json!({

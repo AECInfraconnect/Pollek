@@ -14,8 +14,8 @@ This document provides the Single Source of Truth for the Desktop Flow and Frien
 ## 2. 3 Operating Modes
 
 * **Simple Mode**: Focuses strictly on Data Protection and Agent Management. PEP configuration is fully hidden and auto-managed.
-* **Enterprise Mode**: Unlocks all capabilities (Simulator, Advanced Auditing, Policy Suggestions, Entities) for power users and administrators.
-* **Cloud Mode**: Connects to Pollek Cloud for centralized policy distribution and compliance reporting across an organization.
+* **Advance Mode**: Unlocks local power-user capabilities such as Simulator, detailed auditing, Policy Suggestions, Entities, Tools, Identities, and control-method diagnostics.
+* **Enterprise Cloud Mode**: Unlocks only after Pollek Cloud is configured and the connection probe succeeds. It enables centralized policy distribution, hot reload, telemetry sync, SPIFFE/OAuth-backed workload tracing, and compliance reporting across an organization.
 
 ## 3. Friendly Message Catalog (TH/EN)
 

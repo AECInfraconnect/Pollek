@@ -1,5 +1,5 @@
 {
-  "schema_version": "pollen.policy.v1",
+  "schema_version": "pollek.policy.v1",
   "policy_id": "pol-fs-read-only",
   "tenant_id": "tenant-acme-prod",
   "name": "Allow Read Only to Source Code",

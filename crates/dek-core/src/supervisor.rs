@@ -63,7 +63,7 @@ impl Supervisor {
             dek_config::logging::init_logging("dek-core")
                 .unwrap_or_else(|e| eprintln!("Failed to initialize logging: {e}"));
         }
-        info!("Starting Pollen DEK Core Supervisor...");
+        info!("Starting Pollek DEK Core Supervisor...");
 
         let config_dir = dek_config::paths::get_config_dir();
         let pending_update = crate::probation::detect(&config_dir);
@@ -77,7 +77,7 @@ impl Supervisor {
                 .has_consented(&dek_consent::AgreementType::PrivacyNotice)
                 .unwrap_or(false)
         {
-            error!("Fatal: Required agreements (EULA and/or Privacy Notice) have not been accepted. Run 'pollen-dek agree' or the wizard.");
+            error!("Fatal: Required agreements (EULA and/or Privacy Notice) have not been accepted. Run 'pollek-dek agree' or the wizard.");
             std::process::exit(1);
         }
 
@@ -97,14 +97,14 @@ impl Supervisor {
         let cloud_url = if !bootstrap.cloud_url.is_empty() {
             bootstrap.cloud_url.clone()
         } else {
-            env_var("POLLEN_CLOUD_URL", "https://127.0.0.1:43891")
+            env_var("POLLEK_CLOUD_URL", "https://127.0.0.1:43891")
         };
 
         if !cloud_url.starts_with("https://")
             && !cloud_url.contains("127.0.0.1")
             && !cloud_url.contains("localhost")
         {
-            error!("Fatal: POLLEN_CLOUD_URL must be https:// (downgrade protection).");
+            error!("Fatal: POLLEK_CLOUD_URL must be https:// (downgrade protection).");
             std::process::exit(1);
         }
         let ipc_addr = env_var("DEK_IPC_ADDR", "127.0.0.1:43889");
@@ -205,7 +205,7 @@ impl Supervisor {
             while let Some(obs) = dns_rx.recv().await {
                 sink.emit_async(
                     serde_json::json!({
-                        "event_type": "pollen.dek.dns_observe",
+                        "event_type": "pollek.dek.dns_observe",
                         "cgroup_id": obs.cgroup_id,
                         "qname": obs.qname,
                         "answers": obs.answers,

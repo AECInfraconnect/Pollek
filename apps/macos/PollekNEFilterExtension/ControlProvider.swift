@@ -4,17 +4,17 @@ import Foundation
 
 final class ControlProvider: NEFilterControlProvider {
     private let logger = Logger(
-        subsystem: "com.aecinfraconnect.pollen.dek.nefilter",
+        subsystem: "com.aecinfraconnect.pollek.dek.nefilter",
         category: "ControlProvider"
     )
 
     override func startFilter(completionHandler: @escaping (Error?) -> Void) {
-        logger.info("Starting Pollen DEK NEFilterControlProvider")
+        logger.info("Starting Pollek DEK NEFilterControlProvider")
         completionHandler(nil)
     }
 
     override func stopFilter(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
-        logger.info("Stopping Pollen DEK NEFilterControlProvider: \(String(describing: reason))")
+        logger.info("Stopping Pollek DEK NEFilterControlProvider: \(String(describing: reason))")
         completionHandler()
     }
 

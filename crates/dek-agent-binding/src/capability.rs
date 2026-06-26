@@ -133,7 +133,7 @@ pub async fn probe_mcp_tools(surface: &Surface) -> anyhow::Result<Vec<ToolCapabi
                     "protocolVersion": "2024-11-05",
                     "capabilities": {},
                     "clientInfo": {
-                        "name": "PollenDEK",
+                        "name": "PollekDEK",
                         "version": "1.0.0"
                     }
                 }

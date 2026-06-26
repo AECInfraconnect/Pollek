@@ -63,7 +63,7 @@ pub async fn load_and_attach(
         warn!("eBPF unsupported; degrading to app-layer only.");
         return None;
     }
-    let cgroup = "/sys/fs/cgroup/pollen-dek-supervised";
+    let cgroup = "/sys/fs/cgroup/pollek-dek-supervised";
     match dek_ebpfd::start_ebpfd_supervisor(cgroup, obs_tx, spool).await {
         Ok(handle) => {
             info!("eBPF Control Point active.");

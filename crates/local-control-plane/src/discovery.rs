@@ -2,7 +2,7 @@ use crate::state::AppState;
 use axum::{routing::get, Json, Router};
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/.well-known/pollen-contract", get(get_discovery))
+    Router::new().route("/.well-known/pollek-contract", get(get_discovery))
 }
 
 async fn get_discovery() -> Json<serde_json::Value> {

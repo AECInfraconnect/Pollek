@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use anyhow::{bail, Result};
-use dek_bundle_format::{OsModulesConfig, PollenPolicyBundle};
+use dek_bundle_format::{OsModulesConfig, PollekPolicyBundle};
 
 pub fn validate_os_capabilities(
-    bundle: &PollenPolicyBundle,
+    bundle: &PollekPolicyBundle,
     available_caps: &OsModulesConfig,
 ) -> Result<()> {
     let req = &bundle.compatibility.required_os_modules;

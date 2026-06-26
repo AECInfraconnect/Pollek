@@ -1,4 +1,4 @@
-Write-Host "Stopping Pollen DEK Local Control Plane..." -ForegroundColor Yellow
+Write-Host "Stopping Pollek DEK Local Control Plane..." -ForegroundColor Yellow
 $existing = Get-Process -Name "local-control-plane" -ErrorAction SilentlyContinue
 if ($existing) {
     Stop-Process -Name "local-control-plane" -Force

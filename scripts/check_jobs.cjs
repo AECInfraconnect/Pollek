@@ -1,7 +1,7 @@
 const https = require('https');
 const fs = require('fs');
 
-https.get('https://api.github.com/repos/AECInfraconnect/AntiG_Pollen_DEK/actions/runs?per_page=10', {
+https.get('https://api.github.com/repos/AECInfraconnect/Pollek/actions/runs?per_page=10', {
   headers: { 'User-Agent': 'Node.js' }
 }, (res) => {
   let data = '';

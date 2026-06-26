@@ -30,12 +30,12 @@ jobs:
       - name: Package artifacts
         run: |
           mkdir -p dist
-          cp generated/openapi/pollen.v1.yaml dist/
-          cp generated/asyncapi/pollen-sse.v1.yaml dist/
+          cp generated/openapi/pollek.v1.yaml dist/
+          cp generated/asyncapi/pollek-sse.v1.yaml dist/
           tar -czf dist/schemas.tar.gz -- schemas
           tar -czf dist/catalog.tar.gz -- catalog
-          tar -czf dist/pollen-contract-rust.tar.gz -- generated/rust/pollen-contract
-          tar -czf dist/pollen-contract-typescript.tgz -- generated/typescript
+          tar -czf dist/pollek-contract-rust.tar.gz -- generated/rust/pollek-contract
+          tar -czf dist/pollek-contract-typescript.tgz -- generated/typescript
           cp CHANGELOG.md COMPATIBILITY.md dist/
           cd dist && sha256sum ./* > SHA256SUMS
 

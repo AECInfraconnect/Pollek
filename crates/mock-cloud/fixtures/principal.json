@@ -1,5 +1,5 @@
 {
-  "schema_version": "pollen.principal.v1",
+  "schema_version": "pollek.principal.v1",
   "principal_id": "alice@acme.com",
   "tenant_id": "tenant-acme-prod",
   "type": "user",

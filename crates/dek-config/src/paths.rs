@@ -10,17 +10,17 @@ pub fn get_config_dir() -> PathBuf {
 
     #[cfg(target_os = "linux")]
     {
-        PathBuf::from("/etc/pollen-dek")
+        PathBuf::from("/etc/pollek-dek")
     }
     #[cfg(target_os = "windows")]
     {
         let program_data =
             std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
-        PathBuf::from(program_data).join("PollenDEK").join("config")
+        PathBuf::from(program_data).join("PollekDEK").join("config")
     }
     #[cfg(target_os = "macos")]
     {
-        PathBuf::from("/Library/Application Support/PollenDEK/config")
+        PathBuf::from("/Library/Application Support/PollekDEK/config")
     }
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     {
@@ -39,17 +39,17 @@ pub fn get_data_dir() -> PathBuf {
 
     #[cfg(target_os = "linux")]
     {
-        PathBuf::from("/var/lib/pollen-dek")
+        PathBuf::from("/var/lib/pollek-dek")
     }
     #[cfg(target_os = "windows")]
     {
         let program_data =
             std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
-        PathBuf::from(program_data).join("PollenDEK").join("state")
+        PathBuf::from(program_data).join("PollekDEK").join("state")
     }
     #[cfg(target_os = "macos")]
     {
-        PathBuf::from("/var/db/pollen-dek")
+        PathBuf::from("/var/db/pollek-dek")
     }
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     {
@@ -64,17 +64,17 @@ pub fn get_log_dir() -> PathBuf {
 
     #[cfg(target_os = "linux")]
     {
-        PathBuf::from("/var/log/pollen-dek")
+        PathBuf::from("/var/log/pollek-dek")
     }
     #[cfg(target_os = "windows")]
     {
         let program_data =
             std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
-        PathBuf::from(program_data).join("PollenDEK").join("logs")
+        PathBuf::from(program_data).join("PollekDEK").join("logs")
     }
     #[cfg(target_os = "macos")]
     {
-        PathBuf::from("/Library/Logs/PollenDEK")
+        PathBuf::from("/Library/Logs/PollekDEK")
     }
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     {
@@ -89,7 +89,7 @@ pub fn get_runtime_dir() -> PathBuf {
 
     #[cfg(target_os = "linux")]
     {
-        PathBuf::from("/run/pollen-dek")
+        PathBuf::from("/run/pollek-dek")
     }
     #[cfg(target_os = "windows")]
     {
@@ -97,11 +97,11 @@ pub fn get_runtime_dir() -> PathBuf {
         // But for consistent path usage, we might just use a runtime directory.
         let program_data =
             std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
-        PathBuf::from(program_data).join("PollenDEK").join("run")
+        PathBuf::from(program_data).join("PollekDEK").join("run")
     }
     #[cfg(target_os = "macos")]
     {
-        PathBuf::from("/var/run/pollen-dek")
+        PathBuf::from("/var/run/pollek-dek")
     }
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     {

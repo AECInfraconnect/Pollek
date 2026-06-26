@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Pollen DEK Installation Script
+# Pollek DEK Installation Script
 
-echo "--- Installing Pollen DEK ---"
+echo "--- Installing Pollek DEK ---"
 
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root"
@@ -11,25 +11,25 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 DEK_VERSION=${1:-"latest"}
-BIN_URL="https://github.com/pollen-cloud/pollen-dek/releases/download/${DEK_VERSION}/dek-linux-x86_64"
+BIN_URL="https://github.com/pollek-cloud/pollek-dek/releases/download/${DEK_VERSION}/dek-linux-x86_64"
 
 echo "1. Downloading DEK version ${DEK_VERSION}..."
-curl -sL "${BIN_URL}" -o /usr/local/bin/pollen-dek
-chmod +x /usr/local/bin/pollen-dek
+curl -sL "${BIN_URL}" -o /usr/local/bin/pollek-dek
+chmod +x /usr/local/bin/pollek-dek
 
 echo "2. Setting up configuration directories..."
-mkdir -p /etc/pollen
-mkdir -p /var/lib/pollen
+mkdir -p /etc/pollek
+mkdir -p /var/lib/pollek
 
 # If configuring via environment variables during install
-if [ -n "${POLLEN_ENROLLMENT_TOKEN:-}" ]; then
+if [ -n "${POLLEK_ENROLLMENT_TOKEN:-}" ]; then
   echo "Found enrollment token, generating initial config..."
-  cat <<EOF > /etc/pollen/dek.yml
+  cat <<EOF > /etc/pollek/dek.yml
 control_plane:
-  endpoint: "https://cloud.pollen.internal:8443"
+  endpoint: "https://cloud.pollek.internal:8443"
   tenant_id: "default"
 enrollment:
-  token: "${POLLEN_ENROLLMENT_TOKEN}"
+  token: "${POLLEK_ENROLLMENT_TOKEN}"
 EOF
 fi
 

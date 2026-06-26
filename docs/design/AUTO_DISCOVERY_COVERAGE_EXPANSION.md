@@ -37,7 +37,7 @@ one large scanner.
 
 ## Definition V4 Direction
 
-Extend `dek-fingerprint-defs` with a future `pollen.discovery-def.v4` format that
+Extend `dek-fingerprint-defs` with a future `pollek.discovery-def.v4` format that
 can carry:
 
 - `agent_signatures`

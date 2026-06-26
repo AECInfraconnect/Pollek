@@ -1,5 +1,5 @@
 {
-  "schema_version": "pollen.tool.v1",
+  "schema_version": "pollek.tool.v1",
   "tool_id": "tool-read-file",
   "tenant_id": "tenant-acme-prod",
   "mcp_server_id": "mcp-fs-1",

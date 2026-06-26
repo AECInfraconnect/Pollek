@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Continue"
 
-Write-Host "Running Chaos Tests on Pollen DEK"
+Write-Host "Running Chaos Tests on Pollek DEK"
 
 # 1. Kill Telemetry API
 Write-Host "Simulating Telemetry API Outage..."

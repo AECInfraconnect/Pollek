@@ -21,7 +21,7 @@ pub enum SuggestedPolicyLanguage {
     Rego,
     Cedar,
     OpenFga,
-    PollenPolicyIntent,
+    PollekPolicyIntent,
     NetworkGuardrailJson,
 }
 

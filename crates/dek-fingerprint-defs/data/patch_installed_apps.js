@@ -1,5 +1,5 @@
 const fs = require('fs');
-const path = 'C:/Projects/AntiG_Pollen_DEK/crates/dek-fingerprint-defs/data/baseline.v3.json';
+const path = 'C:/Projects/AntiG_Pollek_DEK/crates/dek-fingerprint-defs/data/baseline.v3.json';
 const data = JSON.parse(fs.readFileSync(path, 'utf8'));
 
 for (let app of data.installed_app_signatures) {

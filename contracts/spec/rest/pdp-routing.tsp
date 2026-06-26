@@ -5,12 +5,12 @@ import "./common.tsp";
 using TypeSpec.Http;
 using TypeSpec.Rest;
 
-namespace Pollen.Contract;
+namespace Pollek.Contract;
 
 enum PdpRuntimeCategory {
   LocalEngine: "local_engine",
   RemoteConnector: "remote_connector",
-  PollenCloud: "pollen_cloud",
+  PollekCloud: "pollek_cloud",
 }
 
 enum PdpKind {
@@ -23,7 +23,7 @@ enum PdpKind {
   CedarHttp: "cedar_http",
   CustomHttp: "custom_http",
   CustomGrpc: "custom_grpc",
-  PollenCloudPdp: "pollen_cloud_pdp",
+  PollekCloudPdp: "pollek_cloud_pdp",
 }
 
 enum PdpRuntimeStatus {
@@ -142,46 +142,46 @@ model SimulationResult {
 @route("/v1/tenants/{tenant_id}/pdp/runtimes")
 interface PdpRuntimeApi {
   @doc("List all PDP runtimes")
-  @get listRuntimes(@path tenant_id: string, ...PollenHeaders): PdpRuntimeListResponse | PollenError;
+  @get listRuntimes(@path tenant_id: string, ...PollekHeaders): PdpRuntimeListResponse | PollekError;
 
   @doc("Get a specific PDP runtime")
-  @get getRuntime(@path tenant_id: string, @path runtime_id: string, ...PollenHeaders): PdpRuntime | PollenError;
+  @get getRuntime(@path tenant_id: string, @path runtime_id: string, ...PollekHeaders): PdpRuntime | PollekError;
 
   @doc("Create or update a PDP runtime")
-  @put upsertRuntime(@path tenant_id: string, @path runtime_id: string, ...PollenHeaders, @body body: PdpRuntime): PdpRuntime | PollenError;
+  @put upsertRuntime(@path tenant_id: string, @path runtime_id: string, ...PollekHeaders, @body body: PdpRuntime): PdpRuntime | PollekError;
 
   @doc("Delete a PDP runtime")
-  @delete deleteRuntime(@path tenant_id: string, @path runtime_id: string, ...PollenHeaders): void | PollenError;
+  @delete deleteRuntime(@path tenant_id: string, @path runtime_id: string, ...PollekHeaders): void | PollekError;
 
   @doc("Probe a PDP runtime for health and capability")
   @route("{runtime_id}/probe")
-  @post probeRuntime(@path tenant_id: string, @path runtime_id: string, ...PollenHeaders, @body input?: unknown): PdpProbeResult | PollenError;
+  @post probeRuntime(@path tenant_id: string, @path runtime_id: string, ...PollekHeaders, @body input?: unknown): PdpProbeResult | PollekError;
 
   @doc("Validate a PDP runtime configuration")
   @route("{runtime_id}/validate")
-  @post validateRuntime(@path tenant_id: string, @path runtime_id: string, ...PollenHeaders): unknown | PollenError;
+  @post validateRuntime(@path tenant_id: string, @path runtime_id: string, ...PollekHeaders): unknown | PollekError;
 
   @doc("Clear cache for a PDP runtime")
   @route("{runtime_id}/clear-cache")
-  @post clearCache(@path tenant_id: string, @path runtime_id: string, ...PollenHeaders): void | PollenError;
+  @post clearCache(@path tenant_id: string, @path runtime_id: string, ...PollekHeaders): void | PollekError;
 }
 
 @tag("PDPConfig")
 @route("/v1/tenants/{tenant_id}/pdp/routes")
 interface PdpRoutingApi {
   @doc("List all PDP route rules")
-  @get listRoutes(@path tenant_id: string, ...PollenHeaders): PdpRouteRuleListResponse | PollenError;
+  @get listRoutes(@path tenant_id: string, ...PollekHeaders): PdpRouteRuleListResponse | PollekError;
 
   @doc("Get a specific PDP route rule")
-  @get getRoute(@path tenant_id: string, @path route_id: string, ...PollenHeaders): PdpRouteRule | PollenError;
+  @get getRoute(@path tenant_id: string, @path route_id: string, ...PollekHeaders): PdpRouteRule | PollekError;
 
   @doc("Create or update a PDP route rule")
-  @put upsertRoute(@path tenant_id: string, @path route_id: string, ...PollenHeaders, @body body: PdpRouteRule): PdpRouteRule | PollenError;
+  @put upsertRoute(@path tenant_id: string, @path route_id: string, ...PollekHeaders, @body body: PdpRouteRule): PdpRouteRule | PollekError;
 
   @doc("Delete a PDP route rule")
-  @delete deleteRoute(@path tenant_id: string, @path route_id: string, ...PollenHeaders): void | PollenError;
+  @delete deleteRoute(@path tenant_id: string, @path route_id: string, ...PollekHeaders): void | PollekError;
 
   @doc("Simulate a routing decision")
   @route("simulate")
-  @post simulateRoute(@path tenant_id: string, ...PollenHeaders, @body body: SimulationRequest): SimulationResult | PollenError;
+  @post simulateRoute(@path tenant_id: string, ...PollekHeaders, @body body: SimulationRequest): SimulationResult | PollekError;
 }

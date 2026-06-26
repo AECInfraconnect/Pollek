@@ -1,6 +1,6 @@
 import "@typespec/http";
 using TypeSpec.Http;
-namespace Pollen.Contract;
+namespace Pollek.Contract;
 
 model ContractDiscoveryResponse {
   schema_version: "contract-discovery.v1";
@@ -12,9 +12,9 @@ model ContractDiscoveryResponse {
 }
 
 @tag("Discovery")
-@route("/.well-known/pollen-contract")
+@route("/.well-known/pollek-contract")
 interface ContractDiscoveryApi {
   @doc("Discover contract capabilities and supported protocol versions.")
   @get
-  getDiscovery(...PollenHeaders): ContractDiscoveryResponse | PollenError;
+  getDiscovery(...PollekHeaders): ContractDiscoveryResponse | PollekError;
 }

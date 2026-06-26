@@ -1,6 +1,6 @@
-# Pollen DEK Compliance Mappings
+# Pollek DEK Compliance Mappings
 
-Pollen DEK helps organizations satisfy emerging AI governance frameworks by enforcing strict agent boundaries and maintaining tamper-evident audit trails.
+Pollek DEK helps organizations satisfy emerging AI governance frameworks by enforcing strict agent boundaries and maintaining tamper-evident audit trails.
 
 ## 1. EU AI Act
 
@@ -24,5 +24,5 @@ Pollen DEK helps organizations satisfy emerging AI governance frameworks by enfo
 To generate a zip file of compliance evidence suitable for auditors:
 
 ```bash
-pollen-dek export-compliance
+pollek-dek export-compliance
 ```

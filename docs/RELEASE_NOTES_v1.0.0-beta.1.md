@@ -27,7 +27,7 @@ sha256sum -c SHA256SUMS
 cosign verify-blob \
   --certificate Pollek-dek-linux-amd64.tar.gz.pem \
   --signature Pollek-dek-linux-amd64.tar.gz.sig \
-  --certificate-identity-regexp "^https://github.com/AECInfraconnect/AntiG_Pollen_DEK/.*" \
+  --certificate-identity-regexp "^https://github.com/AECInfraconnect/Pollek/.*" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   Pollek-dek-linux-amd64.tar.gz
 ```

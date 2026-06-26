@@ -1,8 +1,8 @@
 # ============================================================================
-# packaging/systemd/pollen-dek.service
+# packaging/systemd/pollek-dek.service
 # ============================================================================
 [Unit]
-Description=Pollen DEK Core Supervisor (PEP)
+Description=Pollek DEK Core Supervisor (PEP)
 After=network-online.target
 Wants=network-online.target
 # After too many rapid restarts, systemd marks the unit failed -> OnFailure fires.
@@ -34,14 +34,14 @@ PrivateTmp=true
 
 # systemd creates these with correct ownership/permissions; code reads them via
 # dek-config::paths (which honor the matching env vars).
-ConfigurationDirectory=pollen-dek
-StateDirectory=pollen-dek
-LogsDirectory=pollen-dek
-RuntimeDirectory=pollen-dek
-Environment=DEK_CONFIG_DIR=/etc/pollen-dek
-Environment=DEK_STATE_DIR=/var/lib/pollen-dek
-Environment=DEK_LOG_DIR=/var/log/pollen-dek
-Environment=DEK_RUNTIME_DIR=/run/pollen-dek
+ConfigurationDirectory=pollek-dek
+StateDirectory=pollek-dek
+LogsDirectory=pollek-dek
+RuntimeDirectory=pollek-dek
+Environment=DEK_CONFIG_DIR=/etc/pollek-dek
+Environment=DEK_STATE_DIR=/var/lib/pollek-dek
+Environment=DEK_LOG_DIR=/var/log/pollek-dek
+Environment=DEK_RUNTIME_DIR=/run/pollek-dek
 
 [Install]
 WantedBy=multi-user.target
@@ -50,13 +50,13 @@ WantedBy=multi-user.target
 # ============================================================================
 # packaging/systemd/dek-rollback.service
 # ----------------------------------------------------------------------------
-# Oneshot triggered by pollen-dek.service OnFailure (i.e. after the new binary
+# Oneshot triggered by pollek-dek.service OnFailure (i.e. after the new binary
 # exhausts its restart budget). Runs `dekctl rollback`, which restores the .bak
-# and restarts pollen-dek. Because pollen-dek is stopped at this point, the
+# and restarts pollek-dek. Because pollek-dek is stopped at this point, the
 # binary file is unlocked and the copy succeeds on every OS.
 # ============================================================================
 [Unit]
-Description=Pollen DEK A/B Rollback
+Description=Pollek DEK A/B Rollback
 # Don't let a rollback failure itself trigger another OnFailure loop.
 
 [Service]

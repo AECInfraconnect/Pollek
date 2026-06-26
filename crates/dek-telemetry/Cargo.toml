@@ -31,7 +31,7 @@ aes-gcm = "0.10"
 rand = "0.8"
 keyring = "2"
 hex = "0.4"
-pollen-contract = { path = "../../contracts/generated/rust/pollen-contract" }
+pollek-contract = { path = "../../contracts/generated/rust/pollek-contract" }
 
 [lints]
 workspace = true

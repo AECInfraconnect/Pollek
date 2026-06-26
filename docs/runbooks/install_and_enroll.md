@@ -9,13 +9,13 @@ To successfully deploy the Pollek Local Enforcement Kit on a new Windows host an
 1. **Install MSI Package**
 
    ```powershell
-   msiexec /i PollenDEK.msi /quiet
+   msiexec /i PollekDEK.msi /quiet
    ```
 
 2. **Verify Installation**
 
    ```powershell
-   Get-Service PollenDEK
+   Get-Service PollekDEK
    ```
 
 3. **Execute Enrollment**
@@ -32,4 +32,4 @@ To successfully deploy the Pollek Local Enforcement Kit on a new Windows host an
 
 ## Escalation
 
-If `dekctl doctor` reports MTLS errors, verify that `client.crt` and `client.key` exist in `C:\ProgramData\PollenDEK\certs`. If missing, verify the Pollek Cloud URL and ensure port 43891 is open outbound.
+If `dekctl doctor` reports MTLS errors, verify that `client.crt` and `client.key` exist in `C:\ProgramData\PollekDEK\certs`. If missing, verify the Pollek Cloud URL and ensure port 43891 is open outbound.

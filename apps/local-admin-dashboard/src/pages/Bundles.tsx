@@ -230,7 +230,7 @@ export function Bundles() {
                   Deploy to PEP
                 </button>
                 <div className="rounded-md bg-muted/50 p-3 text-[10px] font-mono break-all text-muted-foreground">
-                  $env:DEK_BUNDLE_PATH="C:\ProgramData\PollenDEK\state\pep_
+                  $env:DEK_BUNDLE_PATH="C:\ProgramData\PollekDEK\state\pep_
                   {pep.id}\active_bundle.json"
                   <br />
                   cargo run -p {pep.cmd}

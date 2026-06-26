@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
-  title: Pollen Cloud-DEK SSE Contract
+  title: Pollek Cloud-DEK SSE Contract
   version: 1.0.0
 servers:
   cloud:
-    host: api.pollen.cloud
+    host: api.pollek.cloud
     protocol: https
   local:
     host: 127.0.0.1:17891

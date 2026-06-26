@@ -15,8 +15,8 @@ pub struct OsServiceManager {
 impl OsServiceManager {
     pub fn new() -> Self {
         Self {
-            service_name: "pollen-dek",
-            unit_path: PathBuf::from("/etc/systemd/system/pollen-dek.service"),
+            service_name: "pollek-dek",
+            unit_path: PathBuf::from("/etc/systemd/system/pollek-dek.service"),
         }
     }
 
@@ -36,7 +36,7 @@ impl ServiceManager for OsServiceManager {
         let exe_path = Self::core_exe_path()?;
         let unit_content = format!(
             r#"[Unit]
-Description=Pollen DEK Core
+Description=Pollek DEK Core
 After=network.target
 StartLimitIntervalSec=60
 StartLimitBurst=3
@@ -47,11 +47,11 @@ ExecStart={}
 Restart=on-failure
 NoNewPrivileges=true
 ProtectSystem=full
-User=pollendek
-Group=pollendek
+User=pollekdek
+Group=pollekdek
 AmbientCapabilities=CAP_BPF CAP_NET_ADMIN
 WatchdogSec=30
-OnFailure=pollen-dek-rollback.service
+OnFailure=pollek-dek-rollback.service
 
 [Install]
 WantedBy=multi-user.target
@@ -61,18 +61,18 @@ WantedBy=multi-user.target
 
         let rollback_unit_content = format!(
             r#"[Unit]
-Description=Pollen DEK Core Rollback
+Description=Pollek DEK Core Rollback
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'if [ -f {exe_path}.bak ]; then mv {exe_path}.bak {exe_path}; fi; rm -f /etc/pollen-dek/update_pending.json; systemctl restart pollen-dek.service'
+ExecStart=/bin/sh -c 'if [ -f {exe_path}.bak ]; then mv {exe_path}.bak {exe_path}; fi; rm -f /etc/pollek-dek/update_pending.json; systemctl restart pollek-dek.service'
 "#,
             exe_path = exe_path.display()
         );
 
         fs::write(&self.unit_path, unit_content)?;
         fs::write(
-            "/etc/systemd/system/pollen-dek-rollback.service",
+            "/etc/systemd/system/pollek-dek-rollback.service",
             rollback_unit_content,
         )?;
         Command::new("systemctl")

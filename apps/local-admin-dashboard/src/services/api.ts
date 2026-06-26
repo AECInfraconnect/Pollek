@@ -178,7 +178,7 @@ export class ControlPlaneClient {
   }
 
   async getContractDiscovery(): Promise<ContractDiscoveryResponse> {
-    const url = `${this.rootUrl}/.well-known/pollen-contract`;
+    const url = `${this.rootUrl}/.well-known/pollek-contract`;
     const res = await fetch(url);
     return parseJsonResponse<ContractDiscoveryResponse>(res, url);
   }

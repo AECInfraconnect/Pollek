@@ -3,7 +3,7 @@ import "@typespec/rest";
 using TypeSpec.Http;
 using TypeSpec.Rest;
 
-namespace Pollen.Contract;
+namespace Pollek.Contract;
 
 enum AiUsageEventKind {
   agent_run_started,
@@ -311,37 +311,37 @@ model AiUsageAgentSummaryQueryParams {
 interface AiUsageApi {
   @doc("Ingest one canonical AI usage event")
   @route("events")
-  @post ingestUsageEvent(@path tenant_id: string, ...PollenHeaders, @body body: AiUsageEventV1): { item: AiUsageEventV1 } | PollenError;
+  @post ingestUsageEvent(@path tenant_id: string, ...PollekHeaders, @body body: AiUsageEventV1): { item: AiUsageEventV1 } | PollekError;
 
   @doc("Ingest canonical AI usage events in batch")
   @route("events/batch")
-  @post ingestUsageEventsBatch(@path tenant_id: string, ...PollenHeaders, @body body: AiUsageBatchIngestRequestV1): AiUsageBatchIngestResponseV1 | PollenError;
+  @post ingestUsageEventsBatch(@path tenant_id: string, ...PollekHeaders, @body body: AiUsageBatchIngestRequestV1): AiUsageBatchIngestResponseV1 | PollekError;
 
   @doc("List canonical AI usage events")
   @route("events")
-  @get listUsageEvents(@path tenant_id: string, ...PollenHeaders, ...AiUsageQueryParams): AiUsageEventPageV1 | PollenError;
+  @get listUsageEvents(@path tenant_id: string, ...PollekHeaders, ...AiUsageQueryParams): AiUsageEventPageV1 | PollekError;
 
   @doc("Get canonical AI usage summary")
   @route("summary")
-  @get getUsageSummary(@path tenant_id: string, ...PollenHeaders, ...AiUsageSummaryQueryParams): AiUsageSummaryV1 | PollenError;
+  @get getUsageSummary(@path tenant_id: string, ...PollekHeaders, ...AiUsageSummaryQueryParams): AiUsageSummaryV1 | PollekError;
 
   @doc("Get canonical AI usage summary for one agent")
   @route("agents/{agent_id}")
-  @get getAgentUsageSummary(@path tenant_id: string, @path agent_id: string, ...PollenHeaders, ...AiUsageAgentSummaryQueryParams): AiUsageSummaryV1 | PollenError;
+  @get getAgentUsageSummary(@path tenant_id: string, @path agent_id: string, ...PollekHeaders, ...AiUsageAgentSummaryQueryParams): AiUsageSummaryV1 | PollekError;
 
   @doc("List canonical AI usage ledger events")
   @route("ledger")
-  @get getUsageLedger(@path tenant_id: string, ...PollenHeaders, ...AiUsageQueryParams): AiUsageLedgerV1 | PollenError;
+  @get getUsageLedger(@path tenant_id: string, ...PollekHeaders, ...AiUsageQueryParams): AiUsageLedgerV1 | PollekError;
 
   @doc("List AI budget policies")
   @route("budgets")
-  @get listUsageBudgets(@path tenant_id: string, ...PollenHeaders): AiBudgetLimitListV1 | PollenError;
+  @get listUsageBudgets(@path tenant_id: string, ...PollekHeaders): AiBudgetLimitListV1 | PollekError;
 
   @doc("Upsert an AI budget policy")
   @route("budgets/{budget_id}")
-  @put upsertUsageBudget(@path tenant_id: string, @path budget_id: string, ...PollenHeaders, @body body: AiBudgetLimitV1): { item: AiBudgetLimitV1 } | PollenError;
+  @put upsertUsageBudget(@path tenant_id: string, @path budget_id: string, ...PollekHeaders, @body body: AiBudgetLimitV1): { item: AiBudgetLimitV1 } | PollekError;
 
   @doc("Accept provider billing reconciliation metadata")
   @route("reconcile")
-  @post reconcileUsage(@path tenant_id: string, ...PollenHeaders, @body body: unknown): AiUsageReconcileResponseV1 | PollenError;
+  @post reconcileUsage(@path tenant_id: string, ...PollekHeaders, @body body: unknown): AiUsageReconcileResponseV1 | PollekError;
 }

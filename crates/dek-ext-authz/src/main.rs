@@ -203,7 +203,7 @@ impl Authorization for ExtAuthzService {
             let check_res = CheckResponse {
                 status: Some(EnvoyStatus {
                     code: 0, // OK
-                    message: "Allowed by Pollen DEK".to_string(),
+                    message: "Allowed by Pollek DEK".to_string(),
                     details: vec![],
                 }),
                 http_response: Some(HttpResponse::OkResponse(ok_response)),
@@ -216,7 +216,7 @@ impl Authorization for ExtAuthzService {
                     code: 403, // Forbidden
                 }),
                 headers: vec![],
-                body: format!("Access Denied by Pollen DEK: {}", decision.reason),
+                body: format!("Access Denied by Pollek DEK: {}", decision.reason),
             };
 
             let check_res = CheckResponse {
@@ -249,7 +249,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     metrics_exporter_prometheus::PrometheusBuilder::new()
         .install_recorder()
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
-    info!("Starting Pollen DEK Envoy ext_authz Server...");
+    info!("Starting Pollek DEK Envoy ext_authz Server...");
 
     let bootstrap =
         BootstrapConfig::load_or_default("bootstrap.json").unwrap_or_else(|_| BootstrapConfig {
@@ -288,7 +288,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let telemetry_db = dek_config::paths::get_data_dir().join("telemetry-ext-authz.db");
     let telemetry_sink = dek_telemetry::CloudTelemetrySink::new(
-        "https://telemetry.pollen-cloud.internal",
+        "https://telemetry.pollek-cloud.internal",
         &bootstrap.mtls,
         None,
         &telemetry_db.to_string_lossy(),

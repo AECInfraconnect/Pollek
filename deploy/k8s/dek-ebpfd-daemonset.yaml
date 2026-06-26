@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: pollen-dek-ebpfd
+  name: pollek-dek-ebpfd
   namespace: kube-system
   labels:
-    app: pollen-dek-ebpfd
+    app: pollek-dek-ebpfd
 spec:
   selector:
     matchLabels:
-      app: pollen-dek-ebpfd
+      app: pollek-dek-ebpfd
   template:
     metadata:
       labels:
-        app: pollen-dek-ebpfd
+        app: pollek-dek-ebpfd
     spec:
       hostNetwork: true
       hostPID: true
       containers:
         - name: dek-ebpfd
-          image: pollen/dek-ebpfd:v0.1.0
+          image: pollek/dek-ebpfd:v0.1.0
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
@@ -35,7 +35,7 @@ spec:
               mountPath: /sys/fs/cgroup
           env:
             - name: CGROUP_PATH
-              value: "/sys/fs/cgroup/pollen-dek-supervised"
+              value: "/sys/fs/cgroup/pollek-dek-supervised"
       volumes:
         - name: sys-fs-bpf
           hostPath:

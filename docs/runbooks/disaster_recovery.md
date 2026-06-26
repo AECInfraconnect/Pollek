@@ -10,9 +10,9 @@ This runbook provides the procedure for recovering a Pollek Local Enforcement Ki
 2. Click **Revoke Device Identity**. This will blacklist the device's mTLS certificate and SVID.
 3. On the compromised endpoint, stop the Pollek Local Enforcement Kit Core service:
    - **Linux**: `systemctl stop Pollek-dek-core`
-   - **Windows**: `Stop-Service PollenDEKCore`
+   - **Windows**: `Stop-Service PollekDEKCore`
 4. Wipe the local Keystore and Data Directory:
-   - Delete all contents of `/etc/Pollek-Local Enforcement Kit/` or `C:\ProgramData\PollenDEK\`.
+   - Delete all contents of `/etc/Pollek-Local Enforcement Kit/` or `C:\ProgramData\PollekDEK\`.
 5. Generate a new enrollment token from the Cloud Management Console.
 6. Run `dek-enroll` with the new token to establish a fresh cryptographic identity.
 

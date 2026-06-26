@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct PollenPolicyBundle {
+pub struct PollekPolicyBundle {
     pub api_version: String,
     pub kind: String,
     pub metadata: BundleMetadata,

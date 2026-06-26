@@ -278,7 +278,7 @@ export interface BlackboxAiProvider {
 export type PdpRuntimeCategory =
   | "local_engine"
   | "remote_connector"
-  | "pollen_cloud";
+  | "pollek_cloud";
 
 export type PdpKind =
   | "policy_router"
@@ -290,7 +290,7 @@ export type PdpKind =
   | "cedar_http"
   | "custom_http"
   | "custom_grpc"
-  | "pollen_cloud_pdp";
+  | "pollek_cloud_pdp";
 
 export type PdpRuntimeStatus =
   | "installed"

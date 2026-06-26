@@ -1,5 +1,5 @@
 #!/bin/bash
-echo -e "\033[0;36mStarting Pollen DEK Local Control Plane...\033[0m"
+echo -e "\033[0;36mStarting Pollek DEK Local Control Plane...\033[0m"
 
 if [ ! -d "apps/local-admin-dashboard/dist" ]; then
     echo -e "\033[0;33mBuilding Local Admin Dashboard for the first time...\033[0m"

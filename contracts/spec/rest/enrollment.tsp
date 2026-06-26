@@ -1,3 +1,3 @@
-namespace Pollen.Contract;
+namespace Pollek.Contract;
 
 // Stub for Enrollment API definition

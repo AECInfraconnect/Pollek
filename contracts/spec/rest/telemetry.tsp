@@ -1,6 +1,6 @@
 import "@typespec/http";
 using TypeSpec.Http;
-namespace Pollen.Contract;
+namespace Pollek.Contract;
 
 model TelemetryEnvelope<T> {
   schema_version: "telemetry-envelope.v1";
@@ -180,20 +180,20 @@ model IdentityInventoryPage { schema_version: "identity-inventory.v1"; items: Ob
 @tag("Telemetry")
 interface TelemetryApi {
   @route("/v1/telemetry/batches") @post
-  ingestBatch(...PollenHeaders, @body body: TelemetryBatchRequest): TelemetryIngestResponse | PollenError;
+  ingestBatch(...PollekHeaders, @body body: TelemetryBatchRequest): TelemetryIngestResponse | PollekError;
 
   @route("/v1/telemetry/observations") @get
-  listObservations(...PollenHeaders, ...ObservationQuery): ObservationPage | PollenError;
+  listObservations(...PollekHeaders, ...ObservationQuery): ObservationPage | PollekError;
 
   @route("/v1/telemetry/enforcement-status") @get
-  enforcementStatus(...PollenHeaders, @query agent_id?: string): EnforcementStatusList | PollenError;
+  enforcementStatus(...PollekHeaders, @query agent_id?: string): EnforcementStatusList | PollekError;
 
   @route("/v1/telemetry/resources") @get
-  resources(...PollenHeaders, @query agent_id?: string, @query scope?: AccessScope): ResourceInventoryPage | PollenError;
+  resources(...PollekHeaders, @query agent_id?: string, @query scope?: AccessScope): ResourceInventoryPage | PollekError;
 
   @route("/v1/telemetry/tools") @get
-  tools(...PollenHeaders, @query agent_id?: string): ToolInventoryPage | PollenError;
+  tools(...PollekHeaders, @query agent_id?: string): ToolInventoryPage | PollekError;
 
   @route("/v1/telemetry/identities") @get
-  identities(...PollenHeaders, @query agent_id?: string, @query scope?: AccessScope): IdentityInventoryPage | PollenError;
+  identities(...PollekHeaders, @query agent_id?: string, @query scope?: AccessScope): IdentityInventoryPage | PollekError;
 }

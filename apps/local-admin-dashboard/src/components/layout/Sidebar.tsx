@@ -4,8 +4,9 @@ import { cn } from "@/lib/utils";
 import { NAV } from "../../config/navigation";
 import { useMode } from "../../context/ModeContext";
 import { ModeSwitcher } from "./ModeSwitcher";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { ChevronLeft, X } from "lucide-react";
+import { appModeLabel } from "../../lib/modes";
 
 export function Sidebar({
   mobileMenuOpen,
@@ -18,6 +19,8 @@ export function Sidebar({
   const { pathname } = useLocation();
   const { i18n } = useTranslation();
   const th = i18n.language === "th";
+  const navRef = useRef<HTMLElement | null>(null);
+  const navScrollTop = useRef(0);
 
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem("pollek.sidebar.collapsed") === "true";
@@ -35,8 +38,43 @@ export function Sidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  const SidebarContent = () => (
+  useLayoutEffect(() => {
+    if (navRef.current) {
+      navRef.current.scrollTop = navScrollTop.current;
+    }
+  }, [pathname, mode, collapsed]);
+
+  const modeBadge = (modes: string[]) => {
+    if (!modes.includes("desktop_simple")) {
+      return modes.includes("enterprise_cloud") &&
+        !modes.includes("desktop_advanced")
+        ? appModeLabel("enterprise_cloud")
+        : appModeLabel("desktop_advanced");
+    }
+    return null;
+  };
+
+  return (
     <>
+      {/* Mobile Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileMenuOpen?.(false)}
+        />
+      )}
+
+      {/* Sidebar Container */}
+      <aside
+        aria-label="Main navigation"
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r border-border bg-card/95 backdrop-blur-xl transition-all duration-300 md:static",
+          collapsed ? "w-20" : "w-64",
+          mobileMenuOpen
+            ? "translate-x-0"
+            : "-translate-x-full md:translate-x-0",
+        )}
+      >
       <div
         className={cn(
           "flex h-16 shrink-0 flex-col justify-center border-b border-border transition-all",
@@ -69,7 +107,13 @@ export function Sidebar({
         </div>
       </div>
 
-      <nav className="flex-1 space-y-7 overflow-y-auto px-3 py-5 no-scrollbar">
+      <nav
+        ref={navRef}
+        onScroll={(event) => {
+          navScrollTop.current = event.currentTarget.scrollTop;
+        }}
+        className="flex-1 space-y-7 overflow-y-auto px-3 py-5 no-scrollbar"
+      >
         {NAV.map((group) => {
           const items = group.items.filter((i) => i.modes.includes(mode));
           if (!items.length) return null;
@@ -90,17 +134,25 @@ export function Sidebar({
                     pathname === item.href ||
                     (item.href !== "/" && pathname.startsWith(item.href));
                   const Icon = item.icon;
+                  const badge = modeBadge(item.modes);
                   return (
                     <Link
                       key={item.id}
                       to={item.href}
-                      title={collapsed ? (th ? item.th : item.en) : undefined}
+                      title={
+                        collapsed
+                          ? `${th ? item.th : item.en}${badge ? ` (${badge})` : ""}`
+                          : undefined
+                      }
                       aria-current={active ? "page" : undefined}
                       className={cn(
                         "relative flex items-center rounded-lg py-2 text-sm transition focus-visible:ring-2 focus-visible:ring-primary",
                         collapsed
                           ? "justify-center px-0 w-10 mx-auto"
                           : "gap-3 px-3 w-full",
+                        badge &&
+                          !collapsed &&
+                          "ml-2 w-[calc(100%-0.5rem)] border-l border-border/70 pl-4",
                         item.primary &&
                           !active &&
                           "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20",
@@ -118,9 +170,16 @@ export function Sidebar({
                         )}
                       />
                       {!collapsed && (
-                        <span className="truncate">
-                          {th ? item.th : item.en}
-                        </span>
+                        <>
+                          <span className="min-w-0 flex-1 truncate">
+                            {th ? item.th : item.en}
+                          </span>
+                          {badge && (
+                            <span className="shrink-0 rounded border border-border bg-background/70 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+                              {badge}
+                            </span>
+                          )}
+                        </>
                       )}
                     </Link>
                   );
@@ -163,31 +222,6 @@ export function Sidebar({
           <ModeSwitcher collapsed={collapsed} />
         </div>
       </div>
-    </>
-  );
-
-  return (
-    <>
-      {/* Mobile Backdrop */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
-          onClick={() => setMobileMenuOpen?.(false)}
-        />
-      )}
-
-      {/* Sidebar Container */}
-      <aside
-        aria-label="Main navigation"
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r border-border bg-card/95 backdrop-blur-xl transition-all duration-300 md:static",
-          collapsed ? "w-20" : "w-64",
-          mobileMenuOpen
-            ? "translate-x-0"
-            : "-translate-x-full md:translate-x-0",
-        )}
-      >
-        <SidebarContent />
       </aside>
     </>
   );

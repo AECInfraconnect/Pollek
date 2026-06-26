@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "Setting up Git hooks for Pollen DEK..."
+echo "Setting up Git hooks for Pollek DEK..."
 git config core.hooksPath .githooks
 
 echo "Making hooks executable..."

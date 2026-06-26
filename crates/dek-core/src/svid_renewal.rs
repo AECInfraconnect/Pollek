@@ -345,7 +345,7 @@ mod tests {
         axum::extract::State(st): axum::extract::State<Arc<MockState>>,
         axum::Json(req): axum::Json<RenewReq>,
     ) -> axum::Json<serde_json::Value> {
-        let spiffe = format!("spiffe://pollen.test/tenant/device/{}", req.device_id);
+        let spiffe = format!("spiffe://pollek.test/tenant/device/{}", req.device_id);
         let cert = sign_csr(&st.ca_pem, &st.ca_key_pem, &req.csr_pem, &spiffe, 2);
         axum::Json(serde_json::json!({
             "svid_cert_pem": cert, "spiffe_id": spiffe, "trust_bundle_pem": st.ca_pem
@@ -362,7 +362,7 @@ mod tests {
     fn make_ca() -> (rcgen::Certificate, rcgen::KeyPair) {
         let _g = CA_LOCK.lock().unwrap(); //
         use rcgen::{BasicConstraints, CertificateParams, IsCa, KeyUsagePurpose};
-        let mut p = CertificateParams::new(vec!["Pollen Test Root CA".to_string()]).unwrap(); //
+        let mut p = CertificateParams::new(vec!["Pollek Test Root CA".to_string()]).unwrap(); //
         p.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
         p.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
         let key_pair = rcgen::KeyPair::generate_for(&rcgen::PKCS_ECDSA_P256_SHA256).unwrap(); //

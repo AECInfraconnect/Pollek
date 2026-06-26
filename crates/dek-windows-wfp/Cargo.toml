@@ -5,8 +5,8 @@ name = "dek-windows-wfp"
 version = "0.1.0"
 edition = "2021"
 
-authors = ["Pollen Cloud Team <team@pollen.cloud>"]
-description = "Windows Filtering Platform (WFP) adapter for Pollen DEK network guardrails"
+authors = ["Pollek Cloud Team <team@pollek.cloud>"]
+description = "Windows Filtering Platform (WFP) adapter for Pollek DEK network guardrails"
 
 [dependencies]
 dek-domain-schema = { path = "../dek-domain-schema" }

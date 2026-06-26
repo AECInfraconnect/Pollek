@@ -6,6 +6,7 @@ import { statusToken, type UiStatus } from "../lib/status";
 import { cn } from "@/lib/utils";
 import { useMode } from "../context/ModeContext";
 import type { RuntimeModeV2 } from "../services/types";
+import { appModeToRuntimeMode } from "../lib/modes";
 
 function statusFor(ok: boolean, degraded = false): UiStatus {
   if (ok) return "ok";
@@ -42,8 +43,7 @@ function HealthTile({
 
 export function Health() {
   const { mode } = useMode();
-  const runtimeMode: RuntimeModeV2 =
-    mode === "enterprise" ? "enterprise_server" : (mode as RuntimeModeV2);
+  const runtimeMode: RuntimeModeV2 = appModeToRuntimeMode(mode);
   const [contract, setContract] = useState<ContractDiscoveryResponse | null>(
     null,
   );

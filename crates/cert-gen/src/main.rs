@@ -17,14 +17,14 @@ fn main() -> Result<()> {
     }
 
     // 1. Generate Root CA
-    let mut root_params = CertificateParams::new(vec!["Pollen Cloud Root CA".to_string()])?;
+    let mut root_params = CertificateParams::new(vec!["Pollek Cloud Root CA".to_string()])?;
     root_params.is_ca = IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
     root_params
         .distinguished_name
-        .push(DnType::OrganizationName, "Pollen DEK Project");
+        .push(DnType::OrganizationName, "Pollek DEK Project");
     root_params
         .distinguished_name
-        .push(DnType::CommonName, "Pollen Cloud Root CA");
+        .push(DnType::CommonName, "Pollek Cloud Root CA");
     let root_kp = rcgen::KeyPair::generate()?;
     let root_cert = root_params.self_signed(&root_kp)?;
 
@@ -37,10 +37,10 @@ fn main() -> Result<()> {
         CertificateParams::new(vec!["localhost".to_string(), "127.0.0.1".to_string()])?;
     server_params
         .distinguished_name
-        .push(DnType::OrganizationName, "Pollen DEK Project");
+        .push(DnType::OrganizationName, "Pollek DEK Project");
     server_params
         .distinguished_name
-        .push(DnType::CommonName, "Pollen Mock Cloud Server");
+        .push(DnType::CommonName, "Pollek Mock Cloud Server");
     let server_kp = rcgen::KeyPair::generate()?;
     let server_cert = server_params.signed_by(&server_kp, &root_cert, &root_kp)?;
 
@@ -52,7 +52,7 @@ fn main() -> Result<()> {
     let mut client_params = CertificateParams::new(vec!["dek-client".to_string()])?;
     client_params
         .distinguished_name
-        .push(DnType::OrganizationName, "Pollen DEK Project");
+        .push(DnType::OrganizationName, "Pollek DEK Project");
     client_params
         .distinguished_name
         .push(DnType::CommonName, "DEK Edge Client");

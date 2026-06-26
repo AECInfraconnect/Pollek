@@ -5,8 +5,8 @@ name = "dek-core"
 version = "0.1.0"
 edition = "2021"
 
-authors = ["Pollen DEK Team"]
-description = "Pollen DEK Supervisor and Agent"
+authors = ["Pollek DEK Team"]
+description = "Pollek DEK Supervisor and Agent"
 
 [features]
 default = ["full"]
@@ -105,8 +105,8 @@ dek-macos-nefilter = { path = "../dek-macos-nefilter", optional = true }
 workspace = true
 
 [package.metadata.deb]
-maintainer = "Pollen DEK Team"
-copyright = "2026 Pollen"
+maintainer = "Pollek DEK Team"
+copyright = "2026 Pollek"
 license-file = ["../../LICENSE", "4"]
 depends = "$auto"
 compression-type = "xz"
@@ -116,7 +116,7 @@ assets = [
     ["target/release/dek-core", "usr/bin/", "755"],
     ["target/release/dek-mcp-proxy", "usr/bin/", "755"],
     ["target/release/dek-updater", "usr/bin/", "755"],
-    ["../../packaging/linux/pollen-dek.service", "lib/systemd/system/pollen-dek.service", "644"]
+    ["../../packaging/linux/pollek-dek.service", "lib/systemd/system/pollek-dek.service", "644"]
 ]
 maintainer-scripts = "../../packaging/linux/scripts"
 

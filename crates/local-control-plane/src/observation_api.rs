@@ -50,7 +50,7 @@ async fn ingest_observation(
     }
 
     // 4. Calculate V1 Cost Ledger Entry and bridge to canonical V2 usage.
-    let catalog_path = std::path::PathBuf::from("pollen-local-data/price_catalog.v1.json");
+    let catalog_path = std::path::PathBuf::from("pollek-local-data/price_catalog.v1.json");
     let catalog: dek_agent_observer::cost::PriceCatalog = if catalog_path.exists() {
         let content = std::fs::read_to_string(&catalog_path).unwrap_or_default();
         serde_json::from_str(&content).unwrap_or_else(|_| dek_agent_observer::cost::PriceCatalog {

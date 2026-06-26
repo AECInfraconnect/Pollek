@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-    <Product Id="*" Name="Pollen DEK" Language="1033" Version="1.0.0.0" Manufacturer="Pollen" UpgradeCode="a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d">
+    <Product Id="*" Name="Pollek DEK" Language="1033" Version="1.0.0.0" Manufacturer="Pollek" UpgradeCode="a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d">
         <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
-        <MajorUpgrade DowngradeErrorMessage="A newer version of Pollen DEK is already installed." />
+        <MajorUpgrade DowngradeErrorMessage="A newer version of Pollek DEK is already installed." />
         <MediaTemplate EmbedCab="yes" />
 
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="ProgramFilesFolder">
-                <Directory Id="INSTALLFOLDER" Name="PollenDEK" />
+                <Directory Id="INSTALLFOLDER" Name="PollekDEK" />
             </Directory>
             <Directory Id="CommonAppDataFolder">
-                <Directory Id="DATAFOLDER" Name="PollenDEK" />
+                <Directory Id="DATAFOLDER" Name="PollekDEK" />
             </Directory>
         </Directory>
 
         <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
             <Component Id="DekCoreExe" Guid="*">
                 <File Id="dek_core_exe" Source="target\release\dek-core.exe" KeyPath="yes" />
-                <ServiceInstall Id="ServiceInstaller" Type="ownProcess" Name="PollenDEKCore" DisplayName="Pollen DEK Core Service" Description="Pollen Distributed Enforcement Kernel" Start="auto" Account="LocalSystem" ErrorControl="normal" />
-                <ServiceControl Id="StartService" Stop="both" Remove="uninstall" Name="PollenDEKCore" Wait="yes" />
+                <ServiceInstall Id="ServiceInstaller" Type="ownProcess" Name="PollekDEKCore" DisplayName="Pollek DEK Core Service" Description="Pollek Distributed Enforcement Kernel" Start="auto" Account="LocalSystem" ErrorControl="normal" />
+                <ServiceControl Id="StartService" Stop="both" Remove="uninstall" Name="PollekDEKCore" Wait="yes" />
             </Component>
             <Component Id="DekMcpProxyExe" Guid="*">
                 <File Id="dek_mcp_proxy_exe" Source="target\release\dek-mcp-proxy.exe" KeyPath="yes" />
@@ -28,7 +28,7 @@
             </Component>
         </ComponentGroup>
 
-        <Feature Id="ProductFeature" Title="Pollen DEK Core" Level="1">
+        <Feature Id="ProductFeature" Title="Pollek DEK Core" Level="1">
             <ComponentGroupRef Id="ProductComponents" />
         </Feature>
     </Product>

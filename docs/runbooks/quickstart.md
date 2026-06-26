@@ -1,6 +1,6 @@
-# Pollen DEK Quickstart
+# Pollek DEK Quickstart
 
-This guide will walk you through the process of setting up and running Pollen DEK.
+This guide will walk you through the process of setting up and running Pollek DEK.
 
 ## Prerequisites
 
@@ -28,27 +28,27 @@ sudo ./scripts/install.sh
 After installation, the First-Run Wizard will be launched automatically. Or you can trigger it manually:
 
 ```bash
-pollen-dek wizard
+pollek-dek wizard
 ```
 
 This will launch a local web UI where you can:
 
 1. Accept the EULA and Privacy Notice.
-2. Select your Deployment Profile (Sovereign Mode vs Cloud-Managed).
+2. Select your operating mode: Simple, Advance, or Enterprise Cloud after Pollek Cloud connects successfully.
 3. Authorize the first scan of local AI agents.
 
 Alternatively, you can accept the agreements via the CLI:
 
 ```bash
-pollen-dek agree
+pollek-dek agree
 ```
 
-## Sovereign Mode (Air-Gap Ready)
+## Local-Only Operation (Air-Gap Ready)
 
-Pollen DEK can run completely locally with no outbound internet connection. To enable this:
+Pollek DEK can run completely locally with no outbound internet connection. To enable this:
 
 ```bash
-pollen-dek profile set local
+pollek-dek profile set local
 ```
 
 This will configure the DEK to not send telemetry to the cloud and block egress data exfiltration.
@@ -58,14 +58,14 @@ This will configure the DEK to not send telemetry to the cloud and block egress 
 To check if the DEK is healthy and running:
 
 ```bash
-pollen-dek status
-pollen-dek health
+pollek-dek status
+pollek-dek health
 ```
 
 To run diagnostic checks on your environment:
 
 ```bash
-pollen-dek doctor
+pollek-dek doctor
 ```
 
 ## Exporting Compliance Evidence
@@ -73,5 +73,5 @@ pollen-dek doctor
 If you are undergoing an audit (e.g. EU AI Act, NIST AI RMF, ISO 42001), you can export a compliance evidence pack containing tamper-evident audit logs:
 
 ```bash
-pollen-dek export-compliance
+pollek-dek export-compliance
 ```

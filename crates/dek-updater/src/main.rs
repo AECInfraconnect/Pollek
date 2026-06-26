@@ -25,7 +25,7 @@ pub fn http_client() -> ureq::Agent {
 }
 
 #[derive(Parser)]
-#[command(name = "dek-updater", about = "Pollen DEK Auto-Updater")]
+#[command(name = "dek-updater", about = "Pollek DEK Auto-Updater")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

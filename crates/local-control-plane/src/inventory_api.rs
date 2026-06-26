@@ -10,7 +10,7 @@ use dek_agent_observer::aggregate::{
     aggregate_identities, aggregate_resources, aggregate_tools, ObservedIdentity, ObservedResource,
     ObservedTool,
 };
-use pollen_contract::{IdentityAccessPayload, ResourceAccessPayload, ToolUsagePayload};
+use pollek_contract::{IdentityAccessPayload, ResourceAccessPayload, ToolUsagePayload};
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;

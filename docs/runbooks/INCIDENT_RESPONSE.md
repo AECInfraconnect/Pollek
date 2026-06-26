@@ -12,7 +12,7 @@
 
 Access the host and tail the logs:
 
-- **Windows**: `Get-EventLog -LogName Application -Source PollenDEK` or check `C:\ProgramData\PollenDEK\logs\`
+- **Windows**: `Get-EventLog -LogName Application -Source PollekDEK` or check `C:\ProgramData\PollekDEK\logs\`
 - **Linux**: `journalctl -u Pollek-dek-core -f`
 
 ### 2. Verify mTLS Connection
@@ -22,7 +22,7 @@ Run `dek-cli status` to verify certificate expiration and Spire agent health.
 
 ### 3. Check Active Bundle
 
-Inspect the `active_bundle.json` at `/etc/Pollek-Local Enforcement Kit/` (Linux) or `C:\ProgramData\PollenDEK\` (Windows).
+Inspect the `active_bundle.json` at `/etc/Pollek-Local Enforcement Kit/` (Linux) or `C:\ProgramData\PollekDEK\` (Windows).
 Validate the bundle schema using:
 `dek-cli validate-bundle --path /etc/Pollek-Local Enforcement Kit/active_bundle.json`
 

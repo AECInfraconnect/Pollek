@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-เอกสารนี้ออกแบบ **Policy Enforcement Flows** ของระบบ Pollek Local Enforcement Kit ตั้งแต่การสร้าง Policy บน Pollek Cloud / Mock-Cloud / Local Dashboard ไปจนถึงการ compile, validate, deploy, hot reload, enforce และ audit บน Local Enforcement Kit runtime จริง โดยออกแบบให้เข้ากับ repository ปัจจุบันของ `AECInfraconnect/AntiG_Pollen_DEK` ให้มากที่สุด
+เอกสารนี้ออกแบบ **Policy Enforcement Flows** ของระบบ Pollek Local Enforcement Kit ตั้งแต่การสร้าง Policy บน Pollek Cloud / Mock-Cloud / Local Dashboard ไปจนถึงการ compile, validate, deploy, hot reload, enforce และ audit บน Local Enforcement Kit runtime จริง โดยออกแบบให้เข้ากับ repository ปัจจุบันของ `AECInfraconnect/Pollek` ให้มากที่สุด
 
 จาก repo ล่าสุด Pollek Local Enforcement Kit มีโครงสร้างที่เหมาะกับแนวทางนี้อยู่แล้ว ได้แก่:
 
@@ -791,7 +791,7 @@ bundle.tar.gz
 ```json
 {
   "apiVersion": "<your-cloud-domain>/v1alpha1",
-  "kind": "PollenPolicyBundle",
+  "kind": "PollekPolicyBundle",
   "metadata": {
     "bundle_id": "bundle-20260610-001",
     "tenant": "tenant:acme",
@@ -1090,7 +1090,7 @@ Use `dek-ebpfd`:
 
 ```c
 SEC("cgroup/connect4")
-int pollen_connect4(struct bpf_sock_addr *ctx) {
+int pollek_connect4(struct bpf_sock_addr *ctx) {
     struct l4_key key = {};
     key.dst_ip = ctx->user_ip4;
     key.dst_port = bpf_ntohs(ctx->user_port);
@@ -1140,13 +1140,13 @@ Use `dek-macos-nefilter`:
 - use metadata-first enforcement; avoid payload exfiltration and TLS MITM in beta
 
 ```swift
-final class PollenFilterDataProvider: NEFilterDataProvider {
+final class PollekFilterDataProvider: NEFilterDataProvider {
     override func handleNewFlow(_ flow: NEFilterFlow) -> NEFilterNewFlowVerdict {
         guard let socketFlow = flow as? NEFilterSocketFlow else {
             return .allow()
         }
 
-        let decision = PollenPolicyCache.shared.decide(flow: socketFlow)
+        let decision = PollekPolicyCache.shared.decide(flow: socketFlow)
         switch decision {
         case .allow:
             return .allow()
@@ -1682,16 +1682,16 @@ For Pollek Cloud AI Policy Editor:
 ### 24.1 Required metrics
 
 ```text
-pollen_policy_compile_total{target,status}
-pollen_policy_bundle_download_total{status}
-pollen_policy_bundle_activation_total{status}
-pollen_policy_decision_total{pep,pdp,effect}
-pollen_policy_decision_latency_ms{pep,pdp}
-pollen_policy_router_evaluator_timeout_total{pdp}
-pollen_os_l4_flow_total{os,provider,effect}
-pollen_os_l4_map_pressure_ratio{map}
-pollen_telemetry_spool_bytes{encrypted}
-pollen_policy_rollback_total{reason}
+pollek_policy_compile_total{target,status}
+pollek_policy_bundle_download_total{status}
+pollek_policy_bundle_activation_total{status}
+pollek_policy_decision_total{pep,pdp,effect}
+pollek_policy_decision_latency_ms{pep,pdp}
+pollek_policy_router_evaluator_timeout_total{pdp}
+pollek_os_l4_flow_total{os,provider,effect}
+pollek_os_l4_map_pressure_ratio{map}
+pollek_telemetry_spool_bytes{encrypted}
+pollek_policy_rollback_total{reason}
 ```
 
 ### 24.2 Required audit events

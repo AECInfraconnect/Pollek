@@ -1,5 +1,5 @@
 #!/bin/sh
 set -e
 systemctl daemon-reload || true
-systemctl enable pollen-dek || true
-systemctl restart pollen-dek || true
+systemctl enable pollek-dek || true
+systemctl restart pollek-dek || true

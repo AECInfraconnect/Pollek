@@ -1,6 +1,6 @@
 use crate::control_method::{AgentRef, CompiledRules, ControlMethod, TelemetrySink};
 use async_trait::async_trait;
-use pollen_contract::{
+use pollek_contract::{
     AgentObservationPayloadControlMethod, EnforcementResultPayload,
     EnforcementResultPayloadControlMethod, EnforcementResultPayloadDomain,
     EnforcementResultPayloadEffectiveLevel, EnforcementResultPayloadPlaneState,

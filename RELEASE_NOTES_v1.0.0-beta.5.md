@@ -9,7 +9,7 @@ We are excited to announce Pollek Local Enforcement Kit `v1.0.0-beta.5`. This re
 - **Connector Health Checks:** Test connectivity to external PDP backends (OPA, OpenFGA, Cedar) via the Local Admin Dashboard settings.
 - **Failover Enhancements:** Control PDP pool selections with `ManualOverride` capabilities and fine-grained `auto_recovery_delay` settings on circuit breakers.
 - **Internationalization Readiness:** Native support for English and Thai language localizations across the dashboard UI.
-- **Contract Schema Fixes:** Re-aligned `DecisionResult` and `PollenError` with `adapter_results`, `obligations` properties. `latency_ms` has been safely cast to `i64`.
+- **Contract Schema Fixes:** Re-aligned `DecisionResult` and `PollekError` with `adapter_results`, `obligations` properties. `latency_ms` has been safely cast to `i64`.
 - **MSRV Enforced:** Minimum Supported Rust Version (MSRV) raised to `1.85`.
 
 ## Upgrading

@@ -1,8 +1,7 @@
 export type ProductMode =
   | "desktop_simple"
   | "desktop_advanced"
-  | "enterprise_server"
-  | "sovereign_airgap";
+  | "enterprise_cloud";
 
 export type NavItemId =
   | "overview"
@@ -41,44 +40,42 @@ export interface NavItem {
   requiresAdvanced?: boolean;
 }
 
+const ALL_MODES: ProductMode[] = [
+  "desktop_simple",
+  "desktop_advanced",
+  "enterprise_cloud",
+];
+const ADVANCE_MODES: ProductMode[] = ["desktop_advanced", "enterprise_cloud"];
+const ENTERPRISE_CLOUD_MODES: ProductMode[] = ["enterprise_cloud"];
+
 export const NAV_ITEMS: NavItem[] = [
   {
     id: "overview",
     label: { en: "Overview", th: "ภาพรวม" },
     path: "/",
     icon: "layout-dashboard",
-    modes: [
-      "desktop_simple",
-      "desktop_advanced",
-      "enterprise_server",
-      "sovereign_airgap",
-    ],
+    modes: ALL_MODES,
   },
   {
     id: "scan",
     label: { en: "Scan This Device", th: "สแกนเครื่องนี้" },
     path: "/scan",
     icon: "radar",
-    modes: ["desktop_simple", "desktop_advanced", "enterprise_server"],
+    modes: ALL_MODES,
   },
   {
     id: "offline_scan",
     label: { en: "Offline Scan", th: "สแกนแบบออฟไลน์" },
     path: "/offline-scan",
     icon: "hard-drive",
-    modes: ["sovereign_airgap"],
+    modes: ADVANCE_MODES,
   },
   {
     id: "agents",
     label: { en: "Agents", th: "Agents" },
     path: "/agents",
     icon: "bot",
-    modes: [
-      "desktop_simple",
-      "desktop_advanced",
-      "enterprise_server",
-      "sovereign_airgap",
-    ],
+    modes: ALL_MODES,
   },
   {
     id: "recommended_policies",
@@ -92,26 +89,21 @@ export const NAV_ITEMS: NavItem[] = [
     label: { en: "Policies", th: "นโยบาย" },
     path: "/policies",
     icon: "shield",
-    modes: ["desktop_advanced", "enterprise_server", "sovereign_airgap"],
+    modes: ADVANCE_MODES,
   },
   {
     id: "policy_feasibility",
     label: { en: "Policy Feasibility", th: "ความพร้อมของ Policy" },
     path: "/policy-feasibility",
     icon: "clipboard-check",
-    modes: ["desktop_advanced", "enterprise_server", "sovereign_airgap"],
+    modes: ADVANCE_MODES,
   },
   {
     id: "deployments",
     label: { en: "Deployments", th: "การติดตั้งใช้งาน" },
     path: "/deployments",
     icon: "server",
-    modes: [
-      "desktop_simple",
-      "desktop_advanced",
-      "enterprise_server",
-      "sovereign_airgap",
-    ],
+    modes: ALL_MODES,
   },
   {
     id: "control_methods",
@@ -126,7 +118,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: { en: "PEP / Control Layers", th: "PEP / ชั้นควบคุม" },
     path: "/pep-layers",
     icon: "shield",
-    modes: ["enterprise_server"],
+    modes: ENTERPRISE_CLOUD_MODES,
     requiresAdvanced: true,
   },
   {
@@ -134,7 +126,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: { en: "PDP / Decision Engines", th: "PDP / เครื่องมือตัดสินใจ" },
     path: "/pdp-engines",
     icon: "cpu",
-    modes: ["enterprise_server"],
+    modes: ENTERPRISE_CLOUD_MODES,
     requiresAdvanced: true,
   },
   {
@@ -142,21 +134,21 @@ export const NAV_ITEMS: NavItem[] = [
     label: { en: "Timeline", th: "ไทม์ไลน์" },
     path: "/timeline",
     icon: "clock",
-    modes: ["desktop_simple", "desktop_advanced", "enterprise_server"],
+    modes: ALL_MODES,
   },
   {
     id: "local_evidence",
     label: { en: "Local Evidence", th: "หลักฐานในเครื่อง" },
     path: "/local-evidence",
     icon: "database",
-    modes: ["desktop_simple", "desktop_advanced", "sovereign_airgap"],
+    modes: ALL_MODES,
   },
   {
     id: "health",
     label: { en: "Health & Diagnostics", th: "สุขภาพระบบและการวินิจฉัย" },
     path: "/health",
     icon: "activity",
-    modes: ["desktop_advanced", "enterprise_server", "sovereign_airgap"],
+    modes: ADVANCE_MODES,
     requiresAdvanced: true,
   },
 ];

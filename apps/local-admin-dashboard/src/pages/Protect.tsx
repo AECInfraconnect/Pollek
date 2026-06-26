@@ -32,7 +32,7 @@ export function Protect() {
             <ShieldCheck className="h-6 w-6 text-primary" />
             {mode === "desktop_simple"
               ? "Protect Agents"
-              : "Advanced Protection"}
+              : "Advance Protection"}
           </h2>
           <p className="mt-1 text-muted-foreground">
             {mode === "desktop_simple"

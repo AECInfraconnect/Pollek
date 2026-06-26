@@ -89,7 +89,7 @@ pub async fn start_anomaly_detector(state: AppState) {
                     // Emit security event telemetry
                     let sec_event = json!({
                         "type": "security_event",
-                        "schema_version": "pollen.telemetry.v2",
+                        "schema_version": "pollek.telemetry.v2",
                         "tenant_id": tenant_id,
                         "event_id": uuid::Uuid::new_v4().to_string(),
                         "timestamp": chrono::Utc::now().to_rfc3339(),

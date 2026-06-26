@@ -19,10 +19,10 @@ impl LocalControlPlaneConfig {
             .parse()?;
 
         let db_url = std::env::var("DEK_LCP_DB")
-            .unwrap_or_else(|_| "sqlite://./pollen-local.db?mode=rwc".to_string());
+            .unwrap_or_else(|_| "sqlite://./pollek-local.db?mode=rwc".to_string());
 
         let data_dir = PathBuf::from(
-            std::env::var("DEK_LCP_DATA").unwrap_or_else(|_| "./pollen-local-data".into()),
+            std::env::var("DEK_LCP_DATA").unwrap_or_else(|_| "./pollek-local-data".into()),
         );
 
         let dashboard_dir = PathBuf::from(

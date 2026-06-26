@@ -13,8 +13,8 @@ describe("Sidebar Configuration", () => {
     expect(labels).not.toContain("NetworkExtension");
   });
 
-  it("should show PEP/PDP in enterprise_server mode", () => {
-    const nav = getNavItems("enterprise_server");
+  it("should show PEP/PDP in Enterprise Cloud mode", () => {
+    const nav = getNavItems("enterprise_cloud");
     const labels = nav.map((item) => item.label.en).join(" ");
 
     expect(labels).toContain("PEP");

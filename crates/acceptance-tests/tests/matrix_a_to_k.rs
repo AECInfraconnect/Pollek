@@ -9,7 +9,7 @@
 // Copyright (c) 2026 AEC Infraconnect
 
 //! Full-binary acceptance matrix (A–H) — spawns mock-cloud + dek-core and
-//! exercises the Pollen DEK contract end-to-end over the real HTTP(S)/mTLS path.
+//! exercises the Pollek DEK contract end-to-end over the real HTTP(S)/mTLS path.
 //!
 //! Run: cargo test -p acceptance-tests --test matrix_a_to_h -- --ignored --nocapture
 //!

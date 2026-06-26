@@ -1,6 +1,6 @@
-pub use pollen_contract::PollenDecisionResultV1 as DecisionResult;
-pub use pollen_contract::PollenDecisionResultV1Decision as DecisionEffect;
-pub use pollen_contract::PollenTelemetryEnvelopeV1 as TelemetryEventEnvelope;
+pub use pollek_contract::PollekDecisionResultV1 as DecisionResult;
+pub use pollek_contract::PollekDecisionResultV1Decision as DecisionEffect;
+pub use pollek_contract::PollekTelemetryEnvelopeV1 as TelemetryEventEnvelope;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

@@ -92,7 +92,7 @@ async fn main() -> Result<()> {
     metrics_exporter_prometheus::PrometheusBuilder::new()
         .install_recorder()
         .map_err(|e| anyhow::anyhow!("Metrics error: {}", e))?;
-    info!("Starting Pollen DEK MCP Proxy...");
+    info!("Starting Pollek DEK MCP Proxy...");
 
     let bootstrap = BootstrapConfig::load_or_default("bootstrap.json")?;
     let device_id = bootstrap.device_id.clone();
@@ -242,7 +242,7 @@ async fn main() -> Result<()> {
     let observer = std::sync::Arc::new(observer_store);
 
     let telemetry = dek_telemetry::CloudTelemetrySink::new(
-        "https://telemetry.pollen-cloud.internal",
+        "https://telemetry.pollek-cloud.internal",
         &bootstrap.mtls,
         None,
         &telemetry_db.to_string_lossy(),

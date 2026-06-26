@@ -20,7 +20,7 @@ jobs:
       - run: cargo deb -p dek-core
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: pollen-dek-linux-deb
+          name: pollek-dek-linux-deb
           path: target/debian/*.deb
 
   build-windows-msi:
@@ -31,11 +31,11 @@ jobs:
       - run: cargo build --release --locked -p dek-core -p dek-mcp-proxy -p dek-updater
       - run: |
           mkdir -p target/wix
-          candle.exe packaging/windows/pollen-dek.wxs -out target/pollen-dek.wixobj
-          light.exe -ext WixUIExtension target/pollen-dek.wixobj -o target/wix/pollen-dek.msi
+          candle.exe packaging/windows/pollek-dek.wxs -out target/pollek-dek.wixobj
+          light.exe -ext WixUIExtension target/pollek-dek.wixobj -o target/wix/pollek-dek.msi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: pollen-dek-windows-msi
+          name: pollek-dek-windows-msi
           path: target/wix/*.msi
 
   build-macos-pkg:
@@ -51,10 +51,10 @@ jobs:
           cp target/release/dek-core target/pkg/root/usr/local/bin/
           cp target/release/dek-mcp-proxy target/pkg/root/usr/local/bin/
           cp target/release/dek-updater target/pkg/root/usr/local/bin/
-          cp packaging/macos/ai.pollen.dek.plist target/pkg/root/Library/LaunchDaemons/
+          cp packaging/macos/ai.pollek.dek.plist target/pkg/root/Library/LaunchDaemons/
           VERSION=$(cargo metadata --format-version=1 --no-deps | jq -r '.packages[] | select(.name=="dek-core") | .version')
-          pkgbuild --root target/pkg/root --identifier ai.pollen.dek --version "$VERSION" "target/pollen-dek-macos-${VERSION}.pkg"
+          pkgbuild --root target/pkg/root --identifier ai.pollek.dek --version "$VERSION" "target/pollek-dek-macos-${VERSION}.pkg"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: pollen-dek-macos-pkg
+          name: pollek-dek-macos-pkg
           path: target/*.pkg

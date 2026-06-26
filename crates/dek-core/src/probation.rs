@@ -163,7 +163,7 @@ pub async fn finalize<H, Fut>(
     }
 }
 
-/// mTLS reachability to Pollen Cloud, reusing the existing client builder.
+/// mTLS reachability to Pollek Cloud, reusing the existing client builder.
 async fn check_mtls(bootstrap: &BootstrapConfig, cloud_url: &str) -> bool {
     let client = match bootstrap.mtls.build_client(None) {
         Ok(c) => c,

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Pollen DEK Update Metadata",
+  "title": "Pollek DEK Update Metadata",
   "type": "object",
   "required": [
     "schema_version",

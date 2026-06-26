@@ -116,7 +116,7 @@ async fn rebuild_inventory(
                     emits_resource_logs: false,
                     emits_decision_logs: false,
                     emits_network_logs: false,
-                    format: "pollen".to_string(),
+                    format: "pollek".to_string(),
                 },
                 last_scan_id: "rebuild".to_string(),
                 last_seen_at: chrono::Utc::now().to_rfc3339(),

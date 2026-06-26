@@ -5,7 +5,7 @@ use anyhow::Result;
 use std::path::Path;
 
 pub fn run() -> Result<()> {
-    println!("Pollen DEK Diagnostics");
+    println!("Pollek DEK Diagnostics");
     println!("----------------------");
 
     let bootstrap_path = dek_config::paths::get_bootstrap_path();

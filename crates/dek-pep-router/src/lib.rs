@@ -76,7 +76,7 @@ fn route_network(caps: &DeviceCapabilities) -> PepRoute {
             friendly_th: "บนเครื่องนี้ Windows WFP ทำงานแบบ 'สังเกตการณ์' เท่านั้น ยังไม่บล็อกจริง"
                 .into(),
             user_action_th: Some(
-                "ติดตั้ง WFP callout driver (ต้องสิทธิ์ Administrator) เพื่อเปิดการบังคับใช้จริง — ดู `pollen-dek doctor`"
+                "ติดตั้ง WFP callout driver (ต้องสิทธิ์ Administrator) เพื่อเปิดการบังคับใช้จริง — ดู `pollek-dek doctor`"
                     .into(),
             ),
         };

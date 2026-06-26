@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Active AEAD Key ID: {}", active_key.key_id());
 
     let event = TelemetryEvent {
-        schema_version: "pollen.telemetry.v1".to_string(),
+        schema_version: "pollek.telemetry.v1".to_string(),
         event_id: Uuid::new_v4(),
         tenant_id: "tnt_demo".to_string(),
         device_id: "dev_demo".to_string(),

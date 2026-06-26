@@ -34,7 +34,7 @@ To verify the signature of a release artifact:
 cosign verify-blob \
   --certificate Pollek-dek-linux-x64.tar.gz.pem \
   --signature Pollek-dek-linux-x64.tar.gz.sig \
-  --certificate-identity "https://github.com/AECInfraconnect/AntiG_Pollen_DEK/.github/workflows/release-gate.yml@refs/tags/v1.0.0-beta.1" \
+  --certificate-identity "https://github.com/AECInfraconnect/Pollek/.github/workflows/release-gate.yml@refs/tags/v1.0.0-beta.1" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   Pollek-dek-linux-x64.tar.gz
 ```

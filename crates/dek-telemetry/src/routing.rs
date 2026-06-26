@@ -3,7 +3,7 @@
 
 //! routing.rs โ€” R2.1: map each telemetry event to its contract endpoint.
 //!
-//! The Cloud contract (docs/contracts/pollen-cloud-dek-api.md ยง5) splits
+//! The Cloud contract (docs/contracts/pollek-cloud-dek-api.md ยง5) splits
 //! telemetry into typed endpoints instead of one firehose:
 //!   /v1/telemetry/decision-logs   <- Decision
 //!   /v1/telemetry/security-events <- Security

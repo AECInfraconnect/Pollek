@@ -935,7 +935,7 @@ dependencies = [
  "ed25519-dalek",
  "hex",
  "jsonschema",
- "pollen-contract",
+ "pollek-contract",
  "rand 0.10.1",
  "reqwest",
  "serde",
@@ -981,7 +981,7 @@ name = "dek-control-plane-api"
 version = "0.1.0"
 dependencies = [
  "axum 0.7.9",
- "pollen-contract",
+ "pollek-contract",
  "schemars 0.8.22",
  "serde",
  "serde_json",
@@ -992,7 +992,7 @@ name = "dek-domain-schema"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "pollen-contract",
+ "pollek-contract",
  "schemars 0.8.22",
  "serde",
  "serde_json",
@@ -2793,7 +2793,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
-name = "pollen-contract"
+name = "pollek-contract"
 version = "0.1.0"
 dependencies = [
  "chrono",
@@ -2807,7 +2807,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pollen-dek-fuzz"
+name = "pollek-dek-fuzz"
 version = "0.0.0"
 dependencies = [
  "dek-activation",

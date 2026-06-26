@@ -64,12 +64,12 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          git show "origin/$BASE_REF:contracts/generated/openapi/pollen.v1.yaml" > /tmp/base.yaml || true
+          git show "origin/$BASE_REF:contracts/generated/openapi/pollek.v1.yaml" > /tmp/base.yaml || true
 
       - name: Breaking change check
         if: hashFiles('/tmp/base.yaml') != ''
         run: |
-          oasdiff breaking /tmp/base.yaml contracts/generated/openapi/pollen.v1.yaml --fail-on ERR
+          oasdiff breaking /tmp/base.yaml contracts/generated/openapi/pollek.v1.yaml --fail-on ERR
 
   docs-must-change:
     runs-on: ubuntu-latest

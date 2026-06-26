@@ -6,11 +6,11 @@ final class SystemExtensionInstaller: NSObject {
     static let shared = SystemExtensionInstaller()
 
     private let logger = Logger(
-        subsystem: "com.aecinfraconnect.pollen.dek",
+        subsystem: "com.aecinfraconnect.pollek.dek",
         category: "SystemExtensionInstaller"
     )
 
-    private let extensionBundleIdentifier = "com.aecinfraconnect.pollen.dek.nefilter"
+    private let extensionBundleIdentifier = "com.aecinfraconnect.pollek.dek.nefilter"
 
     func activate() {
         let request = OSSystemExtensionRequest.activationRequest(

@@ -10,7 +10,7 @@ use model::*;
 pub fn embedded_baseline() -> FingerprintDefinition {
     const BASELINE: &str = include_str!("../data/baseline.v3.json");
     serde_json::from_str(BASELINE).unwrap_or_else(|_| FingerprintDefinition {
-        schema_version: "pollen.def.v3".into(),
+        schema_version: "pollek.def.v3".into(),
         definition_version: 0,
         released_at: "1970-01-01T00:00:00Z".into(),
         min_engine_version: "0.0.0".into(),
@@ -40,12 +40,12 @@ fn get_data_dir() -> std::path::PathBuf {
         let program_data =
             std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
         std::path::PathBuf::from(program_data)
-            .join("PollenDEK")
+            .join("PollekDEK")
             .join("state")
     }
     #[cfg(not(target_os = "windows"))]
     {
-        std::path::PathBuf::from("/var/lib/pollen-dek")
+        std::path::PathBuf::from("/var/lib/pollek-dek")
     }
 }
 

@@ -13,7 +13,7 @@ schemars = "0.8"
 url = "2.5.8"
 chrono.workspace = true
 sha2 = "0.11.0"
-pollen-contract = { path = "../../contracts/generated/rust/pollen-contract" }
+pollek-contract = { path = "../../contracts/generated/rust/pollek-contract" }
 
 [lints]
 workspace = true

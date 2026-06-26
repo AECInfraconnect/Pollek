@@ -13,7 +13,7 @@ pub struct OsServiceManager {
 impl OsServiceManager {
     pub fn new() -> Self {
         Self {
-            service_name: "PollenDEK",
+            service_name: "PollekDEK",
         }
     }
 
@@ -33,10 +33,10 @@ impl ServiceManager for OsServiceManager {
         let exe_path = Self::core_exe_path()?;
 
         // To bypass OneDrive/UserProfile permission issues for NetworkService,
-        // we copy the executable to %ProgramData%\PollenDEK\bin\
+        // we copy the executable to %ProgramData%\PollekDEK\bin\
         let program_data_env =
             std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
-        let root_dir = PathBuf::from(&program_data_env).join("PollenDEK");
+        let root_dir = PathBuf::from(&program_data_env).join("PollekDEK");
         let bin_dir = root_dir.join("bin");
         std::fs::create_dir_all(&bin_dir)?;
         let target_exe = bin_dir.join("dek-core.exe");
@@ -59,7 +59,7 @@ impl ServiceManager for OsServiceManager {
                 "start=auto",
                 // "NT AUTHORITY\\NetworkService" runs without admin rights but has network access
                 "obj=NT AUTHORITY\\NetworkService",
-                "DisplayName=Pollen DEK Core",
+                "DisplayName=Pollek DEK Core",
             ])
             .output()
             .context("Failed to run sc create")?;
@@ -75,7 +75,7 @@ impl ServiceManager for OsServiceManager {
             .args([
                 "description",
                 self.service_name,
-                "Pollen DEK IPC Supervisor and Policy Enforcer",
+                "Pollek DEK IPC Supervisor and Policy Enforcer",
             ])
             .output()?;
 
@@ -89,10 +89,10 @@ if exist "{exe}.bak" (
 if exist "{cfg}\update_pending.json" (
     del /F /Q "{cfg}\update_pending.json"
 )
-sc start PollenDEK
+sc start PollekDEK
 "#,
             exe = target_exe.display(),
-            cfg = "C:\\ProgramData\\PollenDEK"
+            cfg = "C:\\ProgramData\\PollekDEK"
         );
         std::fs::write(&rollback_bat_path, bat_content)?;
 

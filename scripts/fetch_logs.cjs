@@ -3,7 +3,7 @@ const fs = require('fs');
 
 const runId = '27389005581';
 
-https.get(`https://api.github.com/repos/AECInfraconnect/AntiG_Pollen_DEK/actions/runs/${runId}/jobs`, {
+https.get(`https://api.github.com/repos/AECInfraconnect/Pollek/actions/runs/${runId}/jobs`, {
   headers: { 'User-Agent': 'Node.js' }
 }, (res) => {
   let data = '';

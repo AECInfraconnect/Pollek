@@ -139,7 +139,7 @@ impl Default for PluginHost {
 }
 
 #[async_trait::async_trait]
-pub trait PollenPlugin: Send + Sync {
+pub trait PollekPlugin: Send + Sync {
     fn id(&self) -> &str;
     fn permissions(&self) -> &[String];
     async fn call(
@@ -150,7 +150,7 @@ pub trait PollenPlugin: Send + Sync {
 }
 
 pub async fn call_plugin_checked(
-    plugin: &dyn PollenPlugin,
+    plugin: &dyn PollekPlugin,
     operation: &str,
     input: serde_json::Value,
     policy: &dek_plugin_sdk::PluginPolicy,

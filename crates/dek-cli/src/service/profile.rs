@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //! profile.rs — switch the DEK control-plane profile between Local and Cloud (L5).
 //!
-//! The DEK speaks ONE protocol/contract to both a Local control plane and Pollen
+//! The DEK speaks ONE protocol/contract to both a Local control plane and Pollek
 //! Cloud. Switching targets means rewriting `bootstrap.json` (cloud_url +
 //! tenant_id) and pointing the trust store at the right signing key — nothing in
 //! the DEK's enforcement code changes (invariant I1). After switching, the user

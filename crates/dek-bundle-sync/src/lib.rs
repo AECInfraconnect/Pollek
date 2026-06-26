@@ -357,8 +357,8 @@ impl BundleSyncAgent {
             .get("signatures")
             .context("Missing signatures in envelope")?;
 
-        use dek_bundle_format::PollenPolicyBundle;
-        let manifest: PollenPolicyBundle = serde_json::from_value(manifest_json.clone())?;
+        use dek_bundle_format::PollekPolicyBundle;
+        let manifest: PollekPolicyBundle = serde_json::from_value(manifest_json.clone())?;
 
         // The signatures to verify
         let sigs_for_verify: Vec<crate::keys::SignatureEntry> =

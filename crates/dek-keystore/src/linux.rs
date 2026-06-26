@@ -15,7 +15,7 @@ pub struct KernelKeystore {
 impl KernelKeystore {
     pub fn new() -> Self {
         let mut dir = dirs_next::data_local_dir().unwrap_or_else(|| PathBuf::from("/var/lib"));
-        dir.push("pollen-dek");
+        dir.push("pollek-dek");
         dir.push("keystore");
         let _ = fs::create_dir_all(&dir);
         let _ = fs::set_permissions(&dir, fs::Permissions::from_mode(0o700));
@@ -25,7 +25,7 @@ impl KernelKeystore {
 
 impl Keystore for KernelKeystore {
     fn store_key(&self, alias: &str, data: &[u8]) -> Result<()> {
-        let key_desc = format!("pollen_dek_{}", alias);
+        let key_desc = format!("pollek_dek_{}", alias);
 
         // Try Kernel Keyring first
         match KeyRing::from_special_id(KeyRingIdentifier::User, false) {
@@ -63,7 +63,7 @@ impl Keystore for KernelKeystore {
     }
 
     fn load_key(&self, alias: &str) -> Result<Vec<u8>> {
-        let key_desc = format!("pollen_dek_{}", alias);
+        let key_desc = format!("pollek_dek_{}", alias);
 
         // Try Kernel Keyring first
         let keyring = KeyRing::from_special_id(KeyRingIdentifier::User, false)
@@ -96,7 +96,7 @@ impl Keystore for KernelKeystore {
     }
 
     fn delete_key(&self, alias: &str) -> Result<()> {
-        let key_desc = format!("pollen_dek_{}", alias);
+        let key_desc = format!("pollek_dek_{}", alias);
 
         // Try deleting from Kernel Keyring
         let keyring = KeyRing::from_special_id(KeyRingIdentifier::User, false)

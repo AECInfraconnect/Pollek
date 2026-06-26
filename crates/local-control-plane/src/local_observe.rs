@@ -1477,7 +1477,7 @@ async fn publish_payload(
         Value::Object(map) => map,
         _ => Map::new(),
     };
-    let envelope = pollen_contract::PollenTelemetryEnvelopeV1 {
+    let envelope = pollek_contract::PollekTelemetryEnvelopeV1 {
         schema_version: "telemetry-envelope.v1".to_string(),
         event_id: event_id.to_string(),
         event_type: event_type.to_string(),

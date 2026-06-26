@@ -23,14 +23,14 @@ pub struct GitHubAsset {
     pub browser_download_url: String,
 }
 
-const REPO_API: &str = "https://api.github.com/repos/AECInfraconnect/AntiG_Pollen_DEK/releases";
+const REPO_API: &str = "https://api.github.com/repos/AECInfraconnect/Pollek/releases";
 const OIDC_ISSUER: &str = "https://token.actions.githubusercontent.com";
-const IDENTITY_REGEXP: &str = "^https://github.com/AECInfraconnect/AntiG_Pollen_DEK/.*";
+const IDENTITY_REGEXP: &str = "^https://github.com/AECInfraconnect/Pollek/.*";
 
 pub fn latest_release(channel: &str) -> Result<GitHubRelease> {
     let resp: Vec<GitHubRelease> = crate::http_client()
         .get(REPO_API)
-        .set("User-Agent", "pollen-dek-updater")
+        .set("User-Agent", "pollek-dek-updater")
         .call()
         .context("Failed to fetch releases from GitHub")?
         .into_json()?;
@@ -147,7 +147,7 @@ pub fn verify_sha256(archive_path: &Path, sum_path: &Path) -> Result<()> {
         }
     }
 
-    // In our CI, the asset is usually named pollen-dek-linux-amd64.tar.gz, but we saved it as archive.tar.gz
+    // In our CI, the asset is usually named pollek-dek-linux-amd64.tar.gz, but we saved it as archive.tar.gz
     // Let's just find the first hash in the sums file if we couldn't match the filename exactly,
     // assuming the sums file has the correct asset hashes.
     let expected_hash = match expected_hash {

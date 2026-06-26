@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //! telemetry.rs — Local control-plane telemetry sink (L3).
 //!
-//! Accepts the SAME telemetry envelope the DEK sends to Pollen Cloud
+//! Accepts the SAME telemetry envelope the DEK sends to Pollek Cloud
 //! (`TelemetryEventEnvelope`), on the SAME contract endpoints (R2 split), and
 //! stores it in the local SQLite store. The Local Admin Dashboard reads decision
 //! logs from here. Cutover Local->Cloud changes only the endpoint/trust — the
@@ -89,14 +89,14 @@ pub fn router() -> Router<AppState> {
 #[derive(serde::Serialize)]
 pub struct ObservationPage {
     schema_version: String,
-    items: Vec<pollen_contract::PollenTelemetryEnvelopeV1>,
+    items: Vec<pollek_contract::PollekTelemetryEnvelopeV1>,
     next_cursor: Option<String>,
 }
 
 #[derive(serde::Serialize)]
 pub struct EnforcementStatusList {
     schema_version: String,
-    items: Vec<pollen_contract::PollenTelemetryEnvelopeV1>,
+    items: Vec<pollek_contract::PollekTelemetryEnvelopeV1>,
 }
 
 async fn list_observations_v2(State(state): State<AppState>) -> impl IntoResponse {
@@ -104,7 +104,7 @@ async fn list_observations_v2(State(state): State<AppState>) -> impl IntoRespons
     if let Ok(records) = state.secure_spool.peek_recent(100) {
         for bytes in records {
             if let Ok(env) =
-                serde_json::from_slice::<pollen_contract::PollenTelemetryEnvelopeV1>(&bytes)
+                serde_json::from_slice::<pollek_contract::PollekTelemetryEnvelopeV1>(&bytes)
             {
                 if env.event_type == "agent_observation" {
                     items.push(env);
@@ -128,7 +128,7 @@ async fn enforcement_status(State(state): State<AppState>) -> impl IntoResponse 
     if let Ok(records) = state.secure_spool.peek_recent(100) {
         for bytes in records {
             if let Ok(env) =
-                serde_json::from_slice::<pollen_contract::PollenTelemetryEnvelopeV1>(&bytes)
+                serde_json::from_slice::<pollek_contract::PollekTelemetryEnvelopeV1>(&bytes)
             {
                 if env.event_type == "enforcement_result" {
                     items.push(env);

@@ -1,18 +1,18 @@
 version: 1
 headers:
-  X-Pollen-Contract-Version:
+  X-Pollek-Contract-Version:
     required: true
     direction: request-response
     description: Contract minor version used on the wire.
-  X-Pollen-Device-Id:
+  X-Pollek-Device-Id:
     required: true
     direction: request
     description: Stable DEK device identity.
-  X-Pollen-Tenant-Id:
+  X-Pollek-Tenant-Id:
     required: true
     direction: request
     description: Tenant identity.
-  X-Pollen-Bundle-Generation:
+  X-Pollek-Bundle-Generation:
     required: false
     direction: request-response
     description: Last known policy bundle generation.

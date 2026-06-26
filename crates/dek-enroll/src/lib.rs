@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
-//! dek-enroll — first-run device enrollment for Pollen DEK (RFC 8628).
+//! dek-enroll — first-run device enrollment for Pollek DEK (RFC 8628).
 //!
 //! Production hardening: the device flow runs over an unreliable network for up
 //! to `expires_in` seconds. A single dropped packet must NOT abort enrollment.
@@ -60,7 +60,7 @@ impl EnrollError {
                 "DEVICE_AUTH_REJECTED",
                 format!("Device authorization rejected: {}", e),
                 RetryClass::NoRetry,
-                Some("Ensure you are using the correct Pollen Cloud URL and your client ID is valid.".to_string())
+                Some("Ensure you are using the correct Pollek Cloud URL and your client ID is valid.".to_string())
             ),
             EnrollError::Expired => (
                 "DEVICE_CODE_EXPIRED",

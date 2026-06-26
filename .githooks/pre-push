@@ -2,7 +2,7 @@
 set -e
 
 echo "==========================================================="
-echo "   Pollen DEK Pre-push Hook"
+echo "   Pollek DEK Pre-push Hook"
 echo "==========================================================="
 
 echo ""
@@ -35,7 +35,7 @@ else
 fi
 
 echo ""
-echo "[Bonus 1/2] Validating Pollen Contracts (TypeSpec, OpenAPI, Schemas)..."
+echo "[Bonus 1/2] Validating Pollek Contracts (TypeSpec, OpenAPI, Schemas)..."
 git diff --cached --name-only | grep -q '^contracts/' && (cd contracts && npm ci && npm run test) || echo "  skip contracts"
 
 echo ""

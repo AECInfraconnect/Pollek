@@ -36,9 +36,9 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-const ALL: string[] = ["desktop_simple", "desktop_advanced", "enterprise"];
-const ADV: string[] = ["desktop_advanced", "enterprise"];
-const ENT: string[] = ["enterprise"];
+const ALL: string[] = ["desktop_simple", "desktop_advanced", "enterprise_cloud"];
+const ADV: string[] = ["desktop_advanced", "enterprise_cloud"];
+const ENT: string[] = ["enterprise_cloud"];
 
 export const NAV: NavGroup[] = [
   {

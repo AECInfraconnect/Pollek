@@ -2,7 +2,7 @@ extends:
   - spectral:oas
 
 rules:
-  pollen-operation-id-required:
+  pollek-operation-id-required:
     description: Every operation must have operationId for stable codegen.
     severity: error
     given: $.paths[*][*]
@@ -10,8 +10,8 @@ rules:
       field: operationId
       function: truthy
 
-  pollen-contract-version-header-required:
-    description: Every operation must document X-Pollen-Contract-Version.
+  pollek-contract-version-header-required:
+    description: Every operation must document X-Pollek-Contract-Version.
     severity: warn
     given: $.paths[*][*].parameters
     then:
@@ -23,11 +23,11 @@ rules:
             type: object
             properties:
               name:
-                const: X-Pollen-Contract-Version
+                const: X-Pollek-Contract-Version
               in:
                 const: header
 
-  pollen-error-envelope-required:
+  pollek-error-envelope-required:
     description: Operations should document standard error response.
     severity: warn
     given: $.paths[*][*].responses

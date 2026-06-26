@@ -1,20 +1,20 @@
 import "@typespec/http";
 using TypeSpec.Http;
-namespace Pollen.Contract;
+namespace Pollek.Contract;
 
-model PollenHeaders {
-  @header("X-Pollen-Contract-Version")
+model PollekHeaders {
+  @header("X-Pollek-Contract-Version")
   contractVersion: string;
 
-  @header("X-Pollen-Device-Id")
+  @header("X-Pollek-Device-Id")
   deviceId?: string;
 
-  @header("X-Pollen-Tenant-Id")
+  @header("X-Pollek-Tenant-Id")
   tenantId?: string;
 }
 
 @error
-model PollenError {
+model PollekError {
   code: string;
   message: string;
   trace_id?: string;

@@ -754,7 +754,7 @@ fn aggregate_by_merge_key(
         }
 
         candidates.push(DiscoveredAgentCandidateV2 {
-            schema_version: "pollen.agent_discovery_candidate.v2".into(),
+            schema_version: "pollek.agent_discovery_candidate.v2".into(),
             candidate_id: cand_id,
             tenant_id: tenant_id.to_string(),
             device_id: device_id.to_string(),

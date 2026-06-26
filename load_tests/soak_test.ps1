@@ -1,11 +1,11 @@
-# Soak Test Script for Pollen DEK (24 hours)
+# Soak Test Script for Pollek DEK (24 hours)
 $ErrorActionPreference = "Stop"
 
 $durationHours = 24
 $durationSeconds = $durationHours * 3600
 $startTime = Get-Date
 
-Write-Host "Starting 24-hour soak test for Pollen DEK at $startTime"
+Write-Host "Starting 24-hour soak test for Pollek DEK at $startTime"
 
 # Start dek-load-test in a loop, running 1-minute bursts every 5 minutes
 $burstDuration = 60

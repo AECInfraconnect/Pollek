@@ -168,7 +168,7 @@ impl PolicySyncer {
                 // Phase 3: Validate OS capabilities before activating
                 if let Ok(manifest_bytes) = std::fs::read(&manifest_path) {
                     if let Ok(bundle) = serde_json::from_slice::<
-                        dek_bundle_format::PollenPolicyBundle,
+                        dek_bundle_format::PollekPolicyBundle,
                     >(&manifest_bytes)
                     {
                         if let Err(e) = crate::activation::validate_os_capabilities(
@@ -382,7 +382,7 @@ impl PolicySyncer {
                             }
                             if let Ok(text) = std::str::from_utf8(&chunk) {
                                 if text.contains("bundle_ready")
-                                    || text.contains("PollenBundleReadyV1")
+                                    || text.contains("PollekBundleReadyV1")
                                 {
                                     info!("[PolicySyncer] Received bundle_ready push event, triggering sync_once");
                                     let outcome = s3.sync_once().await;

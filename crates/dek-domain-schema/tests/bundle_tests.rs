@@ -26,7 +26,7 @@ fn create_test_manifest(
         .collect::<String>();
 
     BundleManifest {
-        schema_version: "pollen.bundle.v1".to_string(),
+        schema_version: "pollek.bundle.v1".to_string(),
         bundle_id: format!("bnd-{}", generation),
         bundle_version: format!("1.0.{}", generation),
         bundle_generation: generation,

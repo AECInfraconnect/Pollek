@@ -13,7 +13,7 @@ use tracing::{error, info, warn};
 pub fn install_recorder(service: &str) -> Result<PrometheusHandle> {
     let builder = PrometheusBuilder::new()
         .add_global_label("service", service)
-        .add_global_label("system", "pollen-dek");
+        .add_global_label("system", "pollek-dek");
 
     let handle = builder
         .install_recorder()

@@ -46,4 +46,4 @@ jobs:
       - name: Install Spectral
         run: npm install -g @stoplight/spectral-cli
       - name: Lint OpenAPI Spec
-        run: spectral lint docs/contracts/pollen-cloud-dek-api.openapi.yaml --fail-severity=error
+        run: spectral lint docs/contracts/pollek-cloud-dek-api.openapi.yaml --fail-severity=error

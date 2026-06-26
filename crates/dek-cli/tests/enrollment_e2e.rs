@@ -75,7 +75,7 @@ async fn enroll_then_attest_yields_x509_svid() {
     });
 
     // --- 1) device flow ---
-    let client = dek_enroll::EnrollClient::new(&base, "pollen-dek", "dek.enroll", None).unwrap();
+    let client = dek_enroll::EnrollClient::new(&base, "pollek-dek", "dek.enroll", None).unwrap();
     let enrollment = client
         .run(|p| {
             // sanity: server returned a user code + verification uri
@@ -182,7 +182,7 @@ async fn enroll(State(m): State<Mock>, headers: HeaderMap) -> (StatusCode, Json<
             "pinned_bundle_public_key": "dGVzdC1wdWJrZXk=",
             "tenant_id": "tenant-test",
             "device_id": "device-test-1",
-            "spiffe_id": "spiffe://pollen.test/tenant-test/device/device-test-1",
+            "spiffe_id": "spiffe://pollek.test/tenant-test/device/device-test-1",
             "cloud_url": format!("http://{}", m.addr)
         })),
     )
@@ -195,7 +195,7 @@ struct Attest {
 }
 
 async fn attest_csr(State(m): State<Mock>, Json(req): Json<Attest>) -> (StatusCode, Json<Value>) {
-    let spiffe_id = format!("spiffe://pollen.test/tenant-test/device/{}", req.device_id);
+    let spiffe_id = format!("spiffe://pollek.test/tenant-test/device/{}", req.device_id);
     let cert = sign_csr(&m.ca_cert_pem, &m.ca_key_pem, &req.csr_pem, &spiffe_id);
     (
         StatusCode::OK,
@@ -209,7 +209,7 @@ async fn attest_csr(State(m): State<Mock>, Json(req): Json<Attest>) -> (StatusCo
 
 fn make_test_ca() -> (String, String) {
     use rcgen::{CertificateParams, IsCa, KeyPair, KeyUsagePurpose};
-    let mut params = CertificateParams::new(vec!["Pollen Test Root CA".to_string()]).unwrap();
+    let mut params = CertificateParams::new(vec!["Pollek Test Root CA".to_string()]).unwrap();
     params.is_ca = IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
     params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
     let key_pair = KeyPair::generate().unwrap();

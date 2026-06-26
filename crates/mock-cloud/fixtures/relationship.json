@@ -1,5 +1,5 @@
 {
-  "schema_version": "pollen.relationship.v1",
+  "schema_version": "pollek.relationship.v1",
   "tenant_id": "tenant-acme-prod",
   "subject": "alice@acme.com",
   "relation": "owner",

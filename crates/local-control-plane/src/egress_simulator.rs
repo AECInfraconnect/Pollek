@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use dek_agent_observer::egress_parser::classify_cloud_egress;
 use dek_enforcement_api::control_method::TelemetrySink;
 use dek_enforcement_api::egress_observer::EgressEventSource;
-use pollen_contract::{
+use pollek_contract::{
     IdentityAccessPayload, IdentityAccessPayloadAction, IdentityAccessPayloadDecision,
     IdentityAccessPayloadIdentityKind, IdentityAccessPayloadScope, ResourceAccessPayload,
     ResourceAccessPayloadDecision, ResourceAccessPayloadKind, ResourceAccessPayloadMode,

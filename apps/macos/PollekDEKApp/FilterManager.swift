@@ -6,7 +6,7 @@ final class FilterManager {
     static let shared = FilterManager()
 
     private let logger = Logger(
-        subsystem: "com.aecinfraconnect.pollen.dek",
+        subsystem: "com.aecinfraconnect.pollek.dek",
         category: "FilterManager"
     )
 
@@ -19,19 +19,19 @@ final class FilterManager {
 
             let providerConfig = NEFilterProviderConfiguration()
             providerConfig.username = NSUserName()
-            providerConfig.organization = "Pollen DEK"
+            providerConfig.organization = "Pollek DEK"
             providerConfig.filterSockets = true
             providerConfig.filterBrowsers = true
 
             // Provider-specific configuration. Keep this small.
             providerConfig.vendorConfiguration = [
                 "policyMode": "local-cache-first",
-                "appGroup": "group.com.aecinfraconnect.pollen.dek",
+                "appGroup": "group.com.aecinfraconnect.pollek.dek",
                 "auditMode": "metadata-only"
             ]
 
             let manager = NEFilterManager.shared()
-            manager.localizedDescription = "Pollen DEK Network Filter"
+            manager.localizedDescription = "Pollek DEK Network Filter"
             manager.providerConfiguration = providerConfig
             manager.isEnabled = true
 
@@ -40,7 +40,7 @@ final class FilterManager {
                     self?.logger.error("Failed to save NEFilter preferences: \(saveError.localizedDescription)")
                     completion(.failure(saveError))
                 } else {
-                    self?.logger.info("Pollen DEK content filter enabled")
+                    self?.logger.info("Pollek DEK content filter enabled")
                     completion(.success(()))
                 }
             }

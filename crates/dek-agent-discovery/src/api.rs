@@ -68,7 +68,7 @@ pub async fn run_scan(
                     }
 
                     candidates.push(DiscoveredAgentCandidate {
-                        schema_version: "pollen.agent_discovery_candidate.v1".into(),
+                        schema_version: "pollek.agent_discovery_candidate.v1".into(),
                         candidate_id: format!("cand_{}", uuid::Uuid::new_v4()),
                         tenant_id: tenant.to_string(),
                         device_id: hostname.clone(),
@@ -134,7 +134,7 @@ pub fn to_registry_agent(
 
     Ok(AiAgent {
         meta: dek_control_plane_api::registry::ObjectMeta {
-            schema_version: "pollen.agent.v1".into(),
+            schema_version: "pollek.agent.v1".into(),
             tenant_id: tenant.to_string(),
             workspace_id: "default".into(),
             environment_id: "local".into(),
@@ -239,7 +239,7 @@ pub fn to_registry_agent_v2(
 
     Ok(AiAgent {
         meta: dek_control_plane_api::registry::ObjectMeta {
-            schema_version: "pollen.agent.v1".into(),
+            schema_version: "pollek.agent.v1".into(),
             tenant_id: tenant.to_string(),
             workspace_id: "default".into(),
             environment_id: "local".into(),
@@ -379,7 +379,7 @@ mod tests {
         labels.insert("capability:net.egress.llm".into(), "true".into());
 
         DiscoveredAgentCandidateV2 {
-            schema_version: "pollen.agent_discovery_candidate.v2".into(),
+            schema_version: "pollek.agent_discovery_candidate.v2".into(),
             candidate_id: "cand_codex".into(),
             tenant_id: "local".into(),
             device_id: "device-local".into(),

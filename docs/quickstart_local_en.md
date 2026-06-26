@@ -145,7 +145,8 @@ View them in the dashboard under **Audit & Decision Logs**. You can also explore
 - **Auto Discovery** — see locally running AI agents detected by process scanning
 - **Shadow AI Inbox** — alerts for unrecognized/unmanaged AI activity
 - **Policy Suggestions** — auto-generated policy recommendations based on observations
-- **Cost Ledger** — estimated token spend across all observed AI APIs
+- **Cost Ledger** - exact-first token and cost usage, with estimates labeled only
+  when POLLEK sees metadata but no provider usage payload
 - **Policy Presets** — deploy common guardrails (Block Shadow AI, Cost Budget, etc.) in one click
 - **Blackbox AI Providers** — manage registered external AI providers
 - **Alerts** — system-wide security and compliance notifications
@@ -220,7 +221,7 @@ For Windows PowerShell:
 ## Troubleshooting
 
 - **Dashboard shows HTTP 404:** The local control plane can't find the web UI files. Stop it (`Ctrl+C`), set `$env:DEK_DASHBOARD_DIR=".\apps\local-admin-dashboard\dist"` (Windows) or `export DEK_DASHBOARD_DIR="./apps/local-admin-dashboard/dist"` (Linux/mac), and restart `local-control-plane`.
-- **`bootstrap already exists` error:** If you accidentally ran `dek-cli enroll` or have leftover configs from previous runs, stop `dek-core`, delete the config folder (`C:\ProgramData\PollenDEK` on Windows or `~/.Pollek-Local Enforcement Kit` / `/etc/Pollek-Local Enforcement Kit` on Linux), and repeat Step 3.
+- **`bootstrap already exists` error:** If you accidentally ran `dek-cli enroll` or have leftover configs from previous runs, stop `dek-core`, delete the config folder (`C:\ProgramData\PollekDEK` on Windows or `~/.Pollek-Local Enforcement Kit` / `/etc/Pollek-Local Enforcement Kit` on Linux), and repeat Step 3.
 - **`dek-cli doctor`** reports cert/connectivity/permission problems and how to fix them.
 - **No decisions logged?** Confirm `dek-core` is running and `dek-cli status` shows a recently synced bundle.
 - **Bundle rejected?** The pinned trust key probably doesn't match the Local CP's key — re-run step 3 with the current `public_b64`.

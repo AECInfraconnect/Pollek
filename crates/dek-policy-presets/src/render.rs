@@ -30,7 +30,7 @@ pub fn render(
     match preset.id.as_str() {
         "pii.redact_before_external_llm" => {
             artifacts.push(RenderedArtifact::rego(
-                "pollen.presets.pii.redact_before_external_llm",
+                "pollek.presets.pii.redact_before_external_llm",
                 "default allow := true\n# TODO: PII redaction logic".into(),
             ));
             artifacts.push(RenderedArtifact::pep_config(
@@ -39,7 +39,7 @@ pub fn render(
         }
         "fs.folder_allowlist" => {
             artifacts.push(RenderedArtifact::rego(
-                "pollen.presets.fs.folder_scope",
+                "pollek.presets.fs.folder_scope",
                 "default allow := false\n# TODO: Folder allowlist logic".into(),
             ));
             artifacts.push(RenderedArtifact::pep_config(
@@ -48,37 +48,37 @@ pub fn render(
         }
         "budget.daily_token_cap" => {
             artifacts.push(RenderedArtifact::rego(
-                "pollen.presets.budget.daily_token_cap",
+                "pollek.presets.budget.daily_token_cap",
                 "default allow := true\n# TODO: Budget logic".into(),
             ));
         }
         "budget.monthly_cost_cap" => {
             artifacts.push(RenderedArtifact::rego(
-                "pollen.presets.budget.monthly_cost_cap",
+                "pollek.presets.budget.monthly_cost_cap",
                 "default allow := true\n# TODO: Monthly budget logic".into(),
             ));
         }
         "content.prompt_injection_guard" => {
             artifacts.push(RenderedArtifact::rego(
-                "pollen.presets.content.prompt_injection_guard",
+                "pollek.presets.content.prompt_injection_guard",
                 "default allow := true\n# TODO: Prompt injection logic".into(),
             ));
         }
         "content.system_prompt_leak_guard" => {
             artifacts.push(RenderedArtifact::rego(
-                "pollen.presets.content.system_prompt_leak_guard",
+                "pollek.presets.content.system_prompt_leak_guard",
                 "default allow := true\n# TODO: System prompt leak guard logic".into(),
             ));
         }
         "secrets.block_api_key_exposure" => {
             artifacts.push(RenderedArtifact::rego(
-                "pollen.presets.secrets.block_api_key_exposure",
+                "pollek.presets.secrets.block_api_key_exposure",
                 "default allow := true\n# TODO: Secrets guard logic".into(),
             ));
         }
         "fs.secrets_file_guard" => {
             artifacts.push(RenderedArtifact::rego(
-                "pollen.presets.fs.secrets_file_guard",
+                "pollek.presets.fs.secrets_file_guard",
                 "default allow := true\n# TODO: FS Secrets guard logic".into(),
             ));
         }
@@ -96,7 +96,7 @@ pub fn render(
         }
         "network.shadow_ai_external_llm_block" => {
             artifacts.push(RenderedArtifact::rego(
-                "pollen.presets.network.shadow_ai",
+                "pollek.presets.network.shadow_ai",
                 "default allow := true\n# TODO: Network logic".into(),
             ));
         }

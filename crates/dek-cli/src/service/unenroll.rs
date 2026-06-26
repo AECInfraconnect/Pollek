@@ -8,7 +8,7 @@ pub fn run(wipe_local_secrets: bool) -> Result<()> {
     let config_dir = dek_config::paths::get_config_dir();
     let certs_dir = config_dir.join("certs");
 
-    println!("Unenrolling Pollen DEK...");
+    println!("Unenrolling Pollek DEK...");
 
     let mut removed_something = false;
 
@@ -36,7 +36,7 @@ pub fn run(wipe_local_secrets: bool) -> Result<()> {
         println!("Device was not enrolled. Nothing to do.");
     } else {
         println!("\nUnenrollment complete.");
-        println!("DEK Core will no longer be able to connect to Pollen Cloud.");
+        println!("DEK Core will no longer be able to connect to Pollek Cloud.");
         println!("Restart the service for changes to take effect.");
     }
 

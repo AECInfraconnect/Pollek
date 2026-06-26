@@ -97,7 +97,7 @@ states instead of overstating enforcement.
 - `dek-agent-observer` — token usage tracking, budget management, local cost estimation, trust scoring via `AgentBaseline`, and telemetry shipping for AI APIs.
 - `dek-policy-suggester` — automatic Rego/Cedar policy generation based on observed cost thresholds and agent trust scoring (`LowTrustRule`).
 - `dek-agent-connector` — agent connection management and lifecycle handling.
-- `dek-control-plane-api` — Contract Hub: shared contract (bundle manifest, telemetry envelope, registry objects, policy drafts, identity modes). Exposes `/.well-known/pollen-contract` to serve TypeSpec-generated OpenAPI contracts and supported schema definitions to consumers.
+- `dek-control-plane-api` — Contract Hub: shared contract (bundle manifest, telemetry envelope, registry objects, policy drafts, identity modes). Exposes `/.well-known/pollek-contract` to serve TypeSpec-generated OpenAPI contracts and supported schema definitions to consumers.
 - `local-control-plane` — Axum + SQLite + local signing; registry/policy/bundle/telemetry/push. Implements the complete `Observe -> Suggest -> Enforce` Governance Loop. Supports Connector config/testing and Dry-run Simulator engine.
 - `apps/local-admin-dashboard` — React/Vite UI with 19 pages: registry (agents, servers, tools, resources, entities, relationships, blackbox AI), policies (enforcer, presets, simulator), observability (auto discovery, shadow AI, suggestions, cost ledger, alerts), and operations (bundles, decision logs, settings).
 - `mock-cloud` — reference Cloud implementing the same contract for offline testing.

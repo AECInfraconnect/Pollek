@@ -36,7 +36,7 @@ sha2 = "0.10"
 hex = "0.4"
 tower-http = { version = "0.5", features = ["fs", "cors"] }
 dek-policy-intent = { version = "1.0.0-beta.1", path = "../dek-policy-intent" }
-pollen-contract = { version = "0.1.0", path = "../../contracts/generated/rust/pollen-contract" }
+pollek-contract = { version = "0.1.0", path = "../../contracts/generated/rust/pollek-contract" }
 dek-agent-observer = { path = "../dek-agent-observer" }
 
 [lints]

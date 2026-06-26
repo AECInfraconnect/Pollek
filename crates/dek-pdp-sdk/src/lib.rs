@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
-//! Plugin SDK for Pollen DEK.
+//! Plugin SDK for Pollek DEK.
 //!
 //! This SDK provides the necessary traits and structures to build and register custom
-//! Policy Decision Point (PDP) adapters for the Pollen DEK runtime.
+//! Policy Decision Point (PDP) adapters for the Pollek DEK runtime.
 //!
 //! # Guardrails for Custom Adapters
 //!

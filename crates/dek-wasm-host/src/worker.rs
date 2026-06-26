@@ -63,12 +63,12 @@ impl PluginWorker {
             .context("plugin missing dealloc(ptr,len)")?;
 
         let reset = instance
-            .get_typed_func::<(), i32>(&mut store, "pollen_plugin_reset")
-            .context("plugin missing pollen_plugin_reset()")?;
+            .get_typed_func::<(), i32>(&mut store, "pollek_plugin_reset")
+            .context("plugin missing pollek_plugin_reset()")?;
 
         let decide = instance
-            .get_typed_func::<(i32, i32), i64>(&mut store, "pollen_plugin_decide")
-            .context("plugin missing pollen_plugin_decide(ptr,len)")?;
+            .get_typed_func::<(i32, i32), i64>(&mut store, "pollek_plugin_decide")
+            .context("plugin missing pollek_plugin_decide(ptr,len)")?;
 
         Ok(Self {
             generation,

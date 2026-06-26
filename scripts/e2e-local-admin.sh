@@ -5,8 +5,8 @@ rm -rf ./target/e2e
 mkdir -p ./target/e2e
 export DEK_LCP_AUTH_DISABLE=1
 export DEK_LCP_BIND="${DEK_LCP_BIND:-127.0.0.1:5174}"
-export DEK_LCP_DB='sqlite://./target/e2e/pollen-local.db?mode=rwc'
-export DEK_LCP_DATA='./target/e2e/pollen-local-data'
+export DEK_LCP_DB='sqlite://./target/e2e/pollek-local.db?mode=rwc'
+export DEK_LCP_DATA='./target/e2e/pollek-local-data'
 mkdir -p ./target/e2e
 export DEK_DASHBOARD_DIR="$(pwd)/apps/local-admin-dashboard/dist"
 export PLAYWRIGHT_BASE_URL="http://${DEK_LCP_BIND}"

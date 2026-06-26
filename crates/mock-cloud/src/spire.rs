@@ -169,7 +169,7 @@ async fn enroll_device(
             "pinned_bundle_public_key": crate::bundle_pubkey_b64(),
             "tenant_id": "tenant-production-1",
             "device_id": device_id,
-            "spiffe_id": format!("spiffe://pollen.cloud/tenant-production-1/device/{}", device_id),
+            "spiffe_id": format!("spiffe://pollek.cloud/tenant-production-1/device/{}", device_id),
             "cloud_url": "https://127.0.0.1:43891"
         })),
     )
@@ -225,7 +225,7 @@ async fn attest_csr(
     drop(devices);
 
     let spiffe_id = format!(
-        "spiffe://pollen.cloud/{}/device/{}",
+        "spiffe://pollek.cloud/{}/device/{}",
         tenant_id, req.device_id
     );
     match sign_csr(&req.csr_pem, &spiffe_id) {
@@ -269,7 +269,7 @@ async fn renew_csr(
     }
 
     let spiffe_id = format!(
-        "spiffe://pollen.cloud/{}/device/{}",
+        "spiffe://pollek.cloud/{}/device/{}",
         tenant_id, req.device_id
     );
     match sign_csr(&req.csr_pem, &spiffe_id) {

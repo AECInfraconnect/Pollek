@@ -19,7 +19,7 @@ use dek_enroll::{EnrollClient, UserPrompt};
 use std::path::Path;
 use tracing::info;
 
-const CLIENT_ID: &str = "pollen-dek";
+const CLIENT_ID: &str = "pollek-dek";
 const SCOPE: &str = "dek.enroll";
 
 pub async fn run(cloud_url: &str) -> Result<()> {
@@ -37,7 +37,7 @@ pub async fn run(cloud_url: &str) -> Result<()> {
     }
 
     // 1) Device flow.
-    println!("Enrolling this device with Pollen Cloud at {cloud_url}...\n");
+    println!("Enrolling this device with Pollek Cloud at {cloud_url}...\n");
     let ca_pem = if cloud_url.contains("127.0.0.1") || cloud_url.contains("localhost") {
         // Automatically load test CA for mock cloud
         std::fs::read_to_string("certs/root_ca.crt").ok()
@@ -131,7 +131,7 @@ pub async fn run(cloud_url: &str) -> Result<()> {
     println!("  Tenant    : {}", enrollment.tenant_id);
     println!("  Cloud URL : {}", enrollment.cloud_url);
     println!("  Config    : {}", bootstrap_path.display());
-    println!("\nStart the service:  dekctl service start   (or: systemctl start pollen-dek)");
+    println!("\nStart the service:  dekctl service start   (or: systemctl start pollek-dek)");
     Ok(())
 }
 

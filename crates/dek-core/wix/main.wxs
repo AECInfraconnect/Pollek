@@ -62,15 +62,15 @@
         Id='*'
         Name='dek-core'
         UpgradeCode='C02411C5-32E3-4DA0-9760-138983397C3D'
-        Manufacturer='Pollen DEK Team'
+        Manufacturer='Pollek DEK Team'
         Language='1033'
         Codepage='1252'
         Version='$(var.Version)'>
 
         <Package Id='*'
             Keywords='Installer'
-            Description='Pollen DEK Supervisor and Agent'
-            Manufacturer='Pollen DEK Team'
+            Description='Pollek DEK Supervisor and Agent'
+            Manufacturer='Pollek DEK Team'
             InstallerVersion='450'
             Languages='1033'
             Compressed='yes'

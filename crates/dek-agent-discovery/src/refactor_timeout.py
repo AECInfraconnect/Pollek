@@ -1,6 +1,6 @@
 import re
 
-path = "C:/Projects/AntiG_Pollen_DEK/crates/dek-agent-discovery/src/orchestrator.rs"
+path = "C:/Projects/AntiG_Pollek_DEK/crates/dek-agent-discovery/src/orchestrator.rs"
 with open(path, "r", encoding="utf-8") as f:
     content = f.read()
 

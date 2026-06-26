@@ -22,7 +22,7 @@ export function FirstRunWizard() {
   const [baseControlLevel, setBaseControlLevel] = useState("observe");
 
   useEffect(() => {
-    const isComplete = localStorage.getItem("pollen_setup_complete");
+    const isComplete = localStorage.getItem("pollek_setup_complete");
     if (!isComplete && !navigator.webdriver) {
       setIsOpen(true);
       fetch("/v1/consent/agreements")
@@ -76,7 +76,7 @@ export function FirstRunWizard() {
   };
 
   const handleComplete = () => {
-    localStorage.setItem("pollen_setup_complete", "true");
+    localStorage.setItem("pollek_setup_complete", "true");
     setIsOpen(false);
     // Refresh to apply changes and clear the setup state from UI flow
     window.location.reload();

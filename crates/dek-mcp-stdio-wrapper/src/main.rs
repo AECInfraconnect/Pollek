@@ -94,7 +94,7 @@ async fn main() -> Result<()> {
     // Init telemetry
     let telemetry_db = dek_config::paths::get_data_dir().join("telemetry-stdio.db");
     let telemetry_sink = dek_telemetry::CloudTelemetrySink::new(
-        "https://telemetry.pollen-cloud.internal",
+        "https://telemetry.pollek-cloud.internal",
         &bootstrap.mtls,
         None,
         &telemetry_db.to_string_lossy(),
@@ -342,7 +342,7 @@ async fn main() -> Result<()> {
                         "id": payload.get("id").unwrap_or(&json!(null)),
                         "error": {
                             "code": -32001,
-                            "message": "Pollen policy denied MCP request",
+                            "message": "Pollek policy denied MCP request",
                             "data": {
                                 "reason": decision.reason
                             }

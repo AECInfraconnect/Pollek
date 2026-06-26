@@ -1,5 +1,5 @@
 [Unit]
-Description=Pollen DEK Core Supervisor
+Description=Pollek DEK Core Supervisor
 After=network.target
 
 [Service]
@@ -21,10 +21,10 @@ OnFailure=dek-rollback.service
 # Least-privilege capabilities for eBPF
 AmbientCapabilities=CAP_BPF CAP_NET_ADMIN
 
-ConfigurationDirectory=pollen-dek
-StateDirectory=pollen-dek
-LogsDirectory=pollen-dek
-RuntimeDirectory=pollen-dek
+ConfigurationDirectory=pollek-dek
+StateDirectory=pollek-dek
+LogsDirectory=pollek-dek
+RuntimeDirectory=pollek-dek
 
 [Install]
 WantedBy=multi-user.target

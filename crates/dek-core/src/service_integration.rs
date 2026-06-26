@@ -66,7 +66,7 @@ where
             }
         };
 
-        let status_handle = service_control_handler::register("PollenDEK", event_handler)?;
+        let status_handle = service_control_handler::register("PollekDEK", event_handler)?;
 
         let next_status = windows_service::service::ServiceStatus {
             service_type: windows_service::service::ServiceType::OWN_PROCESS,
@@ -115,13 +115,13 @@ where
     let logic = Box::new(move || match rt.block_on(main_logic) {
         Err(e) => {
             let _ = std::fs::write(
-                "C:\\ProgramData\\PollenDEK\\error.log",
+                "C:\\ProgramData\\PollekDEK\\error.log",
                 format!("Fatal error in core logic: {:?}", e),
             );
         }
         Ok(()) => {
             let _ = std::fs::write(
-                "C:\\ProgramData\\PollenDEK\\error.log",
+                "C:\\ProgramData\\PollekDEK\\error.log",
                 "Core logic returned Ok(())",
             );
         }
@@ -132,7 +132,7 @@ where
         *lock = Some(logic);
     }
 
-    match service_dispatcher::start("PollenDEK", ffi_service_main) {
+    match service_dispatcher::start("PollekDEK", ffi_service_main) {
         Ok(_) => Ok(()),
         Err(_e) => {
             // Error 1063 means we are not running as a service.

@@ -21,6 +21,7 @@ import type {
 import { statusToken, type UiStatus } from "../lib/status";
 import { cn } from "@/lib/utils";
 import { useMode } from "../context/ModeContext";
+import { appModeToRuntimeMode } from "../lib/modes";
 
 type DemoTarget = "host" | "windows" | "linux" | "macos";
 type DemoProfile = "ready" | "observe_only" | "needs_setup";
@@ -185,8 +186,7 @@ function SetupActionRow({ action }: { action: SetupActionV2 }) {
 
 export function Capabilities() {
   const { mode } = useMode();
-  const runtimeMode: RuntimeModeV2 =
-    mode === "enterprise" ? "enterprise_server" : (mode as RuntimeModeV2);
+  const runtimeMode: RuntimeModeV2 = appModeToRuntimeMode(mode);
   const [snapshot, setSnapshot] = useState<LocalCapabilitySnapshotV2 | null>(
     null,
   );

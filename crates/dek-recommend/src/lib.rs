@@ -35,7 +35,7 @@ impl Recommender {
                 title: "eBPF is missing".into(),
                 description_th: "เครื่อง Linux นี้น่าจะยังไม่ได้ติดตั้งหรือเปิดใช้ eBPF ทำให้บล็อกเครือข่ายไม่ได้จริง"
                     .into(),
-                cli_command: Some("pollen-dek doctor --fix ebpf".into()),
+                cli_command: Some("pollek-dek doctor --fix ebpf".into()),
             });
         }
 
@@ -50,7 +50,7 @@ impl Recommender {
                     severity: Severity::Warning,
                     title: "MCP PEP not configured".into(),
                     description_th: "พบการเรียกใช้งาน AI Tools สูงมาก แต่คุณยังไม่ได้เปิดใช้ MCP PEP ทำให้ AI อาจเข้าถึงข้อมูลอันตรายได้".into(),
-                    cli_command: Some("pollen-dek config set mcp.proxy.enabled true".into()),
+                    cli_command: Some("pollek-dek config set mcp.proxy.enabled true".into()),
                 });
             }
         }

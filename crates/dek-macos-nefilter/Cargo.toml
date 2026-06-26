@@ -5,8 +5,8 @@ name = "dek-macos-nefilter"
 version = "0.1.0"
 edition = "2021"
 
-authors = ["Pollen Cloud Team <team@pollen.cloud>"]
-description = "macOS Network Extension (NEFilter) IPC adapter for Pollen DEK"
+authors = ["Pollek Cloud Team <team@pollek.cloud>"]
+description = "macOS Network Extension (NEFilter) IPC adapter for Pollek DEK"
 
 [dependencies]
 dek-domain-schema = { path = "../dek-domain-schema" }

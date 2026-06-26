@@ -56,7 +56,7 @@ async fn recommend_deployment(
         "alternatives": candidates,
         "pdp_route": {
             "primary": "local_cedar",
-            "fallback": "pollen_cloud"
+            "fallback": "pollek_cloud"
         },
         "warnings": []
     });
@@ -75,7 +75,7 @@ async fn preview_deployment(
         "diffs": [
             {
                 "agent_id": "agent_auto",
-                "file_path": "~/.pollen_dek/mcp_configs/example.json",
+                "file_path": "~/.pollek_dek/mcp_configs/example.json",
                 "diff": "+ command: \"dek-stdio-wrapper\"\n- command: \"uvx\""
             }
         ]
@@ -192,7 +192,7 @@ async fn execute_deployment(
 
     // 3. Emit telemetry event
     let event = serde_json::json!({
-        "schema_version": "pollen.telemetry.v2",
+        "schema_version": "pollek.telemetry.v2",
         "event_type": "policy_deployment",
         "event_id": format!("evt_{}", Uuid::new_v4()),
         "tenant_id": tenant,

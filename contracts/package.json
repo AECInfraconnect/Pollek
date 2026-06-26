@@ -1,13 +1,13 @@
 {
-  "name": "@pollen/contracts-source",
+  "name": "@pollek/contracts-source",
   "private": true,
   "scripts": {
     "build": "npm run gen",
-    "copy:asyncapi": "node -e \"const fs=require('fs');fs.mkdirSync('generated/asyncapi',{recursive:true});fs.copyFileSync('spec/events/sse.asyncapi.yaml','generated/asyncapi/pollen-sse.v1.yaml')\"",
-    "gen:ts": "openapi-typescript generated/openapi/pollen.v1.yaml -o generated/typescript/api.d.ts",
+    "copy:asyncapi": "node -e \"const fs=require('fs');fs.mkdirSync('generated/asyncapi',{recursive:true});fs.copyFileSync('spec/events/sse.asyncapi.yaml','generated/asyncapi/pollek-sse.v1.yaml')\"",
+    "gen:ts": "openapi-typescript generated/openapi/pollek.v1.yaml -o generated/typescript/api.d.ts",
     "gen": "tsp compile spec/main.tsp && npm run copy:asyncapi && npm run gen:ts",
-    "lint:openapi": "spectral lint generated/openapi/pollen.v1.yaml --fail-severity=error",
-    "lint:asyncapi": "asyncapi validate generated/asyncapi/pollen-sse.v1.yaml",
+    "lint:openapi": "spectral lint generated/openapi/pollek.v1.yaml --fail-severity=error",
+    "lint:asyncapi": "asyncapi validate generated/asyncapi/pollek-sse.v1.yaml",
     "validate:schemas": "ajv compile -s 'schemas/*.schema.json' --spec=draft2020 -c ajv-formats",
     "check:generated": "git diff --exit-code generated/",
     "lint:semantic": "tsx scripts/semantic-contract-lint.ts",

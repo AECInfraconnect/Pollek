@@ -25,7 +25,7 @@ export const RegisterControlBar: React.FC<RegisterControlBarProps> = ({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("pollen_token") || ""}`,
+            Authorization: `Bearer ${localStorage.getItem("pollek_token") || ""}`,
           },
           body: JSON.stringify({ level }),
         },

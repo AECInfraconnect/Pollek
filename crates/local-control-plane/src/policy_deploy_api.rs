@@ -59,7 +59,7 @@ async fn commit_deploy(
     State(state): State<AppState>,
     Json(payload): Json<Value>,
 ) -> crate::error::ApiResult<Json<Value>> {
-    let bundle: dek_bundle_format::PollenPolicyBundle = serde_json::from_value(payload.clone())
+    let bundle: dek_bundle_format::PollekPolicyBundle = serde_json::from_value(payload.clone())
         .map_err(|e| crate::error::ApiError::BadRequest(format!("Invalid bundle: {}", e)))?;
 
     assert_pep_supports(&bundle, &state)
@@ -100,7 +100,7 @@ async fn commit_deploy(
 }
 
 pub async fn assert_pep_supports(
-    bundle: &dek_bundle_format::PollenPolicyBundle,
+    bundle: &dek_bundle_format::PollekPolicyBundle,
     _state: &AppState,
 ) -> anyhow::Result<()> {
     let local_caps = dek_capability_registry::detect::detect_pep_capabilities();
@@ -121,7 +121,7 @@ pub async fn assert_pep_supports(
 }
 
 pub async fn activate_bundle(
-    bundle: dek_bundle_format::PollenPolicyBundle,
+    bundle: dek_bundle_format::PollekPolicyBundle,
     state: &AppState,
 ) -> anyhow::Result<()> {
     // 1. Signature Verification

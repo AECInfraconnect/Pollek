@@ -1,4 +1,4 @@
-Write-Host "Setting up Git hooks for Pollen DEK..." -ForegroundColor Cyan
+Write-Host "Setting up Git hooks for Pollek DEK..." -ForegroundColor Cyan
 
 # Set core.hooksPath to the .githooks directory
 git config core.hooksPath .githooks

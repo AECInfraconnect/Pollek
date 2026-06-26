@@ -1,7 +1,7 @@
 import urllib.request, json
 urls = [
-    'https://api.github.com/repos/AECInfraconnect/AntiG_Pollen_DEK/actions/runs/27326069539/jobs',
-    'https://api.github.com/repos/AECInfraconnect/AntiG_Pollen_DEK/actions/runs/27326069549/jobs'
+    'https://api.github.com/repos/AECInfraconnect/Pollek/actions/runs/27326069539/jobs',
+    'https://api.github.com/repos/AECInfraconnect/Pollek/actions/runs/27326069549/jobs'
 ]
 for url in urls:
     print(f"--- URL: {url} ---")

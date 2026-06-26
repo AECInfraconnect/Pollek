@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub enum PdpRuntimeCategory {
     LocalEngine,
     ExternalConnector,
-    PollenCloud,
+    PollekCloud,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -24,7 +24,7 @@ pub enum PdpKind {
     AwsVerifiedPermissions,
     CustomHttp,
     CustomGrpc,
-    PollenCloudPdp,
+    PollekCloudPdp,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -165,7 +165,7 @@ pub fn normalize_pdp_kind(input: &str) -> Result<PdpKind, String> {
         "aws_avp" | "aws_verified_permissions" => Ok(PdpKind::AwsVerifiedPermissions),
         "custom_http" => Ok(PdpKind::CustomHttp),
         "custom_grpc" => Ok(PdpKind::CustomGrpc),
-        "pollen_cloud" | "pollen_cloud_pdp" => Ok(PdpKind::PollenCloudPdp),
+        "pollek_cloud" | "pollek_cloud_pdp" => Ok(PdpKind::PollekCloudPdp),
         "wasm_plugin" => Ok(PdpKind::WasmPlugin),
         _ => Err(format!("Unsupported PDP kind: {}", input)),
     }

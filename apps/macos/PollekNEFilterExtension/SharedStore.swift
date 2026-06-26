@@ -4,11 +4,11 @@ import os.log
 final class SharedStore {
     static let shared = SharedStore()
 
-    private let appGroupId = "group.com.aecinfraconnect.pollen.dek"
-    private let policyFileName = "pollen-policy-bundle.json"
+    private let appGroupId = "group.com.aecinfraconnect.pollek.dek"
+    private let policyFileName = "pollek-policy-bundle.json"
 
     private let logger = Logger(
-        subsystem: "com.aecinfraconnect.pollen.dek.nefilter",
+        subsystem: "com.aecinfraconnect.pollek.dek.nefilter",
         category: "SharedStore"
     )
 
@@ -16,7 +16,7 @@ final class SharedStore {
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupId)
     }
 
-    func loadPolicyBundle() -> PollenPolicyBundle? {
+    func loadPolicyBundle() -> PollekPolicyBundle? {
         guard let url = containerURL?.appendingPathComponent(policyFileName) else {
             logger.error("App Group container is unavailable")
             return nil
@@ -26,7 +26,7 @@ final class SharedStore {
             let data = try Data(contentsOf: url)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode(PollenPolicyBundle.self, from: data)
+            return try decoder.decode(PollekPolicyBundle.self, from: data)
         } catch {
             logger.error("Failed to load policy bundle: \(error.localizedDescription)")
             return nil

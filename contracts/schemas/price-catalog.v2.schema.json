@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://contracts.pollen.dev/schemas/price-catalog.v2.schema.json",
+  "$id": "https://contracts.pollek.dev/schemas/price-catalog.v2.schema.json",
   "title": "PriceCatalogV2",
   "type": "object",
   "additionalProperties": false,

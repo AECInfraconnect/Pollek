@@ -5,12 +5,16 @@ import type { CloudPdpProfile } from "../../services/api";
 export function CloudPdpTab() {
   const [profile, setProfile] = useState<CloudPdpProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [endpoint, setEndpoint] = useState("");
+  const [tenantId, setTenantId] = useState("");
+  const [deviceId, setDeviceId] = useState("");
 
   const reload = async () => {
     setLoading(true);
     try {
       const data = await PdpCloudApi.get();
       setProfile(data);
+      window.dispatchEvent(new Event("pollek-cloud-profile-changed"));
     } catch (e) {
       console.error(e);
       setProfile(null);
@@ -22,6 +26,27 @@ export function CloudPdpTab() {
   useEffect(() => {
     reload();
   }, []);
+
+  useEffect(() => {
+    setEndpoint(profile?.pdp_endpoint ?? "");
+    setTenantId(profile?.tenant_id ?? "");
+    setDeviceId(profile?.device_id ?? "");
+  }, [profile]);
+
+  const saveAndProbe = async () => {
+    const saved = await PdpCloudApi.update({
+      ...(profile ?? {}),
+      pdp_endpoint: endpoint.trim() || undefined,
+      tenant_id: tenantId.trim() || undefined,
+      device_id: deviceId.trim() || undefined,
+      auth_method: profile?.auth_method ?? "spiffe-oauth-mtls",
+      status: "configured",
+      manual_override_enabled: profile?.manual_override_enabled ?? false,
+    });
+    setProfile(saved);
+    await PdpCloudApi.probe();
+    await reload();
+  };
 
   const handleLogin = async () => {
     try {
@@ -58,37 +83,75 @@ export function CloudPdpTab() {
     );
   }
 
-  if (!profile || profile.status === "disconnected") {
+  if (!profile || profile.status !== "connected") {
     return (
-      <div className="py-8 text-center text-muted-foreground">
-        <div className="inline-block p-4 bg-muted/50 rounded-full mb-4">
-          <svg
-            className="w-8 h-8 text-primary"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
-            />
-          </svg>
+      <div className="space-y-6">
+        <div className="rounded-lg border bg-card/60 p-5">
+          <h4 className="text-lg font-medium text-foreground">
+            Connect to Pollek Cloud
+          </h4>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Enterprise Cloud mode unlocks only after this Local Control Plane
+            has a Pollek Cloud endpoint and contract discovery probe succeeds.
+          </p>
+          {profile?.health?.detail && (
+            <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+              {String(profile.health.detail)}
+            </p>
+          )}
+          <div className="mt-5 grid gap-4 text-sm">
+            <label className="grid gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">
+                Pollek Cloud URL
+              </span>
+              <input
+                value={endpoint}
+                onChange={(event) => setEndpoint(event.target.value)}
+                placeholder="https://cloud.example.com"
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </label>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Tenant ID
+                </span>
+                <input
+                  value={tenantId}
+                  onChange={(event) => setTenantId(event.target.value)}
+                  placeholder="tenant-id"
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Device ID
+                </span>
+                <input
+                  value={deviceId}
+                  onChange={(event) => setDeviceId(event.target.value)}
+                  placeholder="local-device"
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              </label>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button
+              onClick={saveAndProbe}
+              disabled={!endpoint.trim()}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Save & Probe
+            </button>
+            <button
+              onClick={handleLogin}
+              className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Use configured environment
+            </button>
+          </div>
         </div>
-        <h4 className="text-lg font-medium text-foreground mb-2">
-          Connect to Pollek Cloud PDP
-        </h4>
-        <p className="max-w-md mx-auto text-sm">
-          Connect this Local Enforcement Kit to a fully managed Pollek Cloud
-          PDP. Configuration and routing will be synced automatically.
-        </p>
-        <button
-          onClick={handleLogin}
-          className="mt-6 px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90"
-        >
-          Login / Enroll Device
-        </button>
       </div>
     );
   }

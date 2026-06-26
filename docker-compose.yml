@@ -3,7 +3,7 @@ version: "3.8"
 services:
   openfga:
     image: openfga/openfga:latest
-    container_name: pollen_openfga
+    container_name: pollek_openfga
     command: run
     environment:
       - OPENFGA_DATASTORE_ENGINE=memory

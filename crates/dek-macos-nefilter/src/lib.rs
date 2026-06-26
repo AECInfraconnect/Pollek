@@ -30,7 +30,7 @@ impl NeFilterClient {
     pub fn new(spool: Option<Arc<dek_secure_spool::Spool>>) -> Self {
         Self {
             connected: false,
-            socket_path: "/var/run/pollen/nefilter.sock".into(),
+            socket_path: "/var/run/pollek/nefilter.sock".into(),
             spool,
             #[cfg(target_os = "macos")]
             stream: None,
@@ -78,7 +78,7 @@ impl dek_enforcement_api::NetworkEnforcer for NeFilterClient {
                 Ok(s) => {
                     self.stream = Some(s);
                     self.connected = true;
-                    info!("connected to PollenDEKNetworkExtension");
+                    info!("connected to PollekDEKNetworkExtension");
                     Ok(())
                 }
                 Err(e) => anyhow::bail!("NE socket connect failed: {e}"),

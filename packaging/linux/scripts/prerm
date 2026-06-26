@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
-systemctl stop pollen-dek || true
-systemctl disable pollen-dek || true
+systemctl stop pollek-dek || true
+systemctl disable pollek-dek || true

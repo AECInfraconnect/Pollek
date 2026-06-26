@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://contracts.pollen.dev/schemas/telemetry-envelope.v1.schema.json",
-  "title": "PollenTelemetryEnvelopeV1",
+  "$id": "https://contracts.pollek.dev/schemas/telemetry-envelope.v1.schema.json",
+  "title": "PollekTelemetryEnvelopeV1",
   "type": "object",
   "additionalProperties": false,
   "required": [

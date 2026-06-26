@@ -15,8 +15,8 @@ pub struct OsServiceManager {
 impl OsServiceManager {
     pub fn new() -> Self {
         Self {
-            service_label: "com.aecinfraconnect.pollendek",
-            plist_path: PathBuf::from("/Library/LaunchDaemons/com.aecinfraconnect.pollendek.plist"),
+            service_label: "com.aecinfraconnect.pollekdek",
+            plist_path: PathBuf::from("/Library/LaunchDaemons/com.aecinfraconnect.pollekdek.plist"),
         }
     }
 
@@ -50,11 +50,11 @@ impl ServiceManager for OsServiceManager {
     <key>KeepAlive</key>
     <true/>
     <key>UserName</key>
-    <string>pollendek</string>
+    <string>pollekdek</string>
     <key>StandardOutPath</key>
-    <string>/Library/Logs/PollenDEK/stdout.log</string>
+    <string>/Library/Logs/PollekDEK/stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/Library/Logs/PollenDEK/stderr.log</string>
+    <string>/Library/Logs/PollekDEK/stderr.log</string>
 </dict>
 </plist>
 "#,

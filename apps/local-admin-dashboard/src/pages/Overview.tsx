@@ -98,7 +98,7 @@ export function Overview() {
         <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-500 border border-green-500/20 rounded-full">
           <ShieldAlert className="w-4 h-4" />
           <span className="text-xs font-semibold uppercase tracking-wider">
-            Air-Gap Ready / Sovereign Mode
+            Local-Only Ready
           </span>
         </div>
       </div>

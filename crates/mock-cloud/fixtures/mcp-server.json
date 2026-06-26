@@ -1,5 +1,5 @@
 {
-  "schema_version": "pollen.mcp-server.v1",
+  "schema_version": "pollek.mcp-server.v1",
   "server_id": "mcp-fs-1",
   "tenant_id": "tenant-acme-prod",
   "name": "Local Filesystem MCP",

@@ -1,4 +1,4 @@
-// macos/PollenDEKNetworkExtension/FilterDataProvider.swift
+// macos/PollekDEKNetworkExtension/FilterDataProvider.swift
 import NetworkExtension
 
 class FilterDataProvider: NEFilterDataProvider {
@@ -7,7 +7,7 @@ class FilterDataProvider: NEFilterDataProvider {
     private var blockedPorts: Set<UInt16> = []
 
     override func startFilter(completionHandler: @escaping (Error?) -> Void) {
-        // listen UDS /var/run/pollen/nefilter.sock รับ rule จาก container
+        // listen UDS /var/run/pollek/nefilter.sock รับ rule จาก container
         startIpcListener()
         completionHandler(nil)
     }
@@ -30,7 +30,7 @@ class FilterDataProvider: NEFilterDataProvider {
     }
     
     private func startIpcListener() {
-        // Stub: Implement Unix Domain Socket listener for /var/run/pollen/nefilter.sock
+        // Stub: Implement Unix Domain Socket listener for /var/run/pollek/nefilter.sock
         // to receive rules from NeFilterClient in dek-core.
     }
     

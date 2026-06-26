@@ -1,7 +1,7 @@
 # ============================================================================
 # packaging/windows/rollback.ps1
 # ----------------------------------------------------------------------------
-# Triggered by the Windows SCM "run program" failure action after PollenDEK
+# Triggered by the Windows SCM "run program" failure action after PollekDEK
 # exhausts its restart attempts. The service is STOPPED at this point, so the
 # dek-core.exe file is unlocked and a plain copy works.
 #
@@ -10,10 +10,10 @@
 # ============================================================================
 
 $ErrorActionPreference = "Stop"
-$ServiceName = "PollenDEK"
-$InstallDir  = Join-Path $env:ProgramFiles "PollenDEK"
+$ServiceName = "PollekDEK"
+$InstallDir  = Join-Path $env:ProgramFiles "PollekDEK"
 $Dekctl      = Join-Path $InstallDir "dekctl.exe"
-$LogDir      = Join-Path $env:ProgramData "PollenDEK\logs"
+$LogDir      = Join-Path $env:ProgramData "PollekDEK\logs"
 $LogFile     = Join-Path $LogDir "rollback.log"
 
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
@@ -63,9 +63,9 @@ exit 0
 # Note: sc.exe needs the literal "actions=" with a trailing space, and the
 # command must be wrapped so the SCM passes it as the failure "command".
 #
-#   sc.exe failure PollenDEK reset= 60 actions= restart/2000/restart/2000/run/0
-#   sc.exe failureflag PollenDEK 1
-#   sc.exe failure PollenDEK command= "powershell -ExecutionPolicy Bypass -NoProfile -File \"C:\Program Files\PollenDEK\rollback.ps1\""
+#   sc.exe failure PollekDEK reset= 60 actions= restart/2000/restart/2000/run/0
+#   sc.exe failureflag PollekDEK 1
+#   sc.exe failure PollekDEK command= "powershell -ExecutionPolicy Bypass -NoProfile -File \"C:\Program Files\PollekDEK\rollback.ps1\""
 #
 # (failureflag 1 makes SCM apply failure actions even on "clean" non-zero exits,
 #  which matches probation's std::process::exit(1) on abort.)

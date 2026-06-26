@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
-# Pollen DEK Installation Script (Linux / macOS)
+# Pollek DEK Installation Script (Linux / macOS)
 
-echo "Installing Pollen DEK v1.0.0-beta..."
+echo "Installing Pollek DEK v1.0.0-beta..."
 
-INSTALL_DIR="/opt/pollen-dek"
-CONFIG_DIR="/etc/pollen-dek"
-DATA_DIR="/var/lib/pollen-dek"
+INSTALL_DIR="/opt/pollek-dek"
+CONFIG_DIR="/etc/pollek-dek"
+DATA_DIR="/var/lib/pollek-dek"
 
 # Require root
 if [ "$EUID" -ne 0 ]; then
@@ -36,25 +36,25 @@ chmod +x "$INSTALL_DIR/"*
 # Setup systemd service for Linux
 if [ -d "/etc/systemd/system" ]; then
     echo "Configuring systemd service..."
-    cat <<EOF > /etc/systemd/system/pollen-dek.service
+    cat <<EOF > /etc/systemd/system/pollek-dek.service
 [Unit]
-Description=Pollen DEK Core
+Description=Pollek DEK Core
 After=network.target
 
 [Service]
 ExecStart=$INSTALL_DIR/dek-core
 Restart=always
 User=root
-Environment=POLLEN_CLOUD_URL=https://127.0.0.1:43891
+Environment=POLLEK_CLOUD_URL=https://127.0.0.1:43891
 
 [Install]
 WantedBy=multi-user.target
 EOF
     systemctl daemon-reload
-    systemctl enable pollen-dek
-    echo "Service enabled. Run 'systemctl start pollen-dek' to start."
+    systemctl enable pollek-dek
+    echo "Service enabled. Run 'systemctl start pollek-dek' to start."
 else
     echo "Systemd not detected. Please start $INSTALL_DIR/dek-core manually."
 fi
 
-echo "Pollen DEK Installation Complete."
+echo "Pollek DEK Installation Complete."

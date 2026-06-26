@@ -20,7 +20,7 @@ pollek-dekctl doctor
 
 1. Download `Pollek-dek-x86_64-pc-windows-msvc.msi` from the GitHub Releases page.
 2. Double-click the MSI installer and follow the prompts.
-3. The `PollenDEKCore` service will be installed and started automatically in the background.
+3. The `PollekDEKCore` service will be installed and started automatically in the background.
 
 ## Linux Installation
 

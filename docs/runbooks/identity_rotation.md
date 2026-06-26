@@ -16,14 +16,14 @@ To manually rotate the SPIFFE SVID or MTLS certificates if the automated renewal
    Check the `NotBefore` and `NotAfter` timestamps of the `client.crt` file.
 
    ```powershell
-   openssl x509 -in C:\ProgramData\PollenDEK\certs\client.crt -text -noout | Select-String "Not After"
+   openssl x509 -in C:\ProgramData\PollekDEK\certs\client.crt -text -noout | Select-String "Not After"
    ```
 
 3. **Restart Local Enforcement Kit Core (Optional)**
    While Local Enforcement Kit handles rotation dynamically, if telemetry components hang:
 
    ```powershell
-   Restart-Service PollenDEK
+   Restart-Service PollekDEK
    ```
 
 ## Escalation

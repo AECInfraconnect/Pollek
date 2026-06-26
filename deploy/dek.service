@@ -1,24 +1,24 @@
 [Unit]
-Description=Pollen DEK (Distributed Enforcement Kernel)
-Documentation=https://github.com/pollen-cloud/pollen-dek
+Description=Pollek DEK (Distributed Enforcement Kernel)
+Documentation=https://github.com/pollek-cloud/pollek-dek
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 # DEK execution config
-ExecStart=/usr/local/bin/pollen-dek start --config /etc/pollen/dek.yml
+ExecStart=/usr/local/bin/pollek-dek start --config /etc/pollek/dek.yml
 Restart=always
 RestartSec=3
 
 # Hardening / Sandbox Configuration
-User=pollen
-Group=pollen
+User=pollek
+Group=pollek
 DynamicUser=yes
-StateDirectory=pollen
-ConfigurationDirectory=pollen
-LogsDirectory=pollen
-CacheDirectory=pollen
+StateDirectory=pollek
+ConfigurationDirectory=pollek
+LogsDirectory=pollek
+CacheDirectory=pollek
 
 # System restrictions
 ProtectSystem=strict

@@ -10,7 +10,7 @@ fn main() -> anyhow::Result<()> {
         "tenant_id": "tenant-production-1",
         "mtls": { "client_cert_path": "certs/client.crt", "client_key_path": "certs/client.key", "root_ca_path": "certs/root_ca.crt" },
         "spire_server": { "endpoint": "https://127.0.0.1:43891/spire" },
-        "jwt_config": { "public_key_pem": "test", "issuer_url": "https://127.0.0.1:43891", "audience": ["pollen-dek"] },
+        "jwt_config": { "public_key_pem": "test", "issuer_url": "https://127.0.0.1:43891", "audience": ["pollek-dek"] },
         "policy_config": {
             "version": "1.0",
             "policy": { "engine": "cedar" },

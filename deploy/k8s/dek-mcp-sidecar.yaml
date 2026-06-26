@@ -24,9 +24,9 @@ spec:
             - name: MCP_SERVER_URL
               value: "http://127.0.0.1:8080/mcp"
 
-        # 2. Pollen DEK MCP Sidecar
-        - name: pollen-dek-mcp-sidecar
-          image: pollen/dek-mcp-stdio-wrapper:v0.1.0
+        # 2. Pollek DEK MCP Sidecar
+        - name: pollek-dek-mcp-sidecar
+          image: pollek/dek-mcp-stdio-wrapper:v0.1.0
           imagePullPolicy: IfNotPresent
           command: ["/usr/local/bin/dek-mcp-stdio-wrapper"]
           args:
@@ -35,7 +35,7 @@ spec:
             - "/usr/local/bin/actual-mcp-server" # The real tool server process being wrapped
           volumeMounts:
             - name: dek-policy-bundle
-              mountPath: /etc/pollen/policies
+              mountPath: /etc/pollek/policies
             - name: spire-agent-socket
               mountPath: /run/spire/sockets
               readOnly: true

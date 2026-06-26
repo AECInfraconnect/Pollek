@@ -2,7 +2,7 @@
 # scripts/install.sh
 set -euo pipefail
 
-REPO="AECInfraconnect/AntiG_Pollen_DEK"
+REPO="AECInfraconnect/Pollek"
 VERSION="${1:-latest}"
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
@@ -53,8 +53,8 @@ if ! /tmp/${BIN} agree; then
 fi
 
 echo "▶ 5/5 ติดตั้ง + เริ่มบริการ"
-install -m 0755 /tmp/${BIN} /usr/local/bin/pollen-dek
-pollen-dek service install || true
-pollen-dek service start || true
+install -m 0755 /tmp/${BIN} /usr/local/bin/pollek-dek
+pollek-dek service install || true
+pollek-dek service start || true
 
-echo "✅ เสร็จ — เปิด dashboard ที่ http://127.0.0.1:43891 หรือรัน: pollen-dek wizard"
+echo "✅ เสร็จ — เปิด dashboard ที่ http://127.0.0.1:43891 หรือรัน: pollek-dek wizard"

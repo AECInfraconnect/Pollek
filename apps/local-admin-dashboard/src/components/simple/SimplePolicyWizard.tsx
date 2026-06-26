@@ -94,6 +94,7 @@ function i18nTitle(s: any) {
 // ----------------------------------------------
 
 import { useMode } from "../../context/ModeContext";
+import { isAdvanceMode } from "../../lib/modes";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -169,7 +170,7 @@ export function SimplePolicyWizard({
     try {
       const feas = await client.previewFeasibility(policy, level);
       setFeasibility(feas); // auto-detect + auto-select เกิดที่ backend
-      if (mode === "desktop_advanced" || mode === "enterprise") {
+      if (isAdvanceMode(mode)) {
         const session = await client.createDeploySession({
           policy,
           agents: picked,
@@ -301,11 +302,10 @@ export function SimplePolicyWizard({
       {step === 4 && feasibility && (
         <Section title={t("step.confirm")}>
           <FeasibilityPreview result={feasibility as any} />
-          {mode === "desktop_advanced" ||
-            (mode === "enterprise" && plan && (
+          {isAdvanceMode(mode) && plan && (
               <div className="mt-4 rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
                 <h4 className="text-sm font-semibold text-zinc-300 mb-2">
-                  Control Method Plan (Advanced)
+                  Control Method Plan (Advance)
                 </h4>
                 <ul className="space-y-2 text-xs font-mono text-zinc-400">
                   {plan.bindings.map((b: any, i: number) => (
@@ -320,7 +320,7 @@ export function SimplePolicyWizard({
                   ))}
                 </ul>
               </div>
-            ))}
+            )}
           <button
             onClick={protectNow}
             className="mt-4 w-full rounded-xl bg-violet-600 py-3 font-semibold text-white hover:bg-violet-500"

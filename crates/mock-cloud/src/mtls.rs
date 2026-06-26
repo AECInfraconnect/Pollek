@@ -22,9 +22,9 @@ pub fn build_mtls_config(allow_insecure: bool) -> Result<ServerConfig> {
     root_cert_store.add_parsable_certificates(ca_certs);
 
     // Strictly enforce client certificates. Reject requests without valid certs.
-    // In a real environment, we would also verify `O=Pollen Cloud` via a custom verifier.
+    // In a real environment, we would also verify `O=Pollek Cloud` via a custom verifier.
     // For this Mock Cloud, ensuring it's signed by our CA is logically equivalent to
-    // enforcing O=Pollen Cloud since we only issue such certs.
+    // enforcing O=Pollek Cloud since we only issue such certs.
     let client_verifier = WebPkiClientVerifier::builder(Arc::new(root_cert_store))
         .build()
         .context("Failed to build strict mTLS client verifier")?;
