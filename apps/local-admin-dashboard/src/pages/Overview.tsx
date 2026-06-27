@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ShieldAlert, Server, Users, Info } from "lucide-react";
+import { Activity, ShieldAlert, Server, Users, Info, Dot } from "lucide-react";
 import { RegistryApi, ActivityApi, PolicyFirstApi } from "../services/api";
 import type { LegacyLocalCapabilitySnapshot } from "../services/types";
 
@@ -52,102 +52,68 @@ export function Overview() {
       .catch(console.error);
   }, []);
 
-  const stats = [
-    {
-      name: "Active Agents",
-      value: metrics.agents.toString(),
-      icon: Users,
-      change: "Live",
-      changeType: "neutral",
-    },
-    {
-      name: "Connected MCPs",
-      value: metrics.mcps.toString(),
-      icon: Server,
-      change: "Live",
-      changeType: "neutral",
-    },
-    {
-      name: "Registered Tools",
-      value: metrics.tools.toString(),
-      icon: Activity,
-      change: "Live",
-      changeType: "neutral",
-    },
-    {
-      name: "Known Resources",
-      value: metrics.resources.toString(),
-      icon: ShieldAlert,
-      change: "Live",
-      changeType: "neutral",
-    },
-  ];
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">
+    <div className="space-y-5">
+      {/* Header with compact inline metrics */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">
             Dashboard Overview
           </h2>
-          <p className="text-muted-foreground">
-            Real-time metrics and system health for your local Pollek Local
-            Enforcement Kit.
-          </p>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 text-green-500 border border-green-500/20 rounded-full">
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">
+              Local-Only Ready
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-500 border border-green-500/20 rounded-full">
-          <ShieldAlert className="w-4 h-4" />
-          <span className="text-xs font-semibold uppercase tracking-wider">
-            Local-Only Ready
+
+        {/* Compact inline metric strip - replaces big stat cards */}
+        <div className="flex flex-wrap items-center gap-1 text-sm">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-card/50 px-2.5 py-1">
+            <Users className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium">{metrics.agents}</span>
+            <span className="text-muted-foreground text-xs">Agents</span>
+          </span>
+          <Dot className="h-4 w-4 text-muted-foreground/40" />
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-card/50 px-2.5 py-1">
+            <Server className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium">{metrics.mcps}</span>
+            <span className="text-muted-foreground text-xs">MCPs</span>
+          </span>
+          <Dot className="h-4 w-4 text-muted-foreground/40" />
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-card/50 px-2.5 py-1">
+            <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium">{metrics.tools}</span>
+            <span className="text-muted-foreground text-xs">Tools</span>
+          </span>
+          <Dot className="h-4 w-4 text-muted-foreground/40" />
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-card/50 px-2.5 py-1">
+            <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium">{metrics.resources}</span>
+            <span className="text-muted-foreground text-xs">Resources</span>
           </span>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.name}
-            className="glass rounded-xl p-6 relative overflow-hidden group"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-            <div className="relative flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">
-                {stat.name}
-              </span>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-3xl font-bold">{stat.value}</span>
-              <span
-                className={`text-xs font-medium ${stat.changeType === "positive" ? "text-emerald-500" : stat.changeType === "negative" ? "text-destructive" : "text-muted-foreground"}`}
-              >
-                {stat.change}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="glass col-span-3 rounded-xl p-6 overflow-hidden">
-          <h3 className="font-semibold mb-4 flex items-center justify-between">
-            <span>What POLLEK can do</span>
+      {/* Two-column content area */}
+      <div className="grid gap-4 lg:grid-cols-[2fr_3fr]">
+        {/* Left: Control Methods */}
+        <div className="rounded-lg border border-border/60 bg-card/30 p-4 overflow-hidden">
+          <h3 className="text-sm font-semibold mb-3 flex items-center justify-between">
+            <span>Control Methods</span>
             {snapshotLoading && (
-              <span className="text-muted-foreground text-sm">Scanning...</span>
+              <span className="text-muted-foreground text-xs animate-pulse">Scanning...</span>
             )}
           </h3>
           {snapshot && !snapshotLoading && (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-2 p-3 bg-secondary/20 rounded-lg">
-                <span className="text-sm font-semibold">
-                  Local Device: {snapshot.device_id || "local"}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Agents Found: {snapshot.agents?.length || metrics.agents || 0}
-                </span>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground pb-2 border-b border-border/40">
+                <span>Device: {snapshot.device_id || "local"}</span>
+                <span className="text-muted-foreground/50">|</span>
+                <span>Agents: {snapshot.agents?.length || metrics.agents || 0}</span>
               </div>
-              <div className="flex flex-col gap-2">
-                <h4 className="text-sm font-semibold mt-2">Control Methods</h4>
+              <div className="space-y-1">
                 {(
                   (snapshot as any).methods || (snapshot as any).control_methods
                 )?.length > 0 ? (
@@ -157,25 +123,20 @@ export function Overview() {
                   ).map((m: any, idx: number) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-2 text-sm border-b border-muted/20"
+                      className="flex items-center justify-between py-1.5 text-xs border-b border-border/20 last:border-0"
                     >
-                      <div className="flex flex-col">
+                      <div className="flex flex-col gap-0.5">
                         <span className="font-medium capitalize">
                           {(m.method || m.id || "").replace(/_/g, " ")}
                         </span>
-                        {m.next_action && (
-                          <span className="text-xs text-muted-foreground">
-                            {m.next_action.label?.en || "Action Required"}
-                          </span>
-                        )}
                         {m.domains && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] text-muted-foreground">
                             {m.domains.join(", ")}
                           </span>
                         )}
                       </div>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                           m.status === "ready" ||
                           m.status === "ready_after_approval" ||
                           m.status === "Available" ||
@@ -192,48 +153,50 @@ export function Overview() {
                     </div>
                   ))
                 ) : (
-                  <span className="text-sm text-muted-foreground p-2">
+                  <span className="text-xs text-muted-foreground py-2">
                     No control methods available
                   </span>
                 )}
               </div>
-              <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-start gap-2">
-                <Info className="w-4 h-4 text-blue-400 mt-0.5" />
-                <p className="text-xs text-blue-300">
+              <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded flex items-start gap-1.5">
+                <Info className="w-3 h-3 text-blue-400 mt-0.5 shrink-0" />
+                <p className="text-[10px] text-blue-300 leading-relaxed">
                   POLLEK dynamically selects the best control method for each
-                  policy. Setup may be required for advanced network controls.
+                  policy.
                 </p>
               </div>
             </div>
           )}
         </div>
-        <div className="glass col-span-4 rounded-xl p-6">
-          <h3 className="font-semibold mb-4">Recent Audit Activity</h3>
-          <div className="space-y-4">
+
+        {/* Right: Recent Activity */}
+        <div className="rounded-lg border border-border/60 bg-card/30 p-4">
+          <h3 className="text-sm font-semibold mb-3">Recent Audit Activity</h3>
+          <div className="space-y-2">
             {activities.length > 0 ? (
               activities
                 .flatMap((set: any) => set.items)
-                .slice(0, 5)
+                .slice(0, 8)
                 .map((item: any, i: number) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Activity className="h-4 w-4 text-primary" />
+                  <div key={i} className="flex items-center gap-3 py-1.5 border-b border-border/20 last:border-0">
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Activity className="h-3 w-3 text-primary" />
                     </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {item.event_type} - {item.decision}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium leading-none truncate">
+                        {item.event_type} — {item.decision}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Target: {item.resource} | Reason: {item.reason}
+                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                        {item.resource} | {item.reason}
                       </p>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(item.timestamp).toLocaleTimeString()}
-                    </div>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
                   </div>
                 ))
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground py-4 text-center">
                 No recent activity.
               </p>
             )}

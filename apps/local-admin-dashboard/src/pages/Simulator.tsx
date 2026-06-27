@@ -134,7 +134,7 @@ export function Simulator() {
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
             <PlayCircle className="h-6 w-6 text-primary" /> Policy Simulator
           </h2>
           <p className="text-muted-foreground">

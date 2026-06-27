@@ -36,7 +36,7 @@ export function PolicySuggestions() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-lg font-semibold tracking-tight">
             Policy Suggestions
           </h2>
           <p className="text-muted-foreground">
@@ -58,7 +58,7 @@ export function PolicySuggestions() {
         </button>
       </div>
 
-      <div className="glass rounded-xl p-6">
+      <div className="glass rounded-lg p-4">
         <h3 className="font-semibold mb-4">Suggested Policies</h3>
         {suggestions.length === 0 ? (
           <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-muted">

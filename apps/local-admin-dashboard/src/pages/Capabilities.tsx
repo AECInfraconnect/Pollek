@@ -234,7 +234,7 @@ export function Capabilities() {
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">
+          <h2 className="text-lg font-semibold tracking-tight">
             Capabilities
           </h2>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">

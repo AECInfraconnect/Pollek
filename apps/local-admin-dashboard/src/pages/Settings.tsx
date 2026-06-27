@@ -53,7 +53,7 @@ export function Settings() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Settings</h2>
           <p className="text-muted-foreground">
             Configure local control plane settings and synchronization profiles.
           </p>

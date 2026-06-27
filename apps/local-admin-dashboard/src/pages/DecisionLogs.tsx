@@ -156,8 +156,8 @@ export function DecisionLogs() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Activity className="h-6 w-6 text-primary" /> Audit &amp; Decision
+          <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" /> Audit & Decision
             Activity
           </h2>
           <p className="text-muted-foreground">
@@ -194,10 +194,20 @@ export function DecisionLogs() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard label="Total decisions" value={events.length} />
-        <StatCard label="Allowed" value={allowCount} cls="text-emerald-400" />
-        <StatCard label="Denied" value={denyCount} cls="text-red-400" />
+      {/* Compact inline decision summary */}
+      <div className="flex items-center gap-3 text-sm">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-card/50 px-2.5 py-1">
+          <span className="font-semibold tabular-nums">{events.length}</span>
+          <span className="text-xs text-muted-foreground">total</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1">
+          <span className="font-semibold tabular-nums text-emerald-400">{allowCount}</span>
+          <span className="text-xs text-emerald-400/80">allowed</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-1">
+          <span className="font-semibold tabular-nums text-red-400">{denyCount}</span>
+          <span className="text-xs text-red-400/80">denied</span>
+        </span>
       </div>
 
       <div className="flex gap-2">
@@ -290,19 +300,4 @@ export function DecisionLogs() {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  cls = "",
-}: {
-  label: string;
-  value: number;
-  cls?: string;
-}) {
-  return (
-    <div className="glass rounded-xl border p-4">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={`mt-1 text-2xl font-bold ${cls}`}>{value}</div>
-    </div>
-  );
-}
+// StatCard removed - replaced by compact inline badges above

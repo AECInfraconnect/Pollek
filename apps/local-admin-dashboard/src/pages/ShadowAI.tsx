@@ -19,7 +19,7 @@ export function ShadowAI({ hideHeader = false }: { hideHeader?: boolean }) {
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight flex items-center">
+            <h2 className="text-lg font-semibold tracking-tight flex items-center">
               <ShieldAlert className="mr-2 h-6 w-6 text-destructive" />
               Shadow AI Inbox
             </h2>
@@ -31,7 +31,7 @@ export function ShadowAI({ hideHeader = false }: { hideHeader?: boolean }) {
         </div>
       )}
 
-      <div className="glass rounded-xl p-6">
+      <div className="glass rounded-lg p-4">
         <h3 className="font-semibold mb-4">Unregistered Activity</h3>
         {loading ? (
           <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-muted">

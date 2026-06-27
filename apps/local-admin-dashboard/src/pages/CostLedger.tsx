@@ -250,7 +250,7 @@ export function CostLedger() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-lg font-semibold tracking-tight">
             AI Usage & Cost
           </h2>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -304,33 +304,37 @@ export function CostLedger() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          icon={CircleDollarSign}
-          label="Spend"
-          value={money(totals?.total_cost ?? 0, currency)}
-          detail={`${number(totals?.request_count ?? 0)} calls`}
-        />
-        <MetricCard
-          icon={Zap}
-          label="Tokens"
-          value={number(totals?.total_tokens ?? 0)}
-          detail={`${number(totals?.cached_input_tokens ?? 0)} cached`}
-        />
-        <MetricCard
-          icon={Gauge}
-          label="Budget"
-          value={budgetStatus === "ok" ? "OK" : budgetStatus.replace("_", " ")}
-          detail={`${summary?.budgets?.length ?? 0} active limits`}
-          tone={budgetStatus}
-        />
-        <MetricCard
-          icon={Server}
-          label="Cloud Sync"
-          value={`${syncCounts.acked}/${Object.values(syncCounts).reduce((a, b) => a + b, 0)}`}
-          detail={`${syncCounts.pending} pending, ${syncCounts.failed} failed`}
-          tone={syncCounts.failed ? "hard_exceeded" : syncCounts.pending ? "soft_exceeded" : "ok"}
-        />
+      {/* Compact inline metric strip */}
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border/60 bg-card/30 px-4 py-2.5">
+        <span className="inline-flex items-center gap-1.5 text-sm">
+          <CircleDollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="font-semibold tabular-nums">{money(totals?.total_cost ?? 0, currency)}</span>
+          <span className="text-xs text-muted-foreground">spend</span>
+          <span className="text-[10px] text-muted-foreground/70">({number(totals?.request_count ?? 0)} calls)</span>
+        </span>
+        <span className="h-4 w-px bg-border/60" />
+        <span className="inline-flex items-center gap-1.5 text-sm">
+          <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="font-semibold tabular-nums">{number(totals?.total_tokens ?? 0)}</span>
+          <span className="text-xs text-muted-foreground">tokens</span>
+          <span className="text-[10px] text-muted-foreground/70">({number(totals?.cached_input_tokens ?? 0)} cached)</span>
+        </span>
+        <span className="h-4 w-px bg-border/60" />
+        <span className="inline-flex items-center gap-1.5 text-sm">
+          <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className={`font-semibold ${statusClass(budgetStatus)}`}>
+            {budgetStatus === "ok" ? "OK" : budgetStatus.replace("_", " ")}
+          </span>
+          <span className="text-xs text-muted-foreground">budget</span>
+        </span>
+        <span className="h-4 w-px bg-border/60" />
+        <span className="inline-flex items-center gap-1.5 text-sm">
+          <Server className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className={`font-semibold ${statusClass(syncCounts.failed ? "hard_exceeded" : syncCounts.pending ? "soft_exceeded" : "ok")}`}>
+            {syncCounts.acked}/{Object.values(syncCounts).reduce((a, b) => a + b, 0)}
+          </span>
+          <span className="text-xs text-muted-foreground">synced</span>
+        </span>
       </div>
 
       <UsageProvenancePanel
@@ -438,32 +442,7 @@ export function CostLedger() {
   );
 }
 
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  detail,
-  tone = "ok",
-}: {
-  icon: typeof CircleDollarSign;
-  label: string;
-  value: string;
-  detail: string;
-  tone?: string;
-}) {
-  return (
-    <div className="glass rounded-lg p-5">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </div>
-      <div className="mt-3 text-2xl font-bold tabular-nums">{value}</div>
-      <div className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs ${statusClass(tone)}`}>
-        {detail}
-      </div>
-    </div>
-  );
-}
+// MetricCard removed - replaced by compact inline metric strip above
 
 function UsageProvenancePanel({
   evidence,

@@ -19,7 +19,7 @@ export function Servers({ hideHeader = false }: { hideHeader?: boolean }) {
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">MCP Servers</h2>
+            <h2 className="text-lg font-semibold tracking-tight">MCP Servers</h2>
             <p className="text-muted-foreground">
               Manage Model Context Protocol servers available in the local
               registry.

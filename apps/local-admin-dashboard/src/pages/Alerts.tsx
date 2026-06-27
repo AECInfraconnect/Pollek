@@ -40,7 +40,7 @@ export function Alerts({ hideHeader = false }: { hideHeader?: boolean }) {
     <div className="space-y-6">
       {!hideHeader && (
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Alerts</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Alerts</h1>
           <p className="text-muted-foreground mt-2">
             Local edge alerts and recent policy violations.
           </p>
@@ -49,27 +49,24 @@ export function Alerts({ hideHeader = false }: { hideHeader?: boolean }) {
 
       <div className="grid gap-6">
         {denyCount > 5 ? (
-          <div className="flex items-start gap-4 rounded-xl border border-destructive/50 bg-destructive/10 p-6 shadow-sm">
-            <ShieldAlert className="h-6 w-6 text-destructive shrink-0 mt-1" />
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
+            <ShieldAlert className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-destructive text-lg">
+              <h3 className="font-semibold text-destructive text-sm">
                 High Deny Rate Detected
               </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                There have been {denyCount} Access Denied decisions in the last
-                minute. This could indicate an ongoing attack or misconfigured
-                policy.
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {denyCount} Access Denied decisions in the last minute.
               </p>
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-4 rounded-xl border border-dashed p-8 text-center text-muted-foreground bg-card/30">
+          <div className="flex items-center gap-3 rounded-lg border border-dashed px-4 py-4 text-center text-muted-foreground bg-card/30">
             <div className="flex flex-col items-center justify-center w-full">
-              <AlertCircle className="h-8 w-8 mb-3 opacity-50" />
-              <p>No active alerts. The system is operating normally.</p>
-              <p className="text-xs opacity-75 mt-1">
-                Note: Local edge will trigger an alert if "Deny" decisions
-                exceed 5 per minute.
+              <AlertCircle className="h-5 w-5 mb-2 opacity-50" />
+              <p className="text-sm">No active alerts. System operating normally.</p>
+              <p className="text-[10px] opacity-75 mt-0.5">
+                Alert triggers when Deny decisions exceed 5/min.
               </p>
             </div>
           </div>

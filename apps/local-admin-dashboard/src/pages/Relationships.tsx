@@ -23,7 +23,7 @@ export function Relationships({
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Relationships</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Relationships</h2>
             <p className="text-muted-foreground">
               Manage relationships and graph edges between entities, resources,
               and agents.

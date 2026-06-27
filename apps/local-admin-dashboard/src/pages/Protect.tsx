@@ -28,7 +28,7 @@ export function Protect() {
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
             <ShieldCheck className="h-6 w-6 text-primary" />
             {mode === "desktop_simple"
               ? "Protect Agents"

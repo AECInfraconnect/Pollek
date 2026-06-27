@@ -79,7 +79,7 @@ export function Health() {
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Health</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Health</h2>
         <p className="text-sm text-muted-foreground">
           {snapshot
             ? `${snapshot.device_id} / contract ${snapshot.contract.local_contract_version}`

@@ -103,7 +103,7 @@ export function Agents({ hideHeader = false }: { hideHeader?: boolean }) {
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">
+            <h2 className="text-lg font-semibold tracking-tight">
               Authorized Agents
             </h2>
             <p className="text-sm text-muted-foreground">

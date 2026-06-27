@@ -195,7 +195,7 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Tools</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Tools</h2>
             <p className="text-sm text-muted-foreground">
               Manage function-calling definitions available to AI Agents.
             </p>

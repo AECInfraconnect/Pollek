@@ -33,7 +33,7 @@ export function PolicyPresets() {
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
             <FileKey className="h-6 w-6 text-primary" /> Policy Presets V2
           </h2>
           <p className="text-muted-foreground mt-1">
