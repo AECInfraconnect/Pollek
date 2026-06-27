@@ -5,6 +5,7 @@ pub mod config;
 pub mod event;
 pub mod injection;
 pub mod normalize;
+pub mod output_guard;
 pub mod pii;
 pub mod spotlight;
 
@@ -155,15 +156,42 @@ impl GuardPipeline {
 
         let text = payload_to_text(payload);
         let mut scanned = self.scan_injection_text(&text);
-        let (pii_payload, findings) = self
+        let output_report = output_guard::scan_output(&text, self.cfg.output_canary.as_deref());
+        if output_report.prompt_leak || output_report.canary_leak {
+            let mut categories = scanned.categories;
+            push_unique(&mut categories, "llm07_system_prompt_leakage".to_string());
+            return GuardOutcome {
+                action: GuardAction::Deny,
+                injection_score: scanned.score,
+                categories,
+                findings: Vec::new(),
+                redacted_payload: None,
+                normalization_steps: scanned.normalization_steps,
+                confidence: 1.0,
+            };
+        }
+
+        let mut working_payload = payload.clone();
+        let mut findings = Vec::new();
+        let (output_payload, mut output_findings) = output_guard::redact_value(&working_payload);
+        let has_output_redaction = !output_findings.is_empty();
+        if has_output_redaction {
+            working_payload = output_payload;
+            findings.append(&mut output_findings);
+        }
+
+        let (pii_payload, mut pii_findings) = self
             .pii
-            .redact_value(payload, self.cfg.thresholds.pii_confidence);
-        let has_pii = !findings.is_empty();
+            .redact_value(&working_payload, self.cfg.thresholds.pii_confidence);
+        let has_pii = !pii_findings.is_empty();
+        if has_pii {
+            working_payload = pii_payload;
+            findings.append(&mut pii_findings);
+        }
         let should_spotlight =
             self.cfg.enable_spotlight && spotlight::is_untrusted_payload(payload);
 
         if should_spotlight {
-            let spotlight_source = if has_pii { &pii_payload } else { payload };
             push_unique(
                 &mut scanned.categories,
                 "llm11_indirect_prompt_injection_boundary".to_string(),
@@ -172,6 +200,12 @@ impl GuardPipeline {
                 push_unique(
                     &mut scanned.categories,
                     "llm02_sensitive_information_disclosure".to_string(),
+                );
+            }
+            if has_output_redaction {
+                push_unique(
+                    &mut scanned.categories,
+                    "llm05_improper_output_handling".to_string(),
                 );
             }
             scanned
@@ -183,7 +217,7 @@ impl GuardPipeline {
                 categories: scanned.categories,
                 findings,
                 redacted_payload: Some(spotlight::spotlight_payload(
-                    spotlight_source,
+                    &working_payload,
                     spotlight::DEFAULT_SPOTLIGHT_MARKER,
                 )),
                 normalization_steps: scanned.normalization_steps,
@@ -195,15 +229,32 @@ impl GuardPipeline {
             };
         }
 
-        if has_pii {
+        if has_pii || has_output_redaction {
+            let mut categories = Vec::new();
+            if has_pii {
+                push_unique(
+                    &mut categories,
+                    "llm02_sensitive_information_disclosure".to_string(),
+                );
+            }
+            if has_output_redaction {
+                push_unique(
+                    &mut categories,
+                    "llm05_improper_output_handling".to_string(),
+                );
+            }
             return GuardOutcome {
                 action: GuardAction::Redact,
                 injection_score: scanned.score,
-                categories: vec!["llm02_sensitive_information_disclosure".to_string()],
+                categories,
                 findings,
-                redacted_payload: Some(pii_payload),
+                redacted_payload: Some(working_payload),
                 normalization_steps: scanned.normalization_steps,
-                confidence: self.cfg.thresholds.pii_confidence,
+                confidence: if has_pii {
+                    self.cfg.thresholds.pii_confidence
+                } else {
+                    1.0
+                },
             };
         }
 
@@ -347,6 +398,7 @@ mod tests {
     use dek_plugin_sdk::PluginError;
 
     const INJECTION_CORPUS: &str = include_str!("../tests/corpus/injection.jsonl");
+    const OUTPUT_CORPUS: &str = include_str!("../tests/corpus/output_guard.jsonl");
     const PII_CORPUS: &str = include_str!("../tests/corpus/pii.jsonl");
 
     #[derive(Debug, Deserialize)]
@@ -366,6 +418,16 @@ mod tests {
         expected_kind: Option<String>,
         forbidden_kind: Option<String>,
         min_confidence: Option<f32>,
+        status: String,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct OutputCorpusCase {
+        id: String,
+        text: String,
+        expected_action: String,
+        expected_kind: Option<String>,
+        canary: Option<String>,
         status: String,
     }
 
@@ -519,6 +581,45 @@ mod tests {
     }
 
     #[test]
+    fn response_scan_redacts_secret_echo() {
+        let pipeline = GuardPipeline::default();
+        let outcome = pipeline.scan_response(&serde_json::json!({
+            "result": "tool returned sk-1234567890abcdefghijklmnop"
+        }));
+        let rendered = outcome
+            .redacted_payload
+            .as_ref()
+            .map(serde_json::Value::to_string)
+            .unwrap_or_default();
+
+        assert_eq!(outcome.action, GuardAction::Redact);
+        assert!(outcome
+            .findings
+            .iter()
+            .any(|finding| finding.kind == "SECRET_OPENAI_KEY"));
+        assert!(rendered.contains("[REDACTED_SECRET_OPENAI_KEY]"));
+        assert!(!rendered.contains("sk-1234567890abcdefghijklmnop"));
+    }
+
+    #[test]
+    fn response_scan_denies_canary_leak() {
+        let cfg = GuardConfig {
+            output_canary: Some("POLLEK_CANARY_TEST".to_string()),
+            ..GuardConfig::default()
+        };
+        let pipeline = GuardPipeline::new(cfg);
+        let outcome = pipeline.scan_response(&serde_json::json!({
+            "result": "model leaked POLLEK_CANARY_TEST"
+        }));
+
+        assert_eq!(outcome.action, GuardAction::Deny);
+        assert!(outcome
+            .categories
+            .iter()
+            .any(|category| category == "llm07_system_prompt_leakage"));
+    }
+
+    #[test]
     fn request_scan_denies_base64_prompt_override() {
         let pipeline = GuardPipeline::default();
         let payload = serde_json::json!({
@@ -589,6 +690,35 @@ mod tests {
             }
             if let Some(kind) = &case.forbidden_kind {
                 assert!(!spans.iter().any(|span| span.entity_type == *kind));
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn output_guard_golden_corpus_cases_are_enforced() -> Result<(), serde_json::Error> {
+        let mut cases = Vec::new();
+        for line in OUTPUT_CORPUS.lines().filter(|line| !line.trim().is_empty()) {
+            let parsed: OutputCorpusCase = serde_json::from_str(line)?;
+            cases.push(parsed);
+        }
+
+        for case in cases.iter().filter(|case| case.status == "active") {
+            let cfg = GuardConfig {
+                output_canary: case.canary.clone(),
+                ..GuardConfig::default()
+            };
+            let pipeline = GuardPipeline::new(cfg);
+            let outcome = pipeline.scan_response(&serde_json::json!({ "result": case.text }));
+            let actual_action = match outcome.action {
+                GuardAction::Allow => "allow",
+                GuardAction::Redact => "redact",
+                GuardAction::Deny => "deny",
+            };
+            assert!(case.id.starts_with("rt-pr6-"));
+            assert_eq!(actual_action, case.expected_action);
+            if let Some(kind) = &case.expected_kind {
+                assert!(outcome.findings.iter().any(|finding| finding.kind == *kind));
             }
         }
         Ok(())

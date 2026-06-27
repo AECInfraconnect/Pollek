@@ -38,6 +38,7 @@ pub struct GuardConfig {
     pub telemetry_enabled: bool,
     pub enable_classifier: bool,
     pub enable_spotlight: bool,
+    pub output_canary: Option<String>,
     pub thresholds: GuardThresholds,
 }
 
@@ -50,6 +51,7 @@ impl Default for GuardConfig {
             telemetry_enabled: true,
             enable_classifier: false,
             enable_spotlight: true,
+            output_canary: None,
             thresholds: GuardThresholds::default(),
         }
     }
