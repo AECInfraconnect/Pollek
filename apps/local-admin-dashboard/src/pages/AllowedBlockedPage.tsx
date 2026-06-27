@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
-  CheckCircle2,
   Eye,
   FileKey,
   ListChecks,
   Plus,
+  Search,
   ShieldCheck,
   ShieldX,
 } from "lucide-react";
@@ -20,6 +20,11 @@ import {
   labelize,
 } from "../features/user-activity/userActivityModel";
 import type { SimpleRulePreset } from "../features/user-activity/types";
+import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
+import { DetailPane } from "../components/master-detail/DetailPane";
+import type { UiStatus } from "../lib/status";
+import { useMode } from "../context/ModeContext";
+import { isAdvanceMode } from "../lib/modes";
 import { cn } from "@/lib/utils";
 
 const toneClass: Record<string, string> = {
@@ -29,6 +34,20 @@ const toneClass: Record<string, string> = {
   neutral: "border-border bg-background text-muted-foreground",
 };
 
+type RuleRow =
+  | {
+      id: string;
+      group: "Active rules" | "Draft policies";
+      policy: PolicyDraft;
+      preset?: never;
+    }
+  | {
+      id: string;
+      group: "Suggested rules";
+      preset: SimpleRulePreset;
+      policy?: never;
+    };
+
 function behaviorIcon(behavior: SimpleRulePreset["behavior"]) {
   if (behavior === "block") return ShieldX;
   if (behavior === "ask_first") return AlertTriangle;
@@ -36,10 +55,21 @@ function behaviorIcon(behavior: SimpleRulePreset["behavior"]) {
   return Eye;
 }
 
-function PolicyCard({ policy }: { policy: PolicyDraft }) {
+function PolicyCard({
+  policy,
+  selected,
+}: {
+  policy: PolicyDraft;
+  selected: boolean;
+}) {
   const status = policy.meta?.status ?? "draft";
   return (
-    <article className="rounded-lg border bg-card/60 p-4">
+    <article
+      className={cn(
+        "rounded-lg border bg-card/60 p-4 transition-all hover:border-primary/40 hover:bg-card",
+        selected && "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
+      )}
+    >
       <div className="flex items-start gap-3">
         <div className="rounded-lg bg-primary/10 p-2 text-primary">
           <FileKey className="h-4 w-4" />
@@ -75,9 +105,11 @@ function PolicyCard({ policy }: { policy: PolicyDraft }) {
 function PresetCard({
   preset,
   snapshot,
+  selected,
 }: {
   preset: SimpleRulePreset;
   snapshot: LocalCapabilitySnapshotV2 | null;
+  selected: boolean;
 }) {
   const Icon = behaviorIcon(preset.behavior);
   const matrix = buildUserCapabilityMatrix(snapshot);
@@ -96,7 +128,12 @@ function PresetCard({
     : "Needs setup";
 
   return (
-    <article className="rounded-lg border bg-card/60 p-4">
+    <article
+      className={cn(
+        "rounded-lg border bg-card/60 p-4 transition-all hover:border-primary/40 hover:bg-card",
+        selected && "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
+      )}
+    >
       <div className="flex items-start gap-3">
         <div className={cn("rounded-lg p-2", toneClass[tone])}>
           <Icon className="h-4 w-4" />
@@ -148,12 +185,274 @@ function PresetCard({
   );
 }
 
+function policyStatus(policy: PolicyDraft): { label: string; status: UiStatus } {
+  const status = policy.meta?.status ?? "draft";
+  if (["published", "active", "approved", "validated"].includes(status)) {
+    return { label: "Active", status: "ok" };
+  }
+  if (status === "draft") return { label: "Draft", status: "idle" };
+  return { label: labelize(status), status: "info" };
+}
+
+function presetStatus(
+  preset: SimpleRulePreset,
+  snapshot: LocalCapabilitySnapshotV2 | null,
+): { label: string; status: UiStatus; detail: string } {
+  const capability = buildUserCapabilityMatrix(snapshot).find(
+    (item) => item.category === preset.category,
+  );
+  if (!capability) {
+    return {
+      label: "Needs setup",
+      status: "degraded",
+      detail: "No local capability report matched this rule yet.",
+    };
+  }
+  if (capability.can_block) {
+    return {
+      label: "Can block here",
+      status: "ok",
+      detail: capability.why,
+    };
+  }
+  if (capability.can_ask_first) {
+    return {
+      label: "Can ask first",
+      status: "info",
+      detail: capability.why,
+    };
+  }
+  if (capability.can_watch) {
+    return {
+      label: "Can watch now",
+      status: "info",
+      detail:
+        "Pollek can observe this now and guide the AI app setting until blocking is available.",
+    };
+  }
+  return {
+    label: "Needs setup",
+    status: "degraded",
+    detail: capability.why,
+  };
+}
+
+function RuleDetail({
+  row,
+  snapshot,
+  showTechnicalDetails,
+}: {
+  row: RuleRow;
+  snapshot: LocalCapabilitySnapshotV2 | null;
+  showTechnicalDetails: boolean;
+}) {
+  if (row.policy) {
+    const status = policyStatus(row.policy);
+    return (
+      <DetailPane
+        title={row.policy.name}
+        subtitle={row.group}
+        status={status.status}
+        statusLabel={status.label}
+        tabs={[
+          {
+            id: "overview",
+            label: "Overview",
+            content: (
+              <div className="space-y-4">
+                <div className="rounded-lg border bg-background/60 p-4">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    What this rule controls
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {row.policy.description ||
+                      "This technical policy can be reviewed in Advanced policies."}
+                  </p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-lg border bg-background/60 p-4">
+                    <div className="text-xs text-muted-foreground">Type</div>
+                    <div className="mt-1 text-sm font-semibold">
+                      {labelize(row.policy.policy_type)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border bg-background/60 p-4">
+                    <div className="text-xs text-muted-foreground">
+                      AI apps
+                    </div>
+                    <div className="mt-1 text-sm font-semibold">
+                      {row.policy.targets?.agent_ids?.length ?? 0}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border bg-background/60 p-4">
+                    <div className="text-xs text-muted-foreground">
+                      Data targets
+                    </div>
+                    <div className="mt-1 text-sm font-semibold">
+                      {row.policy.targets?.resource_ids?.length ?? 0}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ),
+          },
+          {
+            id: "next",
+            label: "Next Steps",
+            content: (
+              <div className="space-y-3">
+                <div className="rounded-lg border bg-background/60 p-4">
+                  <h4 className="text-sm font-semibold">
+                    Confirm behavior in Activity
+                  </h4>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    After a rule is active, review AI Activity to confirm whether
+                    the AI app was allowed, blocked, warned, or only observed.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    to={`/activity?q=${encodeURIComponent(row.policy.name)}`}
+                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Activity
+                  </Link>
+                  <Link
+                    to="/policies"
+                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                  >
+                    <FileKey className="h-4 w-4" />
+                    Advanced policies
+                  </Link>
+                </div>
+              </div>
+            ),
+          },
+          ...(showTechnicalDetails
+            ? [
+                {
+                  id: "technical",
+                  label: "Technical Details",
+                  content: (
+                    <pre className="overflow-auto rounded-lg border bg-muted/40 p-4 text-[11px]">
+                      {JSON.stringify(row.policy, null, 2)}
+                    </pre>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
+    );
+  }
+
+  const status = presetStatus(row.preset, snapshot);
+  return (
+    <DetailPane
+      title={row.preset.label}
+      subtitle={row.group}
+      status={status.status}
+      statusLabel={status.label}
+      tabs={[
+        {
+          id: "overview",
+          label: "Overview",
+          content: (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-background/60 p-4">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Plain rule idea
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {row.preset.description}
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-lg border bg-background/60 p-4">
+                  <div className="text-xs text-muted-foreground">Activity</div>
+                  <div className="mt-1 text-sm font-semibold">
+                    {row.preset.category === "unknown"
+                      ? "All activity"
+                      : categoryLabel(row.preset.category)}
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-background/60 p-4">
+                  <div className="text-xs text-muted-foreground">Behavior</div>
+                  <div className="mt-1 text-sm font-semibold">
+                    {labelize(row.preset.behavior)}
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-background/60 p-4">
+                  <div className="text-xs text-muted-foreground">
+                    Device support
+                  </div>
+                  <div className="mt-1 text-sm font-semibold">
+                    {status.label}
+                  </div>
+                </div>
+              </div>
+              <p className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-4 text-sm leading-6 text-blue-700">
+                {status.detail}
+              </p>
+            </div>
+          ),
+        },
+        {
+          id: "start",
+          label: "Start Rule",
+          content: (
+            <div className="space-y-3">
+              <div className="rounded-lg border bg-background/60 p-4">
+                <h4 className="text-sm font-semibold">
+                  Create this rule from a guided flow
+                </h4>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  This opens the simple rule builder with the right intent
+                  preselected. If Pollek can only observe this category on your
+                  OS, use the Activity evidence to adjust the AI app settings
+                  too.
+                </p>
+              </div>
+              <Link
+                to={`/protect?intent=${encodeURIComponent(row.preset.intent)}`}
+                className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="h-4 w-4" />
+                Start with this rule
+              </Link>
+            </div>
+          ),
+        },
+        ...(showTechnicalDetails
+          ? [
+              {
+                id: "technical",
+                label: "Technical Details",
+                content: (
+                  <pre className="overflow-auto rounded-lg border bg-muted/40 p-4 text-[11px]">
+                    {JSON.stringify(row.preset, null, 2)}
+                  </pre>
+                ),
+              },
+            ]
+          : []),
+      ]}
+    />
+  );
+}
+
 export function AllowedBlockedPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { mode } = useMode();
+  const showTechnicalDetails = isAdvanceMode(mode);
   const [policies, setPolicies] = useState<PolicyDraft[]>([]);
   const [snapshot, setSnapshot] = useState<LocalCapabilitySnapshotV2 | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const selectedId = searchParams.get("selected") ?? undefined;
 
   useEffect(() => {
     Promise.all([
@@ -179,6 +478,56 @@ export function AllowedBlockedPage() {
   const draftPolicies = policies.filter(
     (policy) => !activePolicies.includes(policy),
   );
+  const ruleRows = useMemo<RuleRow[]>(
+    () => [
+      ...activePolicies.map((policy) => ({
+        id: `policy:${policy.policy_id}`,
+        group: "Active rules" as const,
+        policy,
+      })),
+      ...SIMPLE_RULE_PRESETS.map((preset) => ({
+        id: `preset:${preset.id}`,
+        group: "Suggested rules" as const,
+        preset,
+      })),
+      ...draftPolicies.map((policy) => ({
+        id: `draft:${policy.policy_id}`,
+        group: "Draft policies" as const,
+        policy,
+      })),
+    ],
+    [activePolicies, draftPolicies],
+  );
+  const filteredRules = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return ruleRows;
+    return ruleRows.filter((row) => {
+      const text = row.policy
+        ? [
+            row.policy.name,
+            row.policy.description,
+            row.policy.policy_type,
+            row.group,
+          ]
+        : [
+            row.preset.label,
+            row.preset.description,
+            row.preset.category,
+            row.preset.behavior,
+            row.group,
+          ];
+      return text.filter(Boolean).join(" ").toLowerCase().includes(query);
+    });
+  }, [ruleRows, search]);
+
+  const handleSelect = (rowId: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (rowId) next.set("selected", rowId);
+    else next.delete("selected");
+    if (search.trim()) next.set("q", search.trim());
+    else next.delete("q");
+    setSearchParams(next, { replace: true });
+  };
 
   return (
     <div className="space-y-5">
@@ -227,53 +576,66 @@ export function AllowedBlockedPage() {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          <h3 className="text-sm font-semibold">Active rules</h3>
-        </div>
-        {loading ? (
+      <section className="rounded-lg border bg-card/60 p-4">
+        <label className="relative block">
+          <span className="sr-only">Search rules</span>
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(event) => {
+              const value = event.target.value;
+              setSearch(value);
+              const next = new URLSearchParams(searchParams);
+              if (value.trim()) next.set("q", value.trim());
+              else next.delete("q");
+              next.delete("selected");
+              setSearchParams(next, { replace: true });
+            }}
+            placeholder="Search AI app, file, website, command, rule..."
+            className="h-9 w-full rounded-md border bg-background pl-9 pr-3 text-sm"
+          />
+        </label>
+      </section>
+
+      <MasterDetailLayout
+        items={filteredRules}
+        selectedId={selectedId}
+        onSelect={handleSelect}
+        idSelector={(row) => row.id}
+        loading={loading}
+        emptyState={
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Loading rules...
+            No rules match this view yet.
           </div>
-        ) : activePolicies.length > 0 ? (
-          <div className="grid gap-3 xl:grid-cols-2">
-            {activePolicies.map((policy) => (
-              <PolicyCard key={policy.policy_id} policy={policy} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border bg-card/60 p-4 text-sm text-muted-foreground">
-            No active rules yet.
-          </div>
+        }
+        renderGroupHeader={(row, index, prevRow) => {
+          if (index > 0 && prevRow?.group === row.group) return null;
+          return (
+            <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {row.group}
+            </div>
+          );
+        }}
+        renderCard={(row, selected) =>
+          row.policy ? (
+            <PolicyCard policy={row.policy} selected={selected} />
+          ) : (
+            <PresetCard
+              preset={row.preset}
+              snapshot={snapshot}
+              selected={selected}
+            />
+          )
+        }
+        renderDetail={(row) => (
+          <RuleDetail
+            key={row.id}
+            row={row}
+            snapshot={snapshot}
+            showTechnicalDetails={showTechnicalDetails}
+          />
         )}
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Plus className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Suggested rules</h3>
-        </div>
-        <div className="grid gap-3 xl:grid-cols-2">
-          {SIMPLE_RULE_PRESETS.map((preset) => (
-            <PresetCard key={preset.id} preset={preset} snapshot={snapshot} />
-          ))}
-        </div>
-      </section>
-
-      {draftPolicies.length > 0 && (
-        <section className="space-y-3">
-          <div className="flex items-center gap-2">
-            <FileKey className="h-4 w-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold">Draft technical policies</h3>
-          </div>
-          <div className="grid gap-3 xl:grid-cols-2">
-            {draftPolicies.map((policy) => (
-              <PolicyCard key={policy.policy_id} policy={policy} />
-            ))}
-          </div>
-        </section>
-      )}
+      />
     </div>
   );
 }

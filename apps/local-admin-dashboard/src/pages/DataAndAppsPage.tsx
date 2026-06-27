@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   AppWindow,
   Database,
@@ -20,6 +20,11 @@ import {
   labelize,
 } from "../features/user-activity/userActivityModel";
 import type { UserActivityCategory } from "../features/user-activity/types";
+import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
+import { DetailPane } from "../components/master-detail/DetailPane";
+import type { UiStatus } from "../lib/status";
+import { useMode } from "../context/ModeContext";
+import { isAdvanceMode } from "../lib/modes";
 import { cn } from "@/lib/utils";
 
 type Tab =
@@ -42,6 +47,17 @@ const tabs: Array<{ id: Tab; label: string; icon: any }> = [
   { id: "tools", label: "AI tools", icon: Wrench },
   { id: "safety", label: "Prompt safety", icon: ShieldCheck },
 ];
+
+type DataAppRow = {
+  id: string;
+  tab: Tab;
+  title: string;
+  subtitle: string;
+  category: UserActivityCategory;
+  source: string;
+  kind: "resource" | "tool" | "observed_resource" | "observed_tool";
+  raw?: unknown;
+};
 
 function rawResourceText(resource: Resource) {
   return JSON.stringify(resource).toLowerCase();
@@ -156,46 +172,65 @@ function toolCategory(tool: Tool): Tab {
   return "tools";
 }
 
-function DataCard({
-  title,
-  subtitle,
-  category,
-  source,
-}: {
-  title: string;
-  subtitle: string;
-  category: UserActivityCategory;
-  source: string;
-}) {
+function categoryForTab(tab: Tab): UserActivityCategory {
+  if (tab === "web") return "web";
+  if (tab === "email") return "email";
+  if (tab === "apps") return "apps";
+  if (tab === "commands") return "commands";
+  if (tab === "ai_models") return "ai_models";
+  if (tab === "tools") return "tools";
+  if (tab === "safety") return "safety";
+  return "files";
+}
+
+function rowStatus(row: DataAppRow): UiStatus {
+  if (row.source === "telemetry") return "info";
+  if (row.kind === "tool" || row.kind === "observed_tool") return "ok";
+  return "idle";
+}
+
+function rowStatusLabel(row: DataAppRow) {
+  if (row.source === "telemetry") return "Observed";
+  if (row.kind === "tool") return "Tool";
+  if (row.kind === "resource") return "Registered";
+  return "Known";
+}
+
+function DataCard({ row, selected }: { row: DataAppRow; selected: boolean }) {
   return (
-    <article className="rounded-lg border bg-card/60 p-4">
+    <article
+      className={cn(
+        "rounded-lg border bg-card/60 p-4 transition-all hover:border-primary/40 hover:bg-card",
+        selected && "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
+      )}
+    >
       <div className="flex items-start gap-3">
         <div className="rounded-lg bg-primary/10 p-2 text-primary">
           <Database className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <h3 className="truncate text-sm font-semibold">{title}</h3>
+            <h3 className="truncate text-sm font-semibold">{row.title}</h3>
             <span className="rounded-full border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
-              {categoryLabel(category)}
+              {categoryLabel(row.category)}
             </span>
           </div>
           <p className="mt-1 truncate text-xs text-muted-foreground">
-            {subtitle}
+            {row.subtitle}
           </p>
           <div className="mt-3 flex flex-wrap gap-1.5">
             <span className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">
-              Source: {source}
+              Source: {row.source}
             </span>
             <Link
-              to={`/activity?q=${encodeURIComponent(title)}`}
+              to={`/activity?q=${encodeURIComponent(row.title)}`}
               className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-primary hover:bg-primary/10"
             >
               <ExternalLink className="h-3 w-3" />
               Activity
             </Link>
             <Link
-              to={`/allowed-blocked?q=${encodeURIComponent(title)}`}
+              to={`/allowed-blocked?q=${encodeURIComponent(row.title)}`}
               className="rounded-full border px-2 py-0.5 text-[11px] text-primary hover:bg-primary/10"
             >
               Rules
@@ -207,13 +242,126 @@ function DataCard({
   );
 }
 
+function DataDetail({
+  row,
+  showTechnicalDetails,
+}: {
+  row: DataAppRow;
+  showTechnicalDetails: boolean;
+}) {
+  const Icon = tabs.find((tab) => tab.id === row.tab)?.icon ?? Database;
+
+  return (
+    <DetailPane
+      title={row.title}
+      subtitle={`${categoryLabel(row.category)} / ${row.subtitle}`}
+      status={rowStatus(row)}
+      statusLabel={rowStatusLabel(row)}
+      tabs={[
+        {
+          id: "overview",
+          label: "Overview",
+          content: (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-background/60 p-4">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <Icon className="h-4 w-4" />
+                  What this record means
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  This is a data, app, tool, or service surface that Pollek can
+                  show in one place so you can check whether an AI app touched
+                  it, then decide whether to keep watching, ask first, or block
+                  similar activity where supported.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-lg border bg-background/60 p-4">
+                  <div className="text-xs text-muted-foreground">Category</div>
+                  <div className="mt-1 text-sm font-semibold">
+                    {categoryLabel(row.category)}
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-background/60 p-4">
+                  <div className="text-xs text-muted-foreground">Source</div>
+                  <div className="mt-1 text-sm font-semibold">
+                    {row.source}
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-background/60 p-4">
+                  <div className="text-xs text-muted-foreground">Kind</div>
+                  <div className="mt-1 text-sm font-semibold">
+                    {labelize(row.kind)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ),
+        },
+        {
+          id: "activity",
+          label: "Activity & Rules",
+          content: (
+            <div className="space-y-3">
+              <div className="rounded-lg border bg-background/60 p-4">
+                <h4 className="text-sm font-semibold">
+                  Review this surface in the timeline
+                </h4>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Open Activity to see which AI app used this file, website,
+                  app, command, model, or tool. Open Rules to review allowed and
+                  blocked behavior related to this surface.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to={`/activity?q=${encodeURIComponent(row.title)}`}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Activity
+                </Link>
+                <Link
+                  to={`/allowed-blocked?q=${encodeURIComponent(row.title)}`}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Rules
+                </Link>
+              </div>
+            </div>
+          ),
+        },
+        ...(showTechnicalDetails
+          ? [
+              {
+                id: "technical",
+                label: "Technical Details",
+                content: (
+                  <pre className="overflow-auto rounded-lg border bg-muted/40 p-4 text-[11px]">
+                    {JSON.stringify(row.raw ?? row, null, 2)}
+                  </pre>
+                ),
+              },
+            ]
+          : []),
+      ]}
+    />
+  );
+}
+
 export function DataAndAppsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { mode } = useMode();
+  const showTechnicalDetails = isAdvanceMode(mode);
   const [resources, setResources] = useState<Resource[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
   const [resourceInventory, setResourceInventory] = useState<any[]>([]);
   const [toolInventory, setToolInventory] = useState<any[]>([]);
   const [tab, setTab] = useState<Tab>("files");
   const [search, setSearch] = useState("");
+  const selectedId = searchParams.get("selected") ?? undefined;
 
   useEffect(() => {
     void RegistryApi.listResources()
@@ -234,7 +382,7 @@ export function DataAndAppsPage() {
       .catch(() => setToolInventory([]));
   }, []);
 
-  const rows = useMemo(() => {
+  const rows = useMemo<DataAppRow[]>(() => {
     const fromResources = resources.map((resource) => {
       const category = resourceCategory(resource);
       return {
@@ -246,21 +394,10 @@ export function DataAndAppsPage() {
             (resource as any).kind ??
             "file or folder",
         ),
-        category:
-          category === "web"
-            ? "web"
-            : category === "email"
-              ? "email"
-            : category === "apps"
-              ? "apps"
-              : category === "commands"
-                ? "commands"
-                : category === "ai_models"
-                  ? "ai_models"
-                  : category === "safety"
-                    ? "safety"
-                    : "files",
+        category: categoryForTab(category),
         source: "registry",
+        kind: "resource" as const,
+        raw: resource,
       };
     });
     const fromTools = tools.map((tool) => {
@@ -272,17 +409,10 @@ export function DataAndAppsPage() {
         subtitle: labelize(
           (tool as any).tool_type ?? (tool as any).kind ?? "tool",
         ),
-        category:
-          category === "web"
-            ? "web"
-            : category === "ai_models"
-              ? "ai_models"
-              : category === "safety"
-                ? "safety"
-            : category === "commands"
-              ? "commands"
-              : "tools",
+        category: categoryForTab(category),
         source: "registry",
+        kind: "tool" as const,
+        raw: tool,
       };
     });
     const observedResources = resourceInventory.map((row, index) => {
@@ -319,21 +449,10 @@ export function DataAndAppsPage() {
         tab: category,
         title,
         subtitle: `${row.read_count ?? row.access_count ?? 0} observed touches`,
-        category:
-          category === "web"
-            ? "web"
-            : category === "email"
-              ? "email"
-            : category === "commands"
-              ? "commands"
-              : category === "apps"
-                ? "apps"
-                : category === "ai_models"
-                  ? "ai_models"
-                  : category === "safety"
-                    ? "safety"
-                    : "files",
+        category: categoryForTab(category),
         source: "telemetry",
+        kind: "observed_resource" as const,
+        raw: row,
       };
     });
     const observedTools = toolInventory.map((row, index) => {
@@ -346,6 +465,8 @@ export function DataAndAppsPage() {
         subtitle: `${row.call_count ?? row.invocation_count ?? 0} observed calls`,
         category: "tools" as UserActivityCategory,
         source: "telemetry",
+        kind: "observed_tool" as const,
+        raw: row,
       };
     });
 
@@ -368,6 +489,13 @@ export function DataAndAppsPage() {
         .includes(query);
     return matchesTab && matchesSearch;
   });
+
+  const handleSelect = (rowId: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (rowId) next.set("selected", rowId);
+    else next.delete("selected");
+    setSearchParams(next, { replace: true });
+  };
 
   return (
     <div className="space-y-5">
@@ -416,23 +544,27 @@ export function DataAndAppsPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 xl:grid-cols-2">
-        {filtered.length > 0 ? (
-          filtered.map((row) => (
-            <DataCard
-              key={row.id}
-              title={row.title}
-              subtitle={row.subtitle}
-              category={row.category as UserActivityCategory}
-              source={row.source}
-            />
-          ))
-        ) : (
-          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground xl:col-span-2">
+      <MasterDetailLayout
+        items={filtered}
+        selectedId={selectedId}
+        onSelect={handleSelect}
+        idSelector={(row) => row.id}
+        emptyState={
+          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
             No data or app records match this view yet.
           </div>
+        }
+        renderCard={(row, selected) => (
+          <DataCard row={row} selected={selected} />
         )}
-      </section>
+        renderDetail={(row) => (
+          <DataDetail
+            key={row.id}
+            row={row}
+            showTechnicalDetails={showTechnicalDetails}
+          />
+        )}
+      />
     </div>
   );
 }

@@ -126,6 +126,57 @@ function observedTermsForActivity(item: UserFriendlyActivityEvent) {
   ];
 }
 
+function actionPhrase(item: UserFriendlyActivityEvent) {
+  const action = item.action.replace(/_/g, " ");
+  if (item.access_mode === "write") return `tried to change ${item.target_label}`;
+  if (item.access_mode === "read") return `read or inspected ${item.target_label}`;
+  if (item.access_mode === "connect") return `connected to ${item.target_label}`;
+  if (item.access_mode === "run") return `ran ${item.target_label}`;
+  if (item.access_mode === "send") return `sent data through ${item.target_label}`;
+  return `${action} ${item.target_label}`;
+}
+
+function resultExplanation(item: UserFriendlyActivityEvent) {
+  if (item.result === "blocked" || item.result === "asked_and_denied") {
+    return "Pollek stopped this action from continuing.";
+  }
+  if (item.result === "asked_first") {
+    return "Pollek identified an action that should ask before continuing.";
+  }
+  if (item.result === "warned") {
+    return "Pollek let the action continue and raised a warning for review.";
+  }
+  if (item.result === "redacted") {
+    return "Pollek masked or removed sensitive data before the action continued.";
+  }
+  if (item.result === "watched_only") {
+    return "Pollek observed this action and recorded it for the timeline.";
+  }
+  if (item.result === "error") {
+    return "Pollek could not fully classify this action. Review the evidence before creating a rule.";
+  }
+  return "Pollek observed this action and it was allowed.";
+}
+
+function setupHint(item: UserFriendlyActivityEvent) {
+  if (item.result === "blocked" || item.result === "redacted") {
+    return "This path is already controlled by a local rule or guard.";
+  }
+  if (item.category === "files") {
+    return "To control this, use a folder rule in Pollek when supported, or restrict file access in the AI app settings.";
+  }
+  if (item.category === "web") {
+    return "To control this, set allowed websites here when supported, or limit web/network access in the AI app settings.";
+  }
+  if (item.category === "commands" || item.category === "apps") {
+    return "To control this, ask before commands here when supported, or disable command execution in the AI app.";
+  }
+  if (item.category === "email") {
+    return "To control this, review connector permissions in the AI app and keep email access opt-in.";
+  }
+  return "Keep observing first, then create a rule when the same activity matters enough to control.";
+}
+
 function exportJson(items: UserFriendlyActivityEvent[]) {
   const blob = new Blob([JSON.stringify(items, null, 2)], {
     type: "application/json",
@@ -231,6 +282,19 @@ function ActivityDetail({
           label: "Overview",
           content: (
             <div className="space-y-4">
+              <div className="rounded-lg border bg-background/60 p-4">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  What happened
+                </div>
+                <p className="mt-2 text-sm leading-6">
+                  <span className="font-semibold">{item.agent_name}</span>{" "}
+                  {actionPhrase(item)}.
+                </p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {resultExplanation(item)}
+                </p>
+              </div>
+
               <div className="grid gap-3 md:grid-cols-3">
                 <div className="rounded-lg border bg-background/60 p-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -281,6 +345,15 @@ function ActivityDetail({
                 </div>
               </div>
 
+              <div className="rounded-lg border bg-background/60 p-4">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  What you can do next
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {setupHint(item)}
+                </p>
+              </div>
+
               <ReferenceIntelGuide
                 reference={reference}
                 observedTerms={observedTerms}
@@ -302,11 +375,15 @@ function ActivityDetail({
                   <dl className="mt-3 space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
                       <dt className="text-muted-foreground">Action</dt>
-                      <dd className="font-medium">{item.action}</dd>
+                      <dd className="text-right font-medium">
+                        {item.action.replace(/_/g, " ")}
+                      </dd>
                     </div>
                     <div className="flex justify-between gap-3">
                       <dt className="text-muted-foreground">Access</dt>
-                      <dd className="font-medium">{item.access_mode}</dd>
+                      <dd className="text-right font-medium">
+                        {item.access_mode}
+                      </dd>
                     </div>
                     <div className="flex justify-between gap-3">
                       <dt className="text-muted-foreground">Category</dt>
@@ -378,10 +455,21 @@ function ActivityDetail({
                   Plain explanation
                 </h4>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  This event means {item.agent_name} was seen trying to{" "}
-                  {item.action.replace(/_/g, " ")} {item.target_label}. You can
-                  keep watching it, ask before similar actions, or block this
-                  kind of activity where your device supports that control.
+                  This event means {item.agent_name} {actionPhrase(item)}. You
+                  can keep watching it, ask before similar actions, or block
+                  this kind of activity where your device supports that control.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background/60 p-4">
+                <h4 className="flex items-center gap-2 text-sm font-semibold">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Agent-side option
+                </h4>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  When Pollek can only observe this path, use this record as a
+                  checklist for the AI app's own settings: file permissions,
+                  web access, connector permissions, terminal access, and model
+                  usage controls.
                 </p>
               </div>
             </div>
@@ -501,7 +589,8 @@ export function AiActivityPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { mode } = useMode();
   const showTechnicalDetails = isAdvanceMode(mode);
-  const selectedEventId = searchParams.get("event") ?? undefined;
+  const selectedEventId =
+    searchParams.get("selected") ?? searchParams.get("event") ?? undefined;
   const [items, setItems] = useState<UserFriendlyActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -583,10 +672,11 @@ export function AiActivityPage() {
     (eventId: string) => {
       const next = new URLSearchParams(searchParams);
       if (eventId) {
-        next.set("event", eventId);
+        next.set("selected", eventId);
       } else {
-        next.delete("event");
+        next.delete("selected");
       }
+      next.delete("event");
       setSearchParams(next, { replace: true });
     },
     [searchParams, setSearchParams],
@@ -809,8 +899,26 @@ export function AiActivityPage() {
         idSelector={(item) => item.event_id}
         loading={loading && items.length === 0}
         emptyState={
-          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No AI activity matches this view yet.
+          <div className="rounded-lg border border-dashed p-8 text-center">
+            <Activity className="mx-auto h-8 w-8 text-muted-foreground/60" />
+            <p className="mt-3 text-sm font-medium">
+              No AI activity matches this view yet
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+              Run Observe now while ChatGPT, Claude, Codex, DeepSeek, Manus, or
+              Antigravity is active. Pollek will record metadata about files,
+              websites, tools, commands, model usage, and decisions when the
+              local host can see them.
+            </p>
+            <button
+              type="button"
+              onClick={observeNow}
+              disabled={observing}
+              className="mt-4 inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+            >
+              <Eye className={cn("h-4 w-4", observing && "animate-pulse")} />
+              {observing ? "Observing" : "Observe now"}
+            </button>
           </div>
         }
         renderGroupHeader={(item, index, prevItem) => {
@@ -833,11 +941,12 @@ export function AiActivityPage() {
               subtitle={`${item.agent_name} - ${formatShortTime(
                 item.timestamp,
               )}`}
-              summary={`${item.target_kind}: ${item.target_label}`}
+              summary={`${resultExplanation(item)} Target: ${item.target_label}`}
               icon={Icon}
               status={statusForResult(item.result)}
               statusLabel={item.result_label}
               meta={[
+                { label: "AI app", value: item.agent_name },
                 { label: "Type", value: categoryLabel(item.category) },
                 { label: "Access", value: item.access_mode },
                 ...(item.rule_label
@@ -850,6 +959,7 @@ export function AiActivityPage() {
         }}
         renderDetail={(item) => (
           <ActivityDetail
+            key={item.event_id}
             item={item}
             showTechnicalDetails={showTechnicalDetails}
           />
