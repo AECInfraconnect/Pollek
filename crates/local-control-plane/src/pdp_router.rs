@@ -374,7 +374,10 @@ impl PdpRouterService {
                     }
                 }
             }
-            Ok(serde_json::json!({"decision": "Allow", "reason": "mock local engine"}))
+            Ok(serde_json::json!({
+                "decision": "Deny",
+                "reason": format!("unsupported local PDP runtime: {}", pdp_id)
+            }))
         }
     }
 }

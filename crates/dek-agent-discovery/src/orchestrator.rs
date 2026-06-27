@@ -1,5 +1,6 @@
 use crate::model::*;
 use anyhow::Result;
+use sha2::{Digest, Sha256};
 use tokio::time::{timeout, Duration};
 
 pub struct DiscoveryOrchestrator {
@@ -36,6 +37,7 @@ impl DiscoveryOrchestrator {
         req: &serde_json::Value,
         tx: Option<tokio::sync::mpsc::Sender<DiscoveredAgentCandidateV2>>,
     ) -> Result<(DiscoveryScanJob, Vec<DiscoveredAgentCandidateV2>)> {
+        let scan_config = effective_config(&self.config, req);
         let mut job = DiscoveryScanJob {
             scan_id: scan_id.to_string(),
             tenant_id: self.tenant_id.clone(),
@@ -91,7 +93,7 @@ impl DiscoveryOrchestrator {
 
         if wants_source("process") {
             let tx_cl = ev_tx.clone();
-            let config = self.config.clone();
+            let config = scan_config.clone();
             let defs = self.definitions.clone();
             tasks.push(tokio::spawn(async move {
                 let mut ev = Vec::new();
@@ -153,7 +155,7 @@ impl DiscoveryOrchestrator {
 
         if wants_source("mcp_config") {
             let tx_cl = ev_tx.clone();
-            let config = self.config.clone();
+            let config = scan_config.clone();
             tasks.push(tokio::spawn(async move {
                 let mut ev = Vec::new();
                 if let Ok(Ok(mut x)) = tokio::time::timeout(
@@ -171,7 +173,7 @@ impl DiscoveryOrchestrator {
 
         if wants_source("local_model") {
             let tx_cl = ev_tx.clone();
-            let config = self.config.clone();
+            let config = scan_config.clone();
             tasks.push(tokio::spawn(async move {
                 let mut ev = Vec::new();
                 if let Ok(Ok(mut x)) = tokio::time::timeout(
@@ -188,7 +190,7 @@ impl DiscoveryOrchestrator {
 
         if wants_source("ide_extension") {
             let tx_cl = ev_tx.clone();
-            let config = self.config.clone();
+            let config = scan_config.clone();
             tasks.push(tokio::spawn(async move {
                 let mut ev = Vec::new();
                 if let Ok(Ok(mut x)) = tokio::time::timeout(
@@ -206,7 +208,7 @@ impl DiscoveryOrchestrator {
 
         if wants_source("cli_agent") {
             let tx_cl = ev_tx.clone();
-            let config = self.config.clone();
+            let config = scan_config.clone();
             tasks.push(tokio::spawn(async move {
                 let mut ev = Vec::new();
                 if let Ok(Ok(mut x)) = tokio::time::timeout(
@@ -224,7 +226,7 @@ impl DiscoveryOrchestrator {
 
         if wants_source("container") {
             let tx_cl = ev_tx.clone();
-            let config = self.config.clone();
+            let config = scan_config.clone();
             tasks.push(tokio::spawn(async move {
                 let mut ev = Vec::new();
                 if let Ok(Ok(mut x)) = tokio::time::timeout(
@@ -242,7 +244,7 @@ impl DiscoveryOrchestrator {
 
         if wants_source("browser_extension") {
             let tx_cl = ev_tx.clone();
-            let config = self.config.clone();
+            let config = scan_config.clone();
             tasks.push(tokio::spawn(async move {
                 let mut ev = Vec::new();
                 if let Ok(Ok(mut x)) = tokio::time::timeout(
@@ -261,7 +263,7 @@ impl DiscoveryOrchestrator {
         if wants_source("web_ai") {
             let tx_cl = ev_tx.clone();
             let defs = self.definitions.clone();
-            let config = self.config.clone();
+            let config = scan_config.clone();
             let timeout_secs = config.source_timeout_secs;
             tasks.push(tokio::spawn(async move {
                 let mut ev = Vec::new();
@@ -293,7 +295,7 @@ impl DiscoveryOrchestrator {
         if wants_source("installed_app") {
             let tx_cl = ev_tx.clone();
             let defs = self.definitions.clone();
-            let config = self.config.clone();
+            let config = scan_config.clone();
             tasks.push(tokio::spawn(async move {
                 let mut ev = Vec::new();
                 if let Ok(Ok(mut x)) = tokio::time::timeout(
@@ -315,7 +317,7 @@ impl DiscoveryOrchestrator {
 
         if wants_source("python_framework") {
             let tx_cl = ev_tx.clone();
-            let config = self.config.clone();
+            let config = scan_config.clone();
             tasks.push(tokio::spawn(async move {
                 let mut ev = Vec::new();
                 if let Ok(Ok(mut x)) = tokio::time::timeout(
@@ -336,7 +338,7 @@ impl DiscoveryOrchestrator {
         drop(ev_tx);
 
         let mut all_evidence = Vec::new();
-        let mut sent_candidates = std::collections::HashSet::new();
+        let mut sent_candidate_digests = std::collections::HashMap::new();
         let mut final_candidates = Vec::new();
 
         let tenant_id = self.tenant_id.clone();
@@ -357,9 +359,11 @@ impl DiscoveryOrchestrator {
 
                 if let Some(sender) = &tx {
                     for cand in &candidates {
-                        if !sent_candidates.contains(&cand.candidate_id) {
+                        let digest = candidate_snapshot_digest(cand);
+                        let previous = sent_candidate_digests.get(&cand.candidate_id);
+                        if previous != Some(&digest) {
                             let _ = sender.send(cand.clone()).await;
-                            sent_candidates.insert(cand.candidate_id.clone());
+                            sent_candidate_digests.insert(cand.candidate_id.clone(), digest);
                         }
                     }
                 }
@@ -371,7 +375,12 @@ impl DiscoveryOrchestrator {
         // Combine task completion with deadline
         let join_all = futures::future::join_all(tasks);
 
-        let scan_result = timeout(Duration::from_secs(15), join_all).await.is_ok();
+        let scan_result = timeout(
+            Duration::from_secs(scan_config.total_deadline_secs),
+            join_all,
+        )
+        .await
+        .is_ok();
 
         let (_all_evidence, candidates) = rx_loop.await;
 
@@ -400,5 +409,164 @@ fn tag_candidate_with_scan(candidate: &mut DiscoveredAgentCandidateV2, scan_id: 
         if let Some(data) = evidence.data.as_object_mut() {
             data.insert("scan_id".to_string(), serde_json::json!(scan_id));
         }
+    }
+}
+
+fn effective_config(
+    base: &crate::config::DiscoveryConfig,
+    req: &serde_json::Value,
+) -> crate::config::DiscoveryConfig {
+    let mut config = base.clone();
+    let deep_scan_requested = req
+        .get("scan_mode")
+        .and_then(|value| value.as_str())
+        .is_some_and(|mode| mode.eq_ignore_ascii_case("deep"))
+        || req
+            .get("deep_scan")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false);
+
+    if deep_scan_requested {
+        config.source_timeout_secs = config.source_timeout_secs.max(10);
+        config.total_deadline_secs = config.total_deadline_secs.max(45);
+    }
+
+    if let Some(value) = req
+        .get("source_timeout_secs")
+        .and_then(serde_json::Value::as_u64)
+    {
+        config.source_timeout_secs = value.clamp(3, 30);
+    }
+
+    if let Some(value) = req
+        .get("total_deadline_secs")
+        .and_then(serde_json::Value::as_u64)
+    {
+        config.total_deadline_secs = value.clamp(10, 120);
+    }
+
+    if config.total_deadline_secs < config.source_timeout_secs {
+        config.total_deadline_secs = config.source_timeout_secs;
+    }
+
+    config
+}
+
+fn candidate_snapshot_digest(candidate: &DiscoveredAgentCandidateV2) -> String {
+    let payload = serde_json::to_vec(candidate)
+        .unwrap_or_else(|_| candidate.candidate_id.as_bytes().to_vec());
+    let mut hasher = Sha256::new();
+    hasher.update(payload);
+    hex::encode(hasher.finalize())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    fn candidate_fixture(evidence_len: usize) -> DiscoveredAgentCandidateV2 {
+        let mut evidence = Vec::new();
+        for idx in 0..evidence_len {
+            evidence.push(DiscoveryEvidenceV2 {
+                evidence_id: format!("ev_{idx}"),
+                source: EvidenceSource::ProcessScan,
+                confidence: 0.7,
+                observed_at: "2026-06-27T00:00:00Z".into(),
+                privacy_class: PrivacyClass::InternalMetadata,
+                redacted: true,
+                data: serde_json::json!({ "idx": idx }),
+                merge_key: Some("agent:test".into()),
+                source_path_hash: None,
+                source_path_redacted: None,
+            });
+        }
+
+        DiscoveredAgentCandidateV2 {
+            schema_version: "pollek.agent_discovery_candidate.v2".into(),
+            candidate_id: "cand_test".into(),
+            tenant_id: "local".into(),
+            device_id: "device-local".into(),
+            status: DiscoveryStatus::Discovered,
+            instance_count: 1,
+            matched_signature_id: Some("test_agent".into()),
+            display_name: "Test Agent".into(),
+            vendor: Some("Test".into()),
+            product: Some("Agent".into()),
+            inferred_agent_type: InferredAgentType::DesktopAgent,
+            confidence: 0.7,
+            risk_score: 20,
+            capability_tags: vec!["llm.chat".into()],
+            matched_signals: vec![],
+            first_seen: "2026-06-27T00:00:00Z".into(),
+            last_seen: "2026-06-27T00:00:01Z".into(),
+            scan_ids: vec![],
+            last_scan_id: None,
+            evidence,
+            discovered_configs: vec![],
+            discovered_endpoints: vec![],
+            discovered_mcp_servers: vec![],
+            suggested_registration: SuggestedAgentRegistration {
+                agent_id: "agent_test".into(),
+                name: "Test Agent".into(),
+                agent_type: "DesktopAgent".into(),
+                runtime_name: "native".into(),
+                process_path_hash: None,
+                executable_signer: None,
+                declared_tools: vec![],
+                declared_resources: vec![],
+                mcp_stdio_config_paths: vec![],
+                mcp_http_urls: vec![],
+                local_model_endpoints: vec![],
+                browser_extension_evidence: vec![],
+                trust_level: "Unknown".into(),
+                initial_status: "pending_approval".into(),
+            },
+            suggested_observation_profile: ObservationProfile {
+                mode: ObservationMode::ObserveOnly,
+                collect_process_metadata: true,
+                collect_network_metadata: true,
+                collect_mcp_tool_metadata: false,
+                collect_token_usage: false,
+                collect_file_metadata: false,
+                collect_raw_prompt: false,
+                collect_raw_response: false,
+                retention_days: 14,
+            },
+            suggested_control_bindings: vec![],
+            telemetry_plan: TelemetryPlan {
+                events_endpoint: "/v1/telemetry/events".into(),
+                metrics_endpoint: "/v1/metrics".into(),
+                capture_tool_calls: false,
+                capture_arguments: false,
+                redact_env_keys: vec![],
+                risk_signals: vec![],
+            },
+            labels: BTreeMap::new(),
+        }
+    }
+
+    #[test]
+    fn deep_scan_request_extends_budgets_with_bounds() {
+        let base = crate::config::DiscoveryConfig::default();
+        let config = effective_config(
+            &base,
+            &serde_json::json!({
+                "scan_mode": "deep",
+                "source_timeout_secs": 60,
+                "total_deadline_secs": 180
+            }),
+        );
+
+        assert_eq!(config.source_timeout_secs, 30);
+        assert_eq!(config.total_deadline_secs, 120);
+    }
+
+    #[test]
+    fn candidate_digest_changes_when_scan_evidence_grows() {
+        let first = candidate_snapshot_digest(&candidate_fixture(1));
+        let second = candidate_snapshot_digest(&candidate_fixture(2));
+
+        assert_ne!(first, second);
     }
 }

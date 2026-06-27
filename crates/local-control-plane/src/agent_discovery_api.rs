@@ -195,6 +195,19 @@ async fn start_scan(
         .await;
 
     tokio::spawn(async move {
+        let running_job = serde_json::json!({
+            "scan_id": scan_id2,
+            "tenant_id": tenant2,
+            "status": "running",
+            "started_at": chrono::Utc::now().to_rfc3339(),
+            "sources": req.get("sources").unwrap_or(&serde_json::json!([])),
+            "candidates_found": 0
+        });
+        let _ = st2
+            .registry_store
+            .upsert_raw(&tenant2, "discovery_scan", &scan_id2, &running_job)
+            .await;
+
         let sni_source = std::sync::Arc::new(SpoolFlowSourceImpl::new());
         let (tx, mut rx) = tokio::sync::mpsc::channel::<
             dek_agent_discovery::model::DiscoveredAgentCandidateV2,
@@ -205,43 +218,15 @@ async fn start_scan(
         // Spawn a receiver to handle incremental candidates
         let receiver_task = tokio::spawn(async move {
             while let Some(mut candidate) = rx.recv().await {
-                if let Ok(Some(existing_raw)) = st3
-                    .registry_store
-                    .get_raw(&tenant3, "discovery_candidate", &candidate.candidate_id)
-                    .await
+                if let Err(error) =
+                    merge_and_persist_candidate(&st3, &tenant3, &mut candidate).await
                 {
-                    if let Ok(existing) = serde_json::from_value::<
-                        dek_agent_discovery::model::DiscoveredAgentCandidateV2,
-                    >(existing_raw)
-                    {
-                        candidate.first_seen = existing.first_seen;
-                        for scan_id in existing.scan_ids {
-                            if !candidate.scan_ids.iter().any(|id| id == &scan_id) {
-                                candidate.scan_ids.push(scan_id);
-                            }
-                        }
-                        if matches!(
-                            existing.status,
-                            dek_agent_discovery::model::DiscoveryStatus::Registered
-                                | dek_agent_discovery::model::DiscoveryStatus::Ignored
-                        ) {
-                            candidate.status = existing.status;
-                            candidate.display_name = existing.display_name;
-                            candidate.suggested_registration.name =
-                                existing.suggested_registration.name;
-                        }
-                    }
+                    tracing::warn!(
+                        %error,
+                        candidate_id = %candidate.candidate_id,
+                        "failed to persist incremental discovery candidate"
+                    );
                 }
-                let val = serde_json::to_value(&candidate).unwrap_or_default();
-                let _ = st3
-                    .registry_store
-                    .upsert_raw(
-                        &tenant3,
-                        "discovery_candidate",
-                        &candidate.candidate_id,
-                        &val,
-                    )
-                    .await;
             }
         });
 
@@ -257,14 +242,24 @@ async fn start_scan(
         let _ = receiver_task.await;
 
         match scan_result {
-            Ok((job, _candidates)) => {
+            Ok((job, candidates)) => {
+                for mut candidate in candidates {
+                    if let Err(error) =
+                        merge_and_persist_candidate(&st2, &tenant2, &mut candidate).await
+                    {
+                        tracing::warn!(
+                            %error,
+                            candidate_id = %candidate.candidate_id,
+                            scan_id = %job.scan_id,
+                            "failed to persist final discovery candidate snapshot"
+                        );
+                    }
+                }
                 let job_val = serde_json::to_value(&job).unwrap_or_default();
                 let _ = st2
                     .registry_store
                     .upsert_raw(&tenant2, "discovery_scan", &job.scan_id, &job_val)
                     .await;
-
-                // Candidates are already saved incrementally by the receiver loop
             }
             Err(e) => {
                 tracing::warn!(error=%e, scan_id=%scan_id2, "agent discovery scan failed");
@@ -287,6 +282,45 @@ async fn start_scan(
         "scan_id": scan_id,
         "status": "queued"
     })))
+}
+
+async fn merge_and_persist_candidate(
+    st: &AppState,
+    tenant: &str,
+    candidate: &mut dek_agent_discovery::model::DiscoveredAgentCandidateV2,
+) -> anyhow::Result<()> {
+    if let Some(existing_raw) = st
+        .registry_store
+        .get_raw(tenant, "discovery_candidate", &candidate.candidate_id)
+        .await?
+    {
+        if let Ok(existing) = serde_json::from_value::<
+            dek_agent_discovery::model::DiscoveredAgentCandidateV2,
+        >(existing_raw)
+        {
+            candidate.first_seen = existing.first_seen;
+            for scan_id in existing.scan_ids {
+                if !candidate.scan_ids.iter().any(|id| id == &scan_id) {
+                    candidate.scan_ids.push(scan_id);
+                }
+            }
+            if matches!(
+                existing.status,
+                dek_agent_discovery::model::DiscoveryStatus::Registered
+                    | dek_agent_discovery::model::DiscoveryStatus::Ignored
+            ) {
+                candidate.status = existing.status;
+                candidate.display_name = existing.display_name;
+                candidate.suggested_registration.name = existing.suggested_registration.name;
+            }
+        }
+    }
+
+    let val = serde_json::to_value(&*candidate)?;
+    st.registry_store
+        .upsert_raw(tenant, "discovery_candidate", &candidate.candidate_id, &val)
+        .await?;
+    Ok(())
 }
 
 async fn list_candidates(
@@ -763,24 +797,40 @@ async fn cancel_scan(
 
 async fn generate_control_plan(
     Path((tenant, candidate_id)): Path<(String, String)>,
-    State(_st): State<AppState>,
+    State(st): State<AppState>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    let candidate = load_candidate(&st, &tenant, &candidate_id).await?;
     let plan_id = format!("plan_{}", uuid::Uuid::new_v4());
-
-    // In a real scenario we'd lookup the candidate to find its original command
-    let wrapper_cmd = format!(
-        "dek-stdio-wrapper --tenant {} --agent {} --target-cmd <ORIGINAL_CMD> -- <ORIGINAL_ARGS>",
-        tenant, candidate_id
-    );
+    let stdio_server = candidate
+        .discovered_mcp_servers
+        .iter()
+        .find(|server| server.transport == "stdio" && server.command.is_some());
+    let config_paths = candidate
+        .suggested_registration
+        .mcp_stdio_config_paths
+        .clone();
+    let wrapper_command = stdio_server.and_then(|server| {
+        server.command.as_ref().map(|command| {
+            format!(
+                "dek-stdio-wrapper --tenant {} --agent {} --target-cmd {}",
+                tenant, candidate_id, command
+            )
+        })
+    });
 
     Ok(Json(serde_json::json!({
         "candidate_id": candidate_id,
         "control_plan_id": plan_id,
-        "status": "generated",
+        "status": if wrapper_command.is_some() || !config_paths.is_empty() { "generated" } else { "manual_input_required" },
         "plan": {
             "strategy": "stdio_wrapper",
-            "instructions": "Replace your original agent start command with the wrapper command provided.",
-            "wrapper_command": wrapper_cmd
+            "instructions": if config_paths.is_empty() {
+                "No editable MCP config path was captured. Start the agent through dek-stdio-wrapper manually or rescan with MCP config access enabled."
+            } else {
+                "Apply the wrapper to one of the discovered MCP config files, then restart the agent host."
+            },
+            "wrapper_command": wrapper_command,
+            "config_paths": config_paths
         }
     })))
 }

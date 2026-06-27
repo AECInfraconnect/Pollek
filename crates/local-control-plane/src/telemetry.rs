@@ -176,31 +176,141 @@ async fn telemetry_stream(
     Sse::new(stream).keep_alive(axum::response::sse::KeepAlive::new())
 }
 
-async fn explain_decision(
-    Path(id): Path<String>,
-    State(_st): State<AppState>,
-) -> impl IntoResponse {
-    // In a full implementation, we'd query the telemetry store for the decision event
-    // and return its `explanation` payload. For now, we return a mock explanation.
-    // If the explanation isn't stored properly yet, we construct a fallback.
-    let mock_explanation = dek_policy_runtime::explanation::DecisionExplanation {
-        decision: "allow".into(),
-        allow: true,
-        pdp_engine: Some("cedar".into()),
-        pdp_reason_th: "อนุญาตโดยนโยบายพื้นฐาน".into(),
-        pep_plane: "McpStdio".into(),
-        pep_capability: "Local".into(),
-        pep_reason_th: "บังคับใช้ได้จริง".into(),
-        enforced_for_real: true,
-        success: true,
-        status_badge: dek_policy_runtime::explanation::StatusBadge::Ok,
-        user_action_th: None,
-        correlation_id: id,
-    };
-
-    (StatusCode::OK, Json(mock_explanation))
+async fn explain_decision(Path(id): Path<String>, State(st): State<AppState>) -> impl IntoResponse {
+    match find_decision_explanation(&st, &id).await {
+        Ok(Some(explanation)) => (StatusCode::OK, Json(explanation)).into_response(),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "error": "decision evidence not found",
+                "decision_id": id
+            })),
+        )
+            .into_response(),
+        Err(error) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "error": error.to_string(),
+                "decision_id": id
+            })),
+        )
+            .into_response(),
+    }
 }
 
+async fn find_decision_explanation(
+    st: &AppState,
+    decision_id: &str,
+) -> anyhow::Result<Option<dek_policy_runtime::explanation::DecisionExplanation>> {
+    for kind in ["decision_log", "decision"] {
+        for event in st.telemetry_store.list_telemetry("local", kind).await? {
+            if decision_event_matches(&event, decision_id) {
+                if let Some(explanation) = event_to_decision_explanation(&event, decision_id) {
+                    return Ok(Some(explanation));
+                }
+            }
+        }
+    }
+    Ok(None)
+}
+
+fn decision_event_matches(event: &serde_json::Value, decision_id: &str) -> bool {
+    ["event_id", "id", "correlation_id", "trace_id", "request_id"]
+        .iter()
+        .any(|field| event.get(*field).and_then(|value| value.as_str()) == Some(decision_id))
+}
+
+fn event_to_decision_explanation(
+    event: &serde_json::Value,
+    decision_id: &str,
+) -> Option<dek_policy_runtime::explanation::DecisionExplanation> {
+    if let Some(value) = event
+        .get("explanation")
+        .or_else(|| event.pointer("/payload/explanation"))
+    {
+        if let Ok(explanation) = serde_json::from_value(value.clone()) {
+            return Some(explanation);
+        }
+    }
+
+    let decision = event
+        .get("decision")
+        .or_else(|| event.pointer("/final_decision/decision"))
+        .and_then(|value| value.as_str())
+        .map(str::to_ascii_lowercase)?;
+    let allow = event
+        .get("allow")
+        .and_then(|value| value.as_bool())
+        .unwrap_or_else(|| decision == "allow" || decision == "allowed");
+    let reason = first_string(
+        event,
+        &[
+            "/reason",
+            "/reason_code",
+            "/final_decision/reason",
+            "/metadata/reason",
+        ],
+    )
+    .unwrap_or_else(|| "no reason captured in decision telemetry".to_string());
+    let pep_plane =
+        first_string(event, &["/pep_plane", "/pep_type"]).unwrap_or_else(|| "unknown".to_string());
+    let enforced_for_real = event
+        .get("enforced_for_real")
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+    let status_badge = if allow && enforced_for_real {
+        dek_policy_runtime::explanation::StatusBadge::Ok
+    } else if allow {
+        dek_policy_runtime::explanation::StatusBadge::Degraded
+    } else {
+        dek_policy_runtime::explanation::StatusBadge::Failed
+    };
+
+    Some(dek_policy_runtime::explanation::DecisionExplanation {
+        decision,
+        allow,
+        pdp_engine: first_string(
+            event,
+            &[
+                "/pdp_engine",
+                "/selected_pdp",
+                "/evaluator_id",
+                "/metadata/pdp_engine",
+            ],
+        ),
+        pdp_reason_th: reason.clone(),
+        pep_plane,
+        pep_capability: first_string(event, &["/pep_capability", "/pep_coverage"]).unwrap_or_else(
+            || {
+                if enforced_for_real {
+                    "enforce".to_string()
+                } else {
+                    "observe".to_string()
+                }
+            },
+        ),
+        pep_reason_th: reason,
+        enforced_for_real,
+        success: allow,
+        status_badge,
+        user_action_th: first_string(event, &["/user_action_th", "/metadata/user_action_th"]),
+        correlation_id: event
+            .get("correlation_id")
+            .or_else(|| event.get("event_id"))
+            .and_then(|value| value.as_str())
+            .unwrap_or(decision_id)
+            .to_string(),
+    })
+}
+
+fn first_string(event: &serde_json::Value, pointers: &[&str]) -> Option<String> {
+    pointers.iter().find_map(|pointer| {
+        event
+            .pointer(pointer)
+            .and_then(|value| value.as_str())
+            .map(str::to_string)
+    })
+}
 #[derive(serde::Deserialize)]
 pub struct ExportParams {
     pub format: Option<String>,
@@ -479,4 +589,76 @@ async fn list_pep_health(
         StatusCode::OK,
         Json(json!({ "count": logs.len(), "pep_health": logs })),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decision_explanation_uses_embedded_evidence() {
+        let event = json!({
+            "event_id": "decision-1",
+            "explanation": {
+                "decision": "deny",
+                "allow": false,
+                "pdp_engine": "cedar",
+                "pdp_reason_th": "policy denied",
+                "pep_plane": "McpProxy",
+                "pep_capability": "enforce",
+                "pep_reason_th": "blocked by proxy",
+                "enforced_for_real": true,
+                "success": false,
+                "status_badge": "failed",
+                "user_action_th": null,
+                "correlation_id": "decision-1"
+            }
+        });
+
+        let explanation = event_to_decision_explanation(&event, "decision-1");
+
+        assert!(matches!(
+            explanation,
+            Some(dek_policy_runtime::explanation::DecisionExplanation {
+                allow: false,
+                enforced_for_real: true,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn decision_explanation_falls_back_to_decision_fields_without_mocking() {
+        let event = json!({
+            "event_id": "decision-2",
+            "decision": "allow",
+            "reason": "matched allow policy",
+            "pdp_engine": "local.cedar",
+            "pep_type": "mcp_proxy",
+            "enforced_for_real": true
+        });
+
+        let explanation = event_to_decision_explanation(&event, "decision-2");
+        assert!(explanation.is_some());
+        let Some(explanation) = explanation else {
+            return;
+        };
+
+        assert_eq!(explanation.decision, "allow");
+        assert!(explanation.allow);
+        assert_eq!(explanation.pdp_engine.as_deref(), Some("local.cedar"));
+        assert_eq!(explanation.pep_plane, "mcp_proxy");
+        assert_eq!(explanation.pdp_reason_th, "matched allow policy");
+        assert!(explanation.enforced_for_real);
+    }
+
+    #[test]
+    fn decision_explanation_requires_decision_evidence() {
+        let event = json!({
+            "event_id": "decision-3",
+            "reason": "metadata only"
+        });
+
+        assert!(event_to_decision_explanation(&event, "decision-3").is_none());
+    }
 }

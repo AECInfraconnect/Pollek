@@ -11,18 +11,18 @@ pub fn router() -> Router<AppState> {
     Router::new().route("/v1/recommendations", get(get_recommendations))
 }
 
-async fn get_recommendations(State(_state): State<AppState>) -> ApiResult<Json<Value>> {
+async fn get_recommendations(State(state): State<AppState>) -> ApiResult<Json<Value>> {
     // Determine local device capabilities
     let caps =
         dek_capability_registry::CapabilityRegistry::new("local".into(), "1.0".into()).gather();
 
-    // In a real system, we'd query the SQLite/PostgreSQL store for these stats.
-    // For now, return mock recent stats to surface recommendations in the dashboard.
-    let recent_stats = dek_agent_observer::activity::ActivityCounts {
-        total_decisions: 150,
-        denied_actions: 12,
-        mcp_invocations: 55,
-    };
+    let events = state
+        .observability_store
+        .list_observation_events("local")
+        .await
+        .map_err(crate::error::ApiError::Internal)?;
+    let items = dek_agent_observer::activity::activity_items_from_observations(&events);
+    let recent_stats = dek_agent_observer::activity::activity_counts(&items);
 
     let recs = Recommender::recommend(&caps, &recent_stats);
 

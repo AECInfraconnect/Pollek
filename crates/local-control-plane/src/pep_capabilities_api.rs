@@ -61,14 +61,14 @@ async fn list_capabilities(
                 "pep_type": "windows_wfp",
                 "status": if host.os == "windows" && host.windows_wfp { "available" } else if host.os == "windows" { "not_active" } else { "not_available" },
                 "mode": if host.windows_wfp { "enforce" } else { "observe_only" },
-                "maturity": "stub",
+                "maturity": "driver_probe_beta",
                 "reason": if host.os != "windows" { "not running on windows" } else if !host.windows_wfp { "WFP driver not active" } else { "" }
             },
             {
                 "pep_type": "macos_nefilter",
                 "status": if host.os == "macos" && host.macos_nefilter { "available" } else if host.os == "macos" { "not_active" } else { "not_available" },
                 "mode": if host.macos_nefilter { "enforce" } else { "observe_only" },
-                "maturity": "stub",
+                "maturity": "system_extension_probe_beta",
                 "reason": if host.os != "macos" { "not running on macOS" } else if !host.macos_nefilter { "NEFilter extension missing" } else { "" }
             },
             {

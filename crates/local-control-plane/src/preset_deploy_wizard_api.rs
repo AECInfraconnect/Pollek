@@ -37,48 +37,118 @@ pub fn router() -> Router<AppState> {
 }
 
 async fn recommend_deployment(
-    Path(_tenant): Path<String>,
-    State(_st): State<AppState>,
+    Path(tenant): Path<String>,
+    State(st): State<AppState>,
     Json(_req): Json<dek_policy_presets::model::DeployPresetRequest>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    // Stub implementation for recommendation logic
+    let agents = st
+        .registry_store
+        .list_agent_inventories(&tenant)
+        .await
+        .map_err(ApiError::Internal)?;
+    let providers = st
+        .registry_store
+        .list_blackbox_ai(&tenant)
+        .await
+        .map_err(ApiError::Internal)?;
+
     let mut candidates = Vec::new();
-    candidates.push(serde_json::json!({
-        "pep_type": "mcp_proxy",
-        "score": 80,
-        "max_mode": "enforce",
-        "reason": "Agent exposes MCP tools",
-        "requires_user_approval": false
-    }));
+    for agent in agents {
+        for binding in agent.supported_pep_bindings {
+            let enforce_ready = binding.mode_supported.iter().any(|mode| {
+                matches!(
+                    mode,
+                    dek_domain_schema::capability_inventory::ControlMode::Enforce
+                        | dek_domain_schema::capability_inventory::ControlMode::StrictDeny
+                )
+            });
+            candidates.push(serde_json::json!({
+                "agent_id": agent.agent_id,
+                "pep_type": binding.pep_type,
+                "score": if enforce_ready { 90 } else { 60 },
+                "max_mode": if enforce_ready { "enforce" } else { "observe" },
+                "reason": binding.reason,
+                "requires_user_approval": binding.requires_user_approval,
+                "requires_admin": binding.requires_admin
+            }));
+        }
+    }
+
+    for provider in providers {
+        candidates.push(serde_json::json!({
+            "agent_id": provider.provider_id,
+            "pep_type": "http_gateway",
+            "score": 70,
+            "max_mode": "observe",
+            "reason": "Observed blackbox AI provider can be routed through an HTTP gateway when configured.",
+            "requires_user_approval": true,
+            "requires_admin": false
+        }));
+    }
+
+    candidates.sort_by(|left, right| {
+        right
+            .get("score")
+            .and_then(|value| value.as_i64())
+            .cmp(&left.get("score").and_then(|value| value.as_i64()))
+    });
+    let recommended_pep = candidates.first().cloned();
+    let warnings = if candidates.is_empty() {
+        vec!["No discovered agent inventory is available yet. Run Auto Discovery first."]
+    } else {
+        Vec::<&str>::new()
+    };
 
     let recommendation = serde_json::json!({
-        "recommended_pep": candidates[0].clone(),
+        "recommended_pep": recommended_pep,
         "alternatives": candidates,
         "pdp_route": {
             "primary": "local_cedar",
-            "fallback": "pollek_cloud"
+            "fallback": null
         },
-        "warnings": []
+        "warnings": warnings
     });
 
     Ok(Json(recommendation))
 }
 
 async fn preview_deployment(
-    Path(_tenant): Path<String>,
-    State(_st): State<AppState>,
-    Json(_req): Json<dek_policy_presets::model::DeployPresetRequest>,
+    Path(tenant): Path<String>,
+    State(st): State<AppState>,
+    Json(req): Json<dek_policy_presets::model::DeployPresetRequest>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    // Return a dummy ConfigDiff structure
+    let agents = st
+        .registry_store
+        .list_agent_inventories(&tenant)
+        .await
+        .map_err(ApiError::Internal)?;
+    let mut diffs = Vec::new();
+
+    for agent in agents {
+        if !req.targets.agent_ids.is_empty() && !req.targets.agent_ids.contains(&agent.agent_id) {
+            continue;
+        }
+        for config in agent.config_surfaces {
+            if config.editable {
+                diffs.push(serde_json::json!({
+                    "agent_id": agent.agent_id,
+                    "file_path": config.path_redacted,
+                    "diff": "+ command: \"dek-stdio-wrapper\"\n- command: <original MCP command>",
+                    "backup_supported": config.backup_supported
+                }));
+            }
+        }
+    }
+    let warnings = if diffs.is_empty() {
+        vec!["No editable MCP config surfaces were found. Run Auto Discovery or use manual wrapper setup."]
+    } else {
+        Vec::<&str>::new()
+    };
+
     Ok(Json(serde_json::json!({
         "status": "preview",
-        "diffs": [
-            {
-                "agent_id": "agent_auto",
-                "file_path": "~/.pollek_dek/mcp_configs/example.json",
-                "diff": "+ command: \"dek-stdio-wrapper\"\n- command: \"uvx\""
-            }
-        ]
+        "diffs": diffs,
+        "warnings": warnings
     })))
 }
 
@@ -181,16 +251,57 @@ async fn execute_deployment(
     State(st): State<AppState>,
     Json(mut deployment): Json<PolicyDeployment>,
 ) -> ApiResult<Json<PolicyDeployment>> {
-    // 1. Mark deployment as Active
-    deployment.status = DeploymentStatus::Active;
-
-    // 2. Update bindings and actually apply them!
+    let mut failed_bindings = 0usize;
     for binding in &mut deployment.control_bindings {
-        let _ = crate::control_binding::do_apply_binding(&binding.binding_id).await;
-        binding.status = BindingStatus::Applied;
-    }
+        let config_path = binding
+            .binding_json
+            .get("config_path")
+            .and_then(|value| value.as_str());
 
-    // 3. Emit telemetry event
+        let result = if let Some(config_path) = config_path {
+            crate::control_binding::apply_binding_to_config(
+                &binding.binding_id,
+                std::path::Path::new(config_path),
+            )
+            .await
+        } else {
+            Err("binding has no config_path; cannot apply wrapper to a real MCP config".to_string())
+        };
+
+        match result {
+            Ok(backup_path) => {
+                binding.status = BindingStatus::Applied;
+                binding.config_backup_id = Some(backup_path.to_string_lossy().to_string());
+                if let Some(obj) = binding.binding_json.as_object_mut() {
+                    obj.insert("applied_for_real".to_string(), serde_json::json!(true));
+                    obj.insert(
+                        "backup_path".to_string(),
+                        serde_json::json!(backup_path.to_string_lossy()),
+                    );
+                }
+            }
+            Err(error) => {
+                failed_bindings += 1;
+                binding.status = BindingStatus::Failed;
+                if let Some(obj) = binding.binding_json.as_object_mut() {
+                    obj.insert("applied_for_real".to_string(), serde_json::json!(false));
+                    obj.insert("error".to_string(), serde_json::json!(error));
+                    obj.insert(
+                        "required_action".to_string(),
+                        serde_json::json!(
+                            "Provide a real MCP config_path or use the manual wrapper instructions."
+                        ),
+                    );
+                }
+            }
+        }
+    }
+    deployment.status = if failed_bindings == 0 {
+        DeploymentStatus::Active
+    } else {
+        DeploymentStatus::Failed
+    };
+
     let event = serde_json::json!({
         "schema_version": "pollek.telemetry.v2",
         "event_type": "policy_deployment",
@@ -198,7 +309,8 @@ async fn execute_deployment(
         "tenant_id": tenant,
         "deployment_id": deployment.deployment_id,
         "preset_id": deployment.preset_id,
-        "status": "applied",
+        "status": if failed_bindings == 0 { "applied" } else { "failed" },
+        "failed_bindings": failed_bindings,
         "timestamp": chrono::Utc::now().to_rfc3339()
     });
     let _ = st

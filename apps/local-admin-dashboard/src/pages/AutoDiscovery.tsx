@@ -25,6 +25,19 @@ import { EmptyState } from "../components/master-detail/EmptyState";
 import type { UiStatus } from "../lib/status";
 import { SimplePolicyWizard } from "../components/simple/SimplePolicyWizard";
 
+const DEEP_SCAN_SOURCES = [
+  "process",
+  "mcp_config",
+  "local_model",
+  "ide_extension",
+  "cli_agent",
+  "container",
+  "browser_extension",
+  "installed_app",
+  "web_ai",
+  "python_framework",
+];
+
 export function AutoDiscovery() {
   const { confirm } = useConfirm();
 
@@ -427,34 +440,17 @@ export function AutoDiscovery() {
     setIsScanning(true);
     try {
       const result = await RegistryApi.triggerDiscoveryScan({
-        sources: [
-          "process",
-          "mcp_config",
-          "local_model",
-          "ide_extension",
-          "cli_agent",
-          "container",
-          "browser_extension",
-          "installed_app",
-          "web_ai",
-        ],
+        sources: DEEP_SCAN_SOURCES,
+        scan_mode: "deep",
+        source_timeout_secs: 12,
+        total_deadline_secs: 75,
         privacy_mode: true,
       });
       setScanJob({
         scan_id: result.scan_id,
         tenant_id: "local",
         status: result.status as any,
-        sources: [
-          "process",
-          "mcp_config",
-          "local_model",
-          "ide_extension",
-          "cli_agent",
-          "container",
-          "browser_extension",
-          "installed_app",
-          "web_ai",
-        ],
+        sources: DEEP_SCAN_SOURCES,
         candidates_found: 0,
       });
       void fetchScans();

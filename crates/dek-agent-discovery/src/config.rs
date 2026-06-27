@@ -8,6 +8,7 @@ pub struct DiscoveryConfig {
     pub enable_browser_session_scan: bool,
     pub enable_network_sni_scan: bool,
     pub source_timeout_secs: u64,
+    pub total_deadline_secs: u64,
 }
 
 impl Default for DiscoveryConfig {
@@ -21,6 +22,7 @@ impl Default for DiscoveryConfig {
             enable_browser_session_scan: true, // Privacy guard: session scan is safe as it only sees open tabs
             enable_network_sni_scan: true,     // SNI does not expose private URLs, on by default
             source_timeout_secs: 5,
+            total_deadline_secs: 15,
         }
     }
 }

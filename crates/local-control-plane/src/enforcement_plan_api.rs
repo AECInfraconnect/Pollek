@@ -52,12 +52,44 @@ fn probe_ebpf_btf() -> bool {
 }
 
 fn probe_wfp_active() -> bool {
-    // Stub implementation
-    std::path::Path::new(r"C:\Windows\System32\drivers\tcpip.sys").exists()
+    #[cfg(target_os = "windows")]
+    {
+        let service_ready = ["PollekWfp", "pollek-wfp", "pollek_dek_wfp"]
+            .iter()
+            .any(|service| {
+                std::process::Command::new("sc")
+                    .args(["query", service])
+                    .output()
+                    .map(|output| {
+                        output.status.success()
+                            && String::from_utf8_lossy(&output.stdout).contains("RUNNING")
+                    })
+                    .unwrap_or(false)
+            });
+        let driver_file_ready =
+            std::path::Path::new(r"C:\Windows\System32\drivers\pollek_wfp.sys").exists();
+        service_ready || driver_file_ready
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        false
+    }
 }
 
 fn probe_nefilter() -> bool {
-    std::path::Path::new("/System/Library/Frameworks/NetworkExtension.framework").exists()
+    #[cfg(target_os = "macos")]
+    {
+        [
+            "/Library/SystemExtensions/ai.pollek.dek.networkextension.systemextension",
+            "/Applications/Pollek.app/Contents/Library/SystemExtensions/ai.pollek.dek.networkextension.systemextension",
+        ]
+        .iter()
+        .any(|path| std::path::Path::new(path).exists())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        false
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -172,14 +204,14 @@ async fn get_host_capabilities() -> ApiResult<Json<HostCapabilitiesResponse>> {
             "pep_type": "windows_wfp",
             "status": if host.os == "windows" && host.windows_wfp { "available" } else if host.os == "windows" { "not_active" } else { "not_available" },
             "mode": if host.windows_wfp { "enforce" } else { "observe_only" },
-            "maturity": "stub",
+            "maturity": "driver_probe_beta",
             "reason": if host.os != "windows" { "not running on windows" } else if !host.windows_wfp { "WFP driver not active" } else { "" }
         }),
         serde_json::json!({
             "pep_type": "macos_nefilter",
             "status": if host.os == "macos" && host.macos_nefilter { "available" } else if host.os == "macos" { "not_active" } else { "not_available" },
             "mode": if host.macos_nefilter { "enforce" } else { "observe_only" },
-            "maturity": "stub",
+            "maturity": "system_extension_probe_beta",
             "reason": if host.os != "macos" { "not running on macOS" } else if !host.macos_nefilter { "NEFilter extension missing" } else { "" }
         }),
         serde_json::json!({
