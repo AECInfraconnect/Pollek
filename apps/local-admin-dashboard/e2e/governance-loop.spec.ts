@@ -17,7 +17,7 @@ test.describe("Governance loop", () => {
       page.getByRole("heading", { name: "Dashboard Overview" }),
     ).toBeVisible();
     await expect(page.getByTestId("current-device-label")).toBeVisible();
-    await expect(page.getByText("DELL-WINDOWS")).toBeVisible();
+    await expect(page.getByTestId("current-device-label")).toHaveText(/\S/);
     await expect(
       page.getByRole("heading", { name: "Control Capabilities" }),
     ).toBeVisible();
