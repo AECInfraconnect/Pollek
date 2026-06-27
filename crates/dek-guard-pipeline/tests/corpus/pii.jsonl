@@ -1,0 +1,3 @@
+{"id":"rt-pr5-thai-id-invalid-checksum","text":"บัตรประชาชน 1101700207031","forbidden_kind":"THAI_NATIONAL_ID","status":"active"}
+{"id":"rt-pr5-thai-id-valid-context","text":"บัตรประชาชน 1101700207030","expected_kind":"THAI_NATIONAL_ID","min_confidence":0.8,"status":"active"}
+{"id":"rt-pr5-credit-card-luhn-invalid","text":"credit card 4111 1111 1111 1112","forbidden_kind":"CREDIT_CARD","status":"active"}

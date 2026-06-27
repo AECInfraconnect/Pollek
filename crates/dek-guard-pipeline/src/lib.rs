@@ -5,6 +5,7 @@ pub mod config;
 pub mod event;
 pub mod injection;
 pub mod normalize;
+pub mod pii;
 pub mod spotlight;
 
 use async_trait::async_trait;
@@ -13,6 +14,7 @@ use dek_plugin_sdk::{
     PluginIdentity, PluginResult, PluginType, RedactionFinding, TransformDirection,
     TransformPlugin, TransformRequest, TransformResponse, DEK_PLUGIN_API_VERSION,
 };
+pub use pii::PiiDetector;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -51,9 +53,6 @@ pub trait NerProvider: Send + Sync {
 pub trait InjectionClassifier: Send + Sync {
     fn classify(&self, text: &str) -> PluginResult<InjectionScore>;
 }
-
-#[derive(Debug, Default, Clone)]
-pub struct PiiDetector;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GuardOutcome {
@@ -109,24 +108,43 @@ impl GuardPipeline {
 
         let text = payload_to_text(payload);
         let scanned = self.scan_injection_text(&text);
-        if scanned.score <= 0.0 {
-            return GuardOutcome::allow();
-        }
+        let (pii_payload, findings) = self
+            .pii
+            .redact_value(payload, self.cfg.thresholds.pii_confidence);
+        let has_pii = !findings.is_empty();
 
         let action = if scanned.score >= self.cfg.thresholds.injection_deny_score {
             GuardAction::Deny
-        } else {
+        } else if scanned.score > 0.0 || has_pii {
             GuardAction::Redact
+        } else {
+            GuardAction::Allow
         };
+
+        if action == GuardAction::Allow {
+            return GuardOutcome::allow();
+        }
+
+        let mut categories = scanned.categories;
+        if has_pii {
+            push_unique(
+                &mut categories,
+                "llm02_sensitive_information_disclosure".to_string(),
+            );
+        }
 
         GuardOutcome {
             action,
             injection_score: scanned.score,
-            categories: scanned.categories,
-            findings: Vec::new(),
-            redacted_payload: None,
+            categories,
+            findings,
+            redacted_payload: if has_pii { Some(pii_payload) } else { None },
             normalization_steps: scanned.normalization_steps,
-            confidence: scanned.score,
+            confidence: if has_pii {
+                self.cfg.thresholds.pii_confidence
+            } else {
+                scanned.score
+            },
         }
     }
 
@@ -137,14 +155,25 @@ impl GuardPipeline {
 
         let text = payload_to_text(payload);
         let mut scanned = self.scan_injection_text(&text);
+        let (pii_payload, findings) = self
+            .pii
+            .redact_value(payload, self.cfg.thresholds.pii_confidence);
+        let has_pii = !findings.is_empty();
         let should_spotlight =
             self.cfg.enable_spotlight && spotlight::is_untrusted_payload(payload);
 
         if should_spotlight {
+            let spotlight_source = if has_pii { &pii_payload } else { payload };
             push_unique(
                 &mut scanned.categories,
                 "llm11_indirect_prompt_injection_boundary".to_string(),
             );
+            if has_pii {
+                push_unique(
+                    &mut scanned.categories,
+                    "llm02_sensitive_information_disclosure".to_string(),
+                );
+            }
             scanned
                 .normalization_steps
                 .push("spotlight_untrusted_data".to_string());
@@ -152,9 +181,9 @@ impl GuardPipeline {
                 action: GuardAction::Redact,
                 injection_score: scanned.score,
                 categories: scanned.categories,
-                findings: Vec::new(),
+                findings,
                 redacted_payload: Some(spotlight::spotlight_payload(
-                    payload,
+                    spotlight_source,
                     spotlight::DEFAULT_SPOTLIGHT_MARKER,
                 )),
                 normalization_steps: scanned.normalization_steps,
@@ -163,6 +192,18 @@ impl GuardPipeline {
                 } else {
                     1.0
                 },
+            };
+        }
+
+        if has_pii {
+            return GuardOutcome {
+                action: GuardAction::Redact,
+                injection_score: scanned.score,
+                categories: vec!["llm02_sensitive_information_disclosure".to_string()],
+                findings,
+                redacted_payload: Some(pii_payload),
+                normalization_steps: scanned.normalization_steps,
+                confidence: self.cfg.thresholds.pii_confidence,
             };
         }
 
@@ -306,6 +347,7 @@ mod tests {
     use dek_plugin_sdk::PluginError;
 
     const INJECTION_CORPUS: &str = include_str!("../tests/corpus/injection.jsonl");
+    const PII_CORPUS: &str = include_str!("../tests/corpus/pii.jsonl");
 
     #[derive(Debug, Deserialize)]
     struct GoldenCorpusCase {
@@ -315,6 +357,16 @@ mod tests {
         gap: String,
         status: String,
         direction: Option<String>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct PiiCorpusCase {
+        id: String,
+        text: String,
+        expected_kind: Option<String>,
+        forbidden_kind: Option<String>,
+        min_confidence: Option<f32>,
+        status: String,
     }
 
     struct StaticClassifier {
@@ -446,6 +498,27 @@ mod tests {
     }
 
     #[test]
+    fn request_scan_redacts_pii_with_checksum_validation() {
+        let pipeline = GuardPipeline::default();
+        let outcome = pipeline.scan_request(&serde_json::json!({
+            "content": "บัตรประชาชน 1101700207030"
+        }));
+
+        assert_eq!(outcome.action, GuardAction::Redact);
+        assert!(outcome
+            .findings
+            .iter()
+            .any(|finding| finding.kind == "THAI_NATIONAL_ID" && finding.confidence >= 0.80));
+        let rendered = outcome
+            .redacted_payload
+            .as_ref()
+            .map(serde_json::Value::to_string)
+            .unwrap_or_default();
+        assert!(rendered.contains("[REDACTED_THAI_NATIONAL_ID]"));
+        assert!(!rendered.contains("1101700207030"));
+    }
+
+    #[test]
     fn request_scan_denies_base64_prompt_override() {
         let pipeline = GuardPipeline::default();
         let payload = serde_json::json!({
@@ -492,6 +565,31 @@ mod tests {
             assert!(case.id.starts_with("rt-"));
             assert_eq!(actual_action, case.expected_action);
             assert!(matches!(case.gap.as_str(), "G-03" | "G-11"));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn pii_golden_corpus_cases_are_enforced() -> Result<(), serde_json::Error> {
+        let mut cases = Vec::new();
+        for line in PII_CORPUS.lines().filter(|line| !line.trim().is_empty()) {
+            let parsed: PiiCorpusCase = serde_json::from_str(line)?;
+            cases.push(parsed);
+        }
+
+        let detector = PiiDetector;
+        for case in cases.iter().filter(|case| case.status == "active") {
+            let spans = detector.detect(&case.text);
+            assert!(case.id.starts_with("rt-pr5-"));
+            if let Some(kind) = &case.expected_kind {
+                let min_confidence = case.min_confidence.unwrap_or(0.0);
+                assert!(spans.iter().any(|span| {
+                    span.entity_type == *kind && span.confidence >= min_confidence
+                }));
+            }
+            if let Some(kind) = &case.forbidden_kind {
+                assert!(!spans.iter().any(|span| span.entity_type == *kind));
+            }
         }
         Ok(())
     }
