@@ -36,6 +36,8 @@ pub struct GuardConfig {
     pub request_guard_enabled: bool,
     pub response_guard_enabled: bool,
     pub telemetry_enabled: bool,
+    pub enable_classifier: bool,
+    pub enable_spotlight: bool,
     pub thresholds: GuardThresholds,
 }
 
@@ -46,6 +48,8 @@ impl Default for GuardConfig {
             request_guard_enabled: true,
             response_guard_enabled: true,
             telemetry_enabled: true,
+            enable_classifier: false,
+            enable_spotlight: true,
             thresholds: GuardThresholds::default(),
         }
     }

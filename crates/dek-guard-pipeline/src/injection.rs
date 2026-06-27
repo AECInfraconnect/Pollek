@@ -2,9 +2,12 @@
 // Copyright (c) 2026 AEC Infraconnect
 
 use crate::normalize::{normalize_for_match, NormalizedText};
+use crate::{InjectionClassifier, InjectionScore};
+use dek_plugin_sdk::{PluginError, PluginResult};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct InjectionHit {
@@ -230,6 +233,110 @@ fn dedupe_hits(hits: &mut Vec<InjectionHit>) {
     *hits = deduped;
 }
 
+#[derive(Debug, Clone)]
+pub struct HttpClassifier {
+    endpoint: String,
+    threshold: f32,
+    timeout: Duration,
+}
+
+impl HttpClassifier {
+    pub fn new(endpoint: impl Into<String>) -> Self {
+        Self {
+            endpoint: endpoint.into(),
+            threshold: 0.50,
+            timeout: Duration::from_millis(50),
+        }
+    }
+
+    pub fn with_threshold(mut self, threshold: f32) -> Self {
+        self.threshold = clamp_unit_score(threshold);
+        self
+    }
+
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct ClassifierRequest<'a> {
+    text: &'a str,
+}
+
+#[derive(Debug, Deserialize)]
+struct ClassifierResponse {
+    injection: Option<f32>,
+    categories: Option<Vec<String>>,
+    evidence: Option<Vec<String>>,
+}
+
+impl InjectionClassifier for HttpClassifier {
+    fn classify(&self, text: &str) -> PluginResult<InjectionScore> {
+        let client = reqwest::blocking::Client::builder()
+            .timeout(self.timeout)
+            .build()
+            .map_err(|err| {
+                PluginError::Unavailable(format!(
+                    "prompt injection classifier client unavailable: {err}"
+                ))
+            })?;
+
+        let response = client
+            .post(&self.endpoint)
+            .json(&ClassifierRequest { text })
+            .send()
+            .map_err(|err| {
+                if err.is_timeout() {
+                    PluginError::Timeout(format!(
+                        "prompt injection classifier timed out after {}ms",
+                        self.timeout.as_millis()
+                    ))
+                } else {
+                    PluginError::Unavailable(format!(
+                        "prompt injection classifier request failed: {err}"
+                    ))
+                }
+            })?;
+
+        if !response.status().is_success() {
+            return Err(PluginError::Unavailable(format!(
+                "prompt injection classifier returned HTTP {}",
+                response.status()
+            )));
+        }
+
+        let body = response.json::<ClassifierResponse>().map_err(|err| {
+            PluginError::Invalid(format!(
+                "prompt injection classifier returned invalid JSON: {err}"
+            ))
+        })?;
+
+        let score = clamp_unit_score(body.injection.unwrap_or(0.0));
+        let mut categories = body.categories.unwrap_or_default();
+        if score >= self.threshold && !categories.iter().any(|item| item == CATEGORY_LLM01) {
+            categories.push(CATEGORY_LLM01.to_string());
+        }
+
+        Ok(InjectionScore {
+            score,
+            categories,
+            evidence: body.evidence.unwrap_or_default(),
+        })
+    }
+}
+
+pub fn clamp_unit_score(score: f32) -> f32 {
+    if !score.is_finite() || score <= 0.0 {
+        0.0
+    } else if score >= 1.0 {
+        1.0
+    } else {
+        score
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -274,5 +381,15 @@ mod tests {
             .iter()
             .any(|step| step == "percent_decode"));
         assert!(report.score >= 75);
+    }
+
+    #[test]
+    fn http_classifier_defaults_to_practical_timeout_and_threshold() {
+        let classifier = HttpClassifier::new("http://127.0.0.1:9/classify")
+            .with_threshold(1.25)
+            .with_timeout(Duration::from_millis(10));
+
+        assert_eq!(classifier.threshold, 1.0);
+        assert_eq!(classifier.timeout, Duration::from_millis(10));
     }
 }

@@ -136,6 +136,29 @@ mod tests {
         assert!(rendered.contains("[REDACTED_BY_POLLEK_OUTPUT_GUARD]"));
         assert!(!rendered.contains("sk-test-token-value"));
     }
+
+    #[test]
+    fn response_filter_prefers_pipeline_payload_for_spotlighting() {
+        let mut guard = GuardOutcome::allow();
+        guard.action = GuardAction::Redact;
+        guard.redacted_payload = Some(json!({
+            "source_type": "tool",
+            "content": format!(
+                "{}\nretrieved evidence\n{}",
+                dek_guard_pipeline::spotlight::UNTRUSTED_DATA_BEGIN,
+                dek_guard_pipeline::spotlight::UNTRUSTED_DATA_END
+            )
+        }));
+
+        let (filtered_payload, reasons, redaction_applied) =
+            apply_guard_payload_transform(json!({"content": "retrieved evidence"}), &guard, false);
+        let rendered = filtered_payload.to_string();
+
+        assert!(redaction_applied);
+        assert_eq!(reasons, vec!["spotlight_untrusted_data".to_string()]);
+        assert!(rendered.contains(dek_guard_pipeline::spotlight::UNTRUSTED_DATA_BEGIN));
+        assert!(!rendered.contains("[REDACTED_BY_POLLEK_OUTPUT_GUARD]"));
+    }
 }
 
 mod state;
@@ -1287,15 +1310,8 @@ async fn filter_response_payload(
         };
     }
 
-    let mut filtered_payload = payload;
-    let mut reasons = Vec::new();
-    let mut redaction_applied = false;
-
-    if force_redact || guard.action == GuardAction::Redact {
-        filtered_payload = redact_guarded_value(filtered_payload);
-        redaction_applied = true;
-        reasons.push("redact_content".to_string());
-    }
+    let (mut filtered_payload, mut reasons, mut redaction_applied) =
+        apply_guard_payload_transform(payload, &guard, force_redact);
 
     let (pii_redacted_payload, pii_redacted) = apply_pii_redaction(state, filtered_payload).await;
     filtered_payload = pii_redacted_payload;
@@ -1319,6 +1335,32 @@ async fn filter_response_payload(
             guard: guard_metadata(&guard),
         }
     }
+}
+
+fn apply_guard_payload_transform(
+    payload: Value,
+    guard: &GuardOutcome,
+    force_redact: bool,
+) -> (Value, Vec<String>, bool) {
+    let mut filtered_payload = payload;
+    let mut reasons = Vec::new();
+    let mut redaction_applied = false;
+    let guard_payload_applied = if let Some(payload) = guard.redacted_payload.clone() {
+        filtered_payload = payload;
+        redaction_applied = true;
+        reasons.push("spotlight_untrusted_data".to_string());
+        true
+    } else {
+        false
+    };
+
+    if (force_redact || guard.action == GuardAction::Redact) && !guard_payload_applied {
+        filtered_payload = redact_guarded_value(filtered_payload);
+        redaction_applied = true;
+        reasons.push("redact_content".to_string());
+    }
+
+    (filtered_payload, reasons, redaction_applied)
 }
 
 async fn apply_pii_redaction(state: &AppState, payload: Value) -> (Value, bool) {
