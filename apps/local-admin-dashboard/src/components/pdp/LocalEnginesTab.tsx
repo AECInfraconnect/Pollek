@@ -187,7 +187,7 @@ export function LocalEnginesTab() {
                   colSpan={6}
                   className="px-4 py-8 text-center text-muted-foreground"
                 >
-                  No local engines found. Check control plane logs.
+                  No local engines found. Check local service logs.
                 </td>
               </tr>
             )}

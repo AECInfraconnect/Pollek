@@ -91,7 +91,7 @@ export function CloudPdpTab() {
             Connect to Pollek Cloud
           </h4>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Enterprise Cloud mode unlocks only after this Local Control Plane
+            Enterprise Cloud mode unlocks only after this local service
             has a Pollek Cloud endpoint and contract discovery probe succeeds.
           </p>
           {profile?.health?.detail && (

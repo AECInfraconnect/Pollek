@@ -622,7 +622,7 @@ function PromptGuardCheckPanel({
         description:
           error instanceof Error
             ? error.message
-            : "The Local Control Plane did not return a valid response.",
+            : "The local safety service did not return a valid response.",
       });
     } finally {
       setChecking(false);
@@ -638,7 +638,7 @@ function PromptGuardCheckPanel({
           </h3>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
             Paste a prompt or model output to run the real local guard engine.
-            Raw text is sent only to this device's Local Control Plane for the
+            Raw text is sent only to this device's local safety service for the
             check and is not stored in history.
           </p>
         </div>
@@ -888,7 +888,7 @@ function EmptyState({
         {loading
           ? "Pollek is checking stored incidents before listening for new ones."
           : unavailable || streamStatus === "disconnected"
-            ? "Restart or update the Local Control Plane, then make sure the AI app is using a guarded prompt/output path."
+            ? "Restart or update the local safety service, then make sure the AI app is using a guarded prompt/output path."
             : "This usually means nothing risky was observed, or the AI app is not routed through Prompt Guard yet. Use the local check above to verify the guard engine now."}
       </p>
       {!loading && (

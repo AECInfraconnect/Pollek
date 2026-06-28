@@ -393,7 +393,7 @@ function agentDetailSections(
           status: agent.identity?.spiffe_id ? "ok" : "warning",
           source: "agent identity binding",
           note: agent.identity?.spiffe_id
-            ? "This agent can be traced across local and cloud control planes."
+            ? "This agent can be traced across local and cloud records."
             : "Local-only observation is available, but enterprise tracing needs a SPIFFE binding.",
         },
         {

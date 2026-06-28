@@ -83,7 +83,7 @@ export function Health() {
         <p className="text-sm text-muted-foreground">
           {snapshot
             ? `${snapshot.device_id} / contract ${snapshot.contract.local_contract_version}`
-            : "Local Control Plane"}
+            : "Local service"}
         </p>
       </div>
 

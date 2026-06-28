@@ -401,7 +401,7 @@ export function Overview() {
         </h2>
         <p className="text-sm text-muted-foreground">
           Local device posture, registered entities, observation sources, and
-          control capability readiness from the active control plane.
+          control capability readiness from the active local service.
         </p>
       </div>
 

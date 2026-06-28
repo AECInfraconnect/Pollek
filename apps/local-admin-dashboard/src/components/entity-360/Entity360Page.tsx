@@ -75,7 +75,7 @@ function fallbackDetailSections(data?: Entity360Response | null): DetailSection[
     return [
       {
         title: "Record Details",
-        description: "Live details load from the Local Control Plane.",
+        description: "Live details load from the local service.",
         fields: [
           {
             label: "Status",

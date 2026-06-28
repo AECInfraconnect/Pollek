@@ -55,13 +55,13 @@ export function Settings() {
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Settings</h2>
           <p className="text-muted-foreground">
-            Configure local control plane settings and synchronization profiles.
+            Configure local service settings and synchronization profiles.
           </p>
         </div>
       </div>
 
       <div className="glass p-6 rounded-xl space-y-6">
-        <h3 className="text-lg font-medium">Control Plane Profile</h3>
+        <h3 className="text-lg font-medium">Local Service Profile</h3>
 
         <div className="space-y-4 max-w-md">
           <div className="grid gap-2">
@@ -75,7 +75,7 @@ export function Settings() {
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="local">
-                Local Control Plane (127.0.0.1:43891)
+                Local service (127.0.0.1:43891)
               </option>
               <option value="mock-cloud">
                 Mock Pollek Cloud (127.0.0.1:43892)

@@ -4,7 +4,7 @@
     "title": "Dashboard overview",
     "summary": "Use this page to confirm the current device, local mode, registered entity counts, observation sources, and control capability readiness.",
     "guidance": [
-      "Start here after launching the Local Control Plane.",
+      "Start here after launching the local Pollek service.",
       "If a capability shows setup needed, open the related setup action before expecting enforcement.",
       "Entity counts come from registry endpoints; capability readiness comes from the local capability snapshot."
     ],
@@ -18,7 +18,7 @@
     "title": "Current device",
     "summary": "This card identifies the local device and OS posture that Pollek is observing and enforcing from.",
     "guidance": [
-      "Device ID and OS properties are local-control-plane data.",
+      "Device ID and OS properties come from this device's local Pollek service.",
       "Privilege level affects which OS control methods can enforce.",
       "Enterprise Cloud can aggregate many devices, but this card describes only this local node."
     ],
@@ -172,7 +172,7 @@
     "title": "Deploy or apply policy",
     "summary": "Deployment binds policy intent to the available control methods on this local device.",
     "guidance": [
-      "The Local Control Plane chooses the best available method for each domain.",
+      "Pollek chooses the best available local method for each domain.",
       "If enforcement is unavailable, Pollek should explain the gap instead of silently downgrading.",
       "Deployment evidence should appear in policy details and activity."
     ],
@@ -184,7 +184,7 @@
   {
     "id": "activity.timeline",
     "title": "Activity timeline",
-    "summary": "Activity shows chronological evidence across agents, tools, resources, policies, decisions, PEP/PDP, cost, and traces.",
+    "summary": "Activity shows chronological evidence across AI apps, tools, resources, rules, decisions, cost, and traces.",
     "guidance": [
       "Use filters to isolate a single entity or decision outcome.",
       "Exact usage and cost should come from wrappers, proxies, provider usage fields, or logs before estimates.",
