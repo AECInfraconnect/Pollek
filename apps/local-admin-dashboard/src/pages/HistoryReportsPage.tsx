@@ -5,8 +5,10 @@ import {
   BarChart3,
   CalendarClock,
   CalendarDays,
+  CloudOff,
   Download,
   FileText,
+  HardDrive,
   History,
   RefreshCw,
   ShieldCheck,
@@ -23,7 +25,7 @@ import { useConfirm } from "../components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 
 type Range = "7d" | "30d" | "all";
-type RetentionPreference = "7d" | "30d" | "until_deleted";
+type RetentionPreference = "7d" | "30d" | "until_deleted" | "no_history";
 
 function exportReport(
   items: UserFriendlyActivityEvent[],
@@ -133,7 +135,10 @@ export function HistoryReportsPage() {
   const [retentionPreference, setRetentionPreference] =
     useState<RetentionPreference>(() => {
       const saved = localStorage.getItem("pollek.history.retentionPreference");
-      return saved === "7d" || saved === "30d" || saved === "until_deleted"
+      return saved === "7d" ||
+        saved === "30d" ||
+        saved === "until_deleted" ||
+        saved === "no_history"
         ? saved
         : "30d";
     });
@@ -193,6 +198,28 @@ export function HistoryReportsPage() {
     () => allItems.filter((item) => inRange(item, range)),
     [allItems, range],
   );
+
+  const exportWithDisclosure = useCallback(
+    async (format: "json" | "csv") => {
+      if (items.length === 0) {
+        toast.info("No history records match this view.");
+        return;
+      }
+      if (
+        !(await confirm({
+          title: `Export ${format.toUpperCase()} history`,
+          description:
+            "This creates a file outside Pollek's protected local history. Anyone with access to that exported file may see AI app names, file or website labels, results, timestamps, and rule names. Keep exports on this device unless you intentionally share them.",
+          confirmText: `Export ${format.toUpperCase()}`,
+        }))
+      ) {
+        return;
+      }
+      exportReport(items, format);
+    },
+    [confirm, items],
+  );
+
   const summary = useMemo(() => summarizeActivities(items), [items]);
   const byAgent = useMemo(
     () => countBy(items, (item) => item.agent_name).slice(0, 8),
@@ -237,7 +264,7 @@ export function HistoryReportsPage() {
           </div>
           <button
             type="button"
-            onClick={() => exportReport(items, "csv")}
+            onClick={() => void exportWithDisclosure("csv")}
             className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
           >
             <FileText className="h-4 w-4" />
@@ -245,7 +272,7 @@ export function HistoryReportsPage() {
           </button>
           <button
             type="button"
-            onClick={() => exportReport(items, "json")}
+            onClick={() => void exportWithDisclosure("json")}
             className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
           >
             <Download className="h-4 w-4" />
@@ -281,10 +308,43 @@ export function HistoryReportsPage() {
               This view shows activity metadata such as AI app, file or website
               label, result, timestamp, and rule. It does not display file
               contents, email bodies, raw prompts, or raw responses. Use the
-              range selector for review, export CSV/JSON when you need a copy,
-              or delete local observation and decision history from this device.
+              range selector for review, export CSV/JSON only when you need a
+              copy, or delete local observation and decision history from this
+              device.
             </p>
-            <div className="mt-4 rounded-md border bg-background/60 p-3">
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+              <div className="rounded-md border bg-background/60 p-3">
+                <div className="flex items-start gap-2">
+                  <HardDrive className="mt-0.5 h-4 w-4 text-primary" />
+                  <div>
+                    <div className="text-sm font-medium">
+                      Stored locally by default
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      AI Activity, Prompt Guard, decisions, and plugin audit
+                      history are read from local records on this device. Pollek
+                      Cloud sync is optional and separate from this local view.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-md border bg-background/60 p-3">
+                <div className="flex items-start gap-2">
+                  <CloudOff className="mt-0.5 h-4 w-4 text-primary" />
+                  <div>
+                    <div className="text-sm font-medium">
+                      Export may leave this app
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Exported CSV/JSON files are regular files. They can be
+                      copied, synced, emailed, or uploaded by other software, so
+                      Pollek asks before creating one.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 rounded-md border bg-background/60 p-3">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-start gap-2">
                   <CalendarClock className="mt-0.5 h-4 w-4 text-primary" />
@@ -294,8 +354,9 @@ export function HistoryReportsPage() {
                     </div>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
                       Saved on this dashboard so review/export defaults are
-                      clear. Automatic deletion is not enabled yet; use Delete
-                      local history when you want to erase records now.
+                      clear. No-history means use Delete local history now and
+                      keep future review windows empty where the local API
+                      supports it.
                     </p>
                   </div>
                 </div>
@@ -305,6 +366,7 @@ export function HistoryReportsPage() {
                       ["7d", "7 days"],
                       ["30d", "30 days"],
                       ["until_deleted", "Keep until deleted"],
+                      ["no_history", "No history"],
                     ] as Array<[RetentionPreference, string]>
                   ).map(([value, label]) => (
                     <button
@@ -323,6 +385,13 @@ export function HistoryReportsPage() {
                 </div>
               </div>
             </div>
+            {retentionPreference === "no_history" && (
+              <div className="mt-3 rounded-md border border-amber-500/25 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100">
+                No-history preference is selected. Delete local history now to
+                clear existing records, and use AI Activity for live observation
+                rather than long-term review.
+              </div>
+            )}
           </div>
         </div>
       </section>

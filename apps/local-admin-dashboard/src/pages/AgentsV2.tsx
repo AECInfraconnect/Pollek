@@ -4,15 +4,21 @@ import {
   Activity,
   Bot,
   BookOpen,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
   Clock3,
+  CircleDollarSign,
   Database,
   FileKey,
   Fingerprint,
   FolderTree,
   Gauge,
+  Globe2,
   Shield,
+  ShieldAlert,
   ShieldCheck,
+  Terminal,
   Trash2,
   Wrench,
 } from "lucide-react";
@@ -532,9 +538,11 @@ function agentDetailSections(
 
 export function AgentDetailView({
   agent,
+  activity = [],
   onDelete,
 }: {
   agent: AiAgent;
+  activity?: UserFriendlyActivityEvent[];
   onDelete: () => void;
 }) {
   const navigate = useNavigate();
@@ -603,6 +611,18 @@ export function AgentDetailView({
       detailSections={detailSections}
       extraTabs={[
         {
+          id: "observe-coverage",
+          label: "Observe Coverage",
+          icon: ShieldAlert,
+          content: (
+            <AgentObserveCoverage
+              agent={agent}
+              activity={activity}
+              data={data}
+            />
+          ),
+        },
+        {
           id: "capabilities",
           label: "Capabilities",
           icon: Gauge,
@@ -625,6 +645,283 @@ export function AgentDetailView({
         },
       ]}
     />
+  );
+}
+
+type CoverageState = "observed" | "watching" | "needs_setup" | "not_seen";
+
+function coverageStateLabel(state: CoverageState) {
+  if (state === "observed") return "Observed";
+  if (state === "watching") return "Watching only";
+  if (state === "needs_setup") return "Needs setup";
+  return "No evidence yet";
+}
+
+function coverageStateClass(state: CoverageState) {
+  if (state === "observed") {
+    return "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200";
+  }
+  if (state === "watching") {
+    return "border-blue-500/25 bg-blue-500/10 text-blue-700 dark:text-blue-200";
+  }
+  if (state === "needs_setup") {
+    return "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-200";
+  }
+  return "border-border bg-background text-muted-foreground";
+}
+
+function hasCapability(agent: AiAgent, terms: string[]) {
+  const haystack = [
+    agent.agent_type,
+    agent.runtime?.runtime_name,
+    ...(agent.capabilities ?? []),
+    ...(agent.declared_tools ?? []),
+    ...(agent.declared_resources ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return terms.some((term) => haystack.includes(term));
+}
+
+function AgentObserveCoverage({
+  agent,
+  activity,
+  data,
+}: {
+  agent: AiAgent;
+  activity: UserFriendlyActivityEvent[];
+  data?: Entity360Response | null;
+}) {
+  const agentEvents = activityForAgent(agent, activity);
+  const graphActivity = data?.activity ?? [];
+  const graphNodes = data?.graph.nodes ?? [];
+  const toolNodes = graphNodes.filter((node) => node.type === "tool");
+  const resourceNodes = graphNodes.filter((node) => node.type === "resource");
+  const policyNodes = graphNodes.filter((node) => node.type === "policy");
+  const fileEvents = agentEvents.filter((event) => event.category === "files");
+  const webEvents = agentEvents.filter((event) => event.category === "web");
+  const commandEvents = agentEvents.filter(
+    (event) => event.category === "commands" || event.category === "apps",
+  );
+  const toolEvents = agentEvents.filter((event) => event.category === "tools");
+  const costEvents = agentEvents.filter(
+    (event) => event.category === "cost" || event.category === "ai_models",
+  );
+  const safetyEvents = agentEvents.filter((event) => event.category === "safety");
+  const eventsWithRules = agentEvents.filter((event) => event.rule_label);
+  const tokenTotal =
+    agentEvents.reduce((total, event) => total + (event.tokens ?? 0), 0) +
+    graphActivity.reduce(
+      (total, event) => total + (event.cost?.total_tokens ?? 0),
+      0,
+    );
+  const costTotal =
+    agentEvents.reduce((total, event) => total + (event.cost_usd ?? 0), 0) +
+    graphActivity.reduce(
+      (total, event) => total + (event.cost?.total_cost_usd ?? 0),
+      0,
+    );
+
+  const coverage = [
+    {
+      id: "files",
+      label: "Files and folders",
+      icon: FolderTree,
+      state:
+        fileEvents.length || resourceNodes.length
+          ? "observed"
+          : hasCapability(agent, ["file", "filesystem", "workspace"])
+            ? "watching"
+            : "needs_setup",
+      count: fileEvents.length + resourceNodes.length,
+      detail:
+        fileEvents[0]?.target_label ||
+        resourceNodes[0]?.label ||
+        "No file or folder path has been linked to this agent yet.",
+      next:
+        "Run Observe while the AI app reads or writes a workspace folder, or connect a filesystem observer/wrapper.",
+    },
+    {
+      id: "web",
+      label: "Websites and network",
+      icon: Globe2,
+      state:
+        webEvents.length || hasCapability(agent, ["browser", "network", "web"])
+          ? webEvents.length
+            ? "observed"
+            : "watching"
+          : "needs_setup",
+      count: webEvents.length,
+      detail:
+        webEvents[0]?.target_label ||
+        "Browser-only AI apps may need a browser extension, proxy, or wrapper for exact website activity.",
+      next:
+        "Install or enable the browser/proxy path if you need exact website and prompt flow visibility.",
+    },
+    {
+      id: "commands",
+      label: "Commands and local apps",
+      icon: Terminal,
+      state:
+        commandEvents.length || hasCapability(agent, ["terminal", "command"])
+          ? commandEvents.length
+            ? "observed"
+            : "watching"
+          : "needs_setup",
+      count: commandEvents.length,
+      detail:
+        commandEvents[0]?.target_label ||
+        "No command execution event has been observed for this agent.",
+      next:
+        "Use a CLI/IDE wrapper or OS process observer if this AI app can run commands.",
+    },
+    {
+      id: "tools",
+      label: "Tools and MCP",
+      icon: Wrench,
+      state:
+        toolEvents.length || toolNodes.length || agent.declared_tools?.length
+          ? toolEvents.length || toolNodes.length
+            ? "observed"
+            : "watching"
+          : "not_seen",
+      count: toolEvents.length + toolNodes.length + (agent.declared_tools?.length ?? 0),
+      detail:
+        toolEvents[0]?.target_label ||
+        toolNodes[0]?.label ||
+        agent.declared_tools?.[0] ||
+        "No tool or MCP use has been linked yet.",
+      next:
+        "Route tool calls through a supported wrapper, MCP proxy, or plugin connector for richer evidence.",
+    },
+    {
+      id: "cost",
+      label: "AI usage and cost",
+      icon: CircleDollarSign,
+      state:
+        costEvents.length || tokenTotal || costTotal
+          ? "observed"
+          : hasCapability(agent, ["model", "llm", "chat"])
+            ? "watching"
+            : "needs_setup",
+      count: costEvents.length + graphActivity.filter((event) => event.cost).length,
+      detail:
+        tokenTotal || costTotal
+          ? `${tokenTotal.toLocaleString()} tokens, $${costTotal.toFixed(4)}`
+          : "Exact usage needs provider telemetry, wrapper/proxy logs, local logs, or a plugin connector.",
+      next:
+        "Open AI Usage & Cost to inspect exact vs estimated usage and improve exact tracking.",
+    },
+    {
+      id: "safety",
+      label: "Prompt Guard and private data",
+      icon: ShieldCheck,
+      state:
+        safetyEvents.length || hasCapability(agent, ["prompt", "guard", "pii"])
+          ? safetyEvents.length
+            ? "observed"
+            : "watching"
+          : "needs_setup",
+      count: safetyEvents.length,
+      detail:
+        safetyEvents[0]?.plain_summary ||
+        "No prompt injection, secret, PII, masking, or redaction event is linked to this agent yet.",
+      next:
+        "Use a guarded prompt/output path such as wrapper, SDK adapter, MCP proxy, response filter, or browser extension.",
+    },
+    {
+      id: "rules",
+      label: "Rules and setup",
+      icon: FileKey,
+      state:
+        eventsWithRules.length || policyNodes.length
+          ? "observed"
+          : agent.enforcement_mode === "Observe"
+            ? "watching"
+            : "needs_setup",
+      count: eventsWithRules.length + policyNodes.length,
+      detail:
+        eventsWithRules[0]?.rule_label ||
+        policyNodes[0]?.label ||
+        "No rule is connected to this agent yet.",
+      next:
+        "Create a rule from an activity event, then check setup to see whether Pollek can watch, ask first, or block.",
+    },
+  ] as const;
+
+  const observedCount = coverage.filter((item) => item.state === "observed").length;
+  const needsSetupCount = coverage.filter(
+    (item) => item.state === "needs_setup",
+  ).length;
+
+  return (
+    <div className="space-y-4" data-testid="agent-observe-coverage">
+      <section className="rounded-lg border bg-background/40 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">What Pollek can see for this AI app</h3>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
+              This combines observed activity, registry relationships, declared
+              capabilities, and well-known definitions. It is honest about gaps:
+              watching is not the same as blocking, and browser-only apps often
+              need an extension, proxy, wrapper, or plugin for exact evidence.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full border bg-background px-2.5 py-1">
+              {observedCount}/{coverage.length} observed
+            </span>
+            <span className="rounded-full border bg-background px-2.5 py-1">
+              {needsSetupCount} need setup
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {coverage.map((item) => {
+          const Icon = item.icon;
+          return (
+            <section
+              key={item.id}
+              data-testid={`agent-observe-coverage-${item.id}`}
+              className="rounded-lg border bg-background/40 p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold">{item.label}</h4>
+                    <p className="mt-1 break-words text-xs leading-5 text-muted-foreground">
+                      {item.detail}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                    coverageStateClass(item.state as CoverageState),
+                  )}
+                >
+                  {coverageStateLabel(item.state as CoverageState)}
+                </span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span className="rounded border bg-card/60 px-2 py-1">
+                  Evidence: {item.count}
+                </span>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                {item.next}
+              </p>
+            </section>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -782,6 +1079,7 @@ function AgentMasterCard({
   activity: UserFriendlyActivityEvent[];
   selected: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const { tone, label } = agentStatus(agent);
   const primaryReference = referencesForAgent(agent)[0];
   const agentEvents = activityForAgent(agent, activity);
@@ -808,11 +1106,20 @@ function AgentMasterCard({
     agentEvents.length +
     (agent.declared_tools?.length ?? 0) +
     (agent.declared_resources?.length ?? 0);
+  const summaryText = latestEvent
+    ? latestEvent.plain_summary
+    : (primaryReference?.description ??
+      "Start Observe to collect file, web, app, tool, command, model, and safety evidence.");
+  const extraCapabilities = (agent.capabilities ?? []).slice(0, 5);
+  const canExpand =
+    summaryText.length > 130 ||
+    extraCapabilities.length > 0 ||
+    Boolean(agent.identity?.process_path);
 
   return (
     <div
       className={cn(
-        "group rounded-lg border bg-card/70 p-3 transition-all hover:border-primary/40 hover:bg-primary/5",
+        "group cursor-pointer rounded-lg border bg-card/70 p-3 transition-all hover:border-primary/40 hover:bg-primary/5",
         selected && "border-primary/60 bg-primary/10 shadow-sm",
       )}
     >
@@ -855,11 +1162,13 @@ function AgentMasterCard({
               {label}
             </span>
           </div>
-          <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
-            {latestEvent
-              ? latestEvent.plain_summary
-              : (primaryReference?.description ??
-                "Start Observe to collect file, web, app, tool, command, model, and safety evidence.")}
+          <p
+            className={cn(
+              "mt-2 text-xs leading-5 text-muted-foreground",
+              !expanded && "line-clamp-2",
+            )}
+          >
+            {summaryText}
           </p>
         </div>
       </div>
@@ -897,6 +1206,74 @@ function AgentMasterCard({
           Trust: {agent.trust_level}
         </span>
       </div>
+
+      {expanded && (
+        <div className="mt-3 space-y-2 rounded-md border bg-background/50 p-3 text-xs">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <div className="text-muted-foreground">Latest activity</div>
+              <div className="mt-0.5 font-medium">
+                {latestEvent
+                  ? `${latestEvent.result_label} - ${latestEvent.target_label}`
+                  : "No timeline event yet"}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Runtime</div>
+              <div className="mt-0.5 font-medium">
+                {agent.runtime?.runtime_name || agent.agent_type}
+              </div>
+            </div>
+          </div>
+          {agent.identity?.process_path && (
+            <div>
+              <div className="text-muted-foreground">Observed process</div>
+              <div className="mt-0.5 break-all font-medium">
+                {agent.identity.process_path}
+              </div>
+            </div>
+          )}
+          {extraCapabilities.length > 0 && (
+            <div>
+              <div className="text-muted-foreground">Capabilities</div>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {extraCapabilities.map((capability) => (
+                  <span
+                    key={capability}
+                    className="rounded border bg-muted/50 px-1.5 py-0.5"
+                  >
+                    {capability.replace(/[_.:-]+/g, " ")}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {canExpand && (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setExpanded((current) => !current);
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+          className="mt-3 inline-flex h-7 items-center gap-1 rounded-md border bg-background px-2 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          {expanded ? (
+            <>
+              Show less <ChevronUp className="h-3 w-3" />
+            </>
+          ) : (
+            <>
+              Show more <ChevronDown className="h-3 w-3" />
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }
@@ -1030,6 +1407,7 @@ export default function AgentsV2() {
               <AgentDetailView
                 key={agent.agent_id}
                 agent={agent}
+                activity={activity}
                 onDelete={() => {
                   void deleteAgent(agent.agent_id);
                   setSearchParams({});

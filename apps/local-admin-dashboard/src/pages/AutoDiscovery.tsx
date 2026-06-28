@@ -1094,6 +1094,29 @@ export function AutoDiscovery() {
                     observedTerms={observedTermsForCandidate(c)}
                   />
 
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-xl border bg-muted/30 p-4">
+                      <h4 className="text-sm font-semibold">
+                        Definition and reference version
+                      </h4>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {primaryReference
+                          ? `${primaryReference.title} matched from ${primaryReference.sourceLabel}. Reviewed ${primaryReference.reviewedAt}.`
+                          : "No curated reference profile matched yet. This record is based only on local discovery evidence."}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border bg-muted/30 p-4">
+                      <h4 className="text-sm font-semibold">
+                        Browser limitation
+                      </h4>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {browserName || sourceSummary.includes("web")
+                          ? "Browser metadata can identify ChatGPT, Claude, DeepSeek, Manus, Antigravity, or similar AI surfaces, but exact prompts, responses, files, and tokens require a browser extension, proxy, wrapper, SDK adapter, or plugin in the data path."
+                          : "This candidate was not primarily identified as a browser AI surface, but exact activity still depends on the available local observer, wrapper, proxy, or plugin path."}
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="p-4 bg-muted/30 rounded-xl border">
                       <span className="text-muted-foreground block mb-1">

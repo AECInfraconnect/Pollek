@@ -120,6 +120,34 @@ const policy = {
   bundle_id: "bundle-local-1",
 };
 
+const policyFeasibility = {
+  policy_id: policy.policy_id,
+  requested_level: "enforce",
+  achievable_level: "enforce",
+  verdict: "fully_enforceable",
+  per_domain: [
+    {
+      domain: "filesystem",
+      chosen_method: "windows_process_observer",
+      level: "enforce",
+      reason_en: "Local process observer is active.",
+      reason_th: "",
+    },
+  ],
+  gaps: [],
+  friendly_en: "This policy can be fully enforced on this device.",
+  friendly_th: "",
+};
+
+const cloudPdpProfile = {
+  status: "disconnected",
+  manual_override_enabled: false,
+  health: {
+    state: "not_configured",
+    detail: "Pollek Cloud is not connected in the local mock dashboard.",
+  },
+};
+
 const candidate = {
   schema_version: "discovery.candidate.v2",
   candidate_id: agent.agent_id,
@@ -996,6 +1024,9 @@ export async function installMockApi(page: Page) {
       },
     ]),
   );
+  await page.route("**/v1/tenants/local/pdp/cloud**", (route) =>
+    json(route, cloudPdpProfile),
+  );
   await page.route("**/v1/tenants/local/policies", (route) => {
     const method = route.request().method();
     if (method === "GET") {
@@ -1009,24 +1040,10 @@ export async function installMockApi(page: Page) {
     return json(route, { error: "unsupported method" }, 405);
   });
   await page.route("**/v1/tenants/local/policies/feasibility", (route) =>
-    json(route, {
-      policy_id: policy.policy_id,
-      requested_level: "enforce",
-      achievable_level: "enforce",
-      verdict: "fully_enforceable",
-      per_domain: [
-        {
-          domain: "filesystem",
-          chosen_method: "windows_process_observer",
-          level: "enforce",
-          reason_en: "Local process observer is active.",
-          reason_th: "",
-        },
-      ],
-      gaps: [],
-      friendly_en: "This policy can be fully enforced on this device.",
-      friendly_th: "",
-    }),
+    json(route, policyFeasibility),
+  );
+  await page.route("**/v1/tenants/local/v1/policy/feasibility", (route) =>
+    json(route, policyFeasibility),
   );
   await page.route("**/v1/tenants/local/deployment-sessions", (route) =>
     json(route, {

@@ -106,7 +106,7 @@ export function MasterDetailLayout<T>({
                     onSelect(id);
                   }
                 }}
-                className="block h-full w-full text-left focus-visible:outline-none"
+                className="block h-full w-full cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 {renderCard(item, false)}
               </div>

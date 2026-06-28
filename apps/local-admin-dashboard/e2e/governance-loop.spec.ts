@@ -35,7 +35,7 @@ test.describe("Governance loop", () => {
     await expect(page.getByText("Antigravity").first()).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByText("workspace_file_access").first()).toBeVisible();
+    await expect(page.getByText("Browser Control").first()).toBeVisible();
 
     await page.goto("/agents?id=agent-antigravity");
     await expect(page.getByText("Record Summary")).toBeVisible();
@@ -50,6 +50,31 @@ test.describe("Governance loop", () => {
     await expect(page.getByText("Workspace file access").first()).toBeVisible();
     await expect(page.getByText("Detected", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("Source: Auto Discovery")).toBeVisible();
+    await page.getByRole("button", { name: /observe coverage/i }).click();
+    const observeCoverage = page.getByTestId("agent-observe-coverage");
+    await expect(observeCoverage).toBeVisible();
+    await expect(
+      observeCoverage.getByText("What Pollek can see for this AI app"),
+    ).toBeVisible();
+    const filesCoverage = observeCoverage.getByTestId(
+      "agent-observe-coverage-files",
+    );
+    const costCoverage = observeCoverage.getByTestId(
+      "agent-observe-coverage-cost",
+    );
+    await expect(filesCoverage).toBeVisible();
+    await expect(filesCoverage).toContainText("Files and folders");
+    await expect(costCoverage).toBeVisible();
+    await expect(costCoverage).toContainText("AI usage and cost");
+
+    await page.goto("/agents");
+    const agentCard = page.getByRole("option", { name: /Antigravity/ }).first();
+    await expect(agentCard).toHaveCSS("cursor", "pointer");
+    await expect(
+      agentCard.getByRole("button", { name: /show more/i }),
+    ).toBeVisible();
+    await agentCard.getByRole("button", { name: /show more/i }).click();
+    await expect(page.getByText("Observed process")).toBeVisible();
 
     await page.goto("/policy-suggestions");
     await page.getByRole("button", { name: /generate suggestions/i }).click();
@@ -68,8 +93,19 @@ test.describe("Governance loop", () => {
     await expect(
       page.getByRole("heading", { name: "Activity Timeline" }),
     ).toBeVisible();
-    await expect(page.getByText("filesystem.read")).toBeVisible();
+    await expect(
+      page.getByText("Antigravity used Workspace Files on repo/src"),
+    ).toBeVisible();
     await expect(page.getByText("Protect workspace source files")).toBeVisible();
+    await page
+      .getByText("Antigravity used Workspace Files on repo/src")
+      .first()
+      .click();
+    await expect(page.getByText("Back to all timeline events")).toBeVisible();
+    await expect(page.getByText("Detail Workspace")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /create rule from event/i }),
+    ).toBeVisible();
     await expect(page.getByText("<!doctype html")).toHaveCount(0);
   });
 });

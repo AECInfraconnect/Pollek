@@ -42,6 +42,7 @@ export function Header({
         {toggleMobileMenu && (
           <button
             onClick={toggleMobileMenu}
+            aria-label="Open navigation"
             className="md:hidden rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <Menu className="h-5 w-5" />
@@ -52,11 +53,11 @@ export function Header({
           <input
             id="global-search-input"
             type="search"
-            placeholder="Search resources, policies, or agents... (⌘K)"
+            placeholder="Search resources, policies, or agents... (Ctrl K)"
             className="h-9 w-full rounded-md border bg-background pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
           />
           <kbd className="pointer-events-none absolute right-2.5 top-2.5 hidden h-4 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex text-muted-foreground">
-            <span className="text-xs">⌘</span>K
+            Ctrl K
           </kbd>
         </div>
       </div>
@@ -64,6 +65,7 @@ export function Header({
         <ModeSwitcher />
         <button
           onClick={toggleLanguage}
+          aria-label="Switch language"
           className="flex items-center gap-1 rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-xs font-semibold"
         >
           <Languages className="h-5 w-5" />
@@ -71,11 +73,15 @@ export function Header({
         </button>
         <button
           onClick={() => setIsDark(!isDark)}
+          aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
-        <button className="relative rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+        <button
+          aria-label="Notifications"
+          className="relative rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
           <Bell className="h-5 w-5" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive" />
         </button>

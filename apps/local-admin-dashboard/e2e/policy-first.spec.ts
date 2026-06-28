@@ -80,3 +80,46 @@ test.describe("Policy-First Navigation", () => {
     await expect(page.getByText('script type="module"')).toHaveCount(0);
   });
 });
+
+test.describe("Simple mode wording guard", () => {
+  test.skip(
+    process.env.DEK_PLAYWRIGHT_EXTERNAL_SERVER === "1",
+    "Mock wording guard runs in dashboard-ci; the external-server job focuses on real Local Control Plane integration.",
+  );
+
+  test.beforeEach(async ({ page }) => {
+    await installMockApi(page);
+    await page.addInitScript(() => {
+      localStorage.setItem("pollek.mode", "desktop_simple");
+    });
+  });
+
+  async function expectNormalUserCopy(pageText: string) {
+    expect(pageText).not.toMatch(/\b(PEP|PDP|WFP|eBPF|NetworkExtension)\b/);
+    expect(pageText.toLowerCase()).not.toContain("control plane");
+    expect(pageText).not.toMatch(
+      /โ[\u0080-\u00ff]|โ€|�|Â|à|เธ[\u0080-\u00ff]|เน[\u0080-\u00ff]/,
+    );
+  }
+
+  test("normal-user pages hide technical jargon and mojibake", async ({
+    page,
+  }) => {
+    await page.goto("/scan");
+    await page.getByRole("button", { name: /^Deep Scan$/ }).first().click();
+    await expect(page.getByText("Antigravity").first()).toBeVisible({
+      timeout: 20_000,
+    });
+    await expectNormalUserCopy(await page.locator("body").innerText());
+
+    await page.goto("/activity");
+    await expect(page.getByRole("heading", { name: "AI Activity" })).toBeVisible();
+    await expectNormalUserCopy(await page.locator("body").innerText());
+
+    await page.goto("/protect?agent_id=agent-antigravity&target=repo%2Fsrc&event=evt-governance-loop-1&intent=block_folder_access");
+    await expect(
+      page.getByRole("heading", { name: /Create AI Activity Rule/i }),
+    ).toBeVisible();
+    await expectNormalUserCopy(await page.locator("body").innerText());
+  });
+});

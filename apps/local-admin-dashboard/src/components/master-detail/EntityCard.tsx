@@ -1,4 +1,6 @@
+import { useMemo, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusToken, type UiStatus } from "../../lib/status";
 
@@ -13,6 +15,10 @@ export function EntityCard({
   actions = [],
   visual,
   selected,
+  expandable = true,
+  defaultExpanded = false,
+  collapsedMetaCount = 4,
+  className,
 }: {
   title: string;
   subtitle?: string;
@@ -30,8 +36,21 @@ export function EntityCard({
   }[];
   visual?: ReactNode;
   selected: boolean;
+  expandable?: boolean;
+  defaultExpanded?: boolean;
+  collapsedMetaCount?: number;
+  className?: string;
 }) {
   const s = statusToken(status);
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const hasLongSummary = (summary?.length ?? 0) > 140;
+  const hasExtraMeta = meta.length > collapsedMetaCount;
+  const canExpand = expandable && (hasLongSummary || hasExtraMeta);
+  const visibleMeta = useMemo(
+    () => (expanded || !canExpand ? meta : meta.slice(0, collapsedMetaCount)),
+    [canExpand, collapsedMetaCount, expanded, meta],
+  );
+
   return (
     <div
       className={cn(
@@ -39,6 +58,7 @@ export function EntityCard({
         "hover:border-primary/40 hover:bg-card hover:shadow-sm",
         selected &&
           "ring-1 ring-primary/50 border-primary/50 bg-card shadow-md",
+        className,
       )}
     >
       <div className="flex items-start gap-3">
@@ -67,13 +87,18 @@ export function EntityCard({
             </div>
           )}
           {summary && (
-            <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
+            <p
+              className={cn(
+                "mt-2 text-xs leading-5 text-muted-foreground",
+                !expanded && "line-clamp-2",
+              )}
+            >
               {summary}
             </p>
           )}
-          {meta.length > 0 && (
+          {visibleMeta.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-              {meta.map((m, idx) => (
+              {visibleMeta.map((m, idx) => (
                 <span key={idx} className="flex items-center gap-1">
                   {m.label}:{" "}
                   <span className="text-foreground/80 font-medium">
@@ -81,7 +106,35 @@ export function EntityCard({
                   </span>
                 </span>
               ))}
+              {!expanded && hasExtraMeta && (
+                <span className="text-muted-foreground">
+                  +{meta.length - visibleMeta.length} more
+                </span>
+              )}
             </div>
+          )}
+          {canExpand && (
+            <button
+              type="button"
+              aria-expanded={expanded}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setExpanded((current) => !current);
+              }}
+              onKeyDown={(event) => event.stopPropagation()}
+              className="mt-3 inline-flex h-7 items-center gap-1 rounded-md border bg-background px-2 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              {expanded ? (
+                <>
+                  Show less <ChevronUp className="h-3 w-3" />
+                </>
+              ) : (
+                <>
+                  Show more <ChevronDown className="h-3 w-3" />
+                </>
+              )}
+            </button>
           )}
           {actions.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
