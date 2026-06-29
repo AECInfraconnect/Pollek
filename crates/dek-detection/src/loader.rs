@@ -131,6 +131,12 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
     s
 }
 
+pub fn sha256_text_lf(bytes: &[u8]) -> Result<String, LoadError> {
+    let text = std::str::from_utf8(bytes).map_err(|e| LoadError::Io(e.to_string()))?;
+    let canonical = text.replace("\r\n", "\n");
+    Ok(sha256_hex(canonical.as_bytes()))
+}
+
 /// Verify pack integrity by running the caller-provided manifest verifier and
 /// comparing every rule's content hash with the manifest entry.
 ///
@@ -157,17 +163,17 @@ where
     for entry in &manifest.rules {
         let path = dir.join(&entry.file);
         let bytes = fs::read(&path).map_err(|e| LoadError::Io(e.to_string()))?;
-        let actual = sha256_hex(&bytes);
+        let actual = sha256_text_lf(&bytes)?;
         if actual != entry.sha256 {
             return Err(LoadError::Integrity(format!(
                 "sha256 mismatch for {} (manifest {}, actual {})",
                 entry.file, entry.sha256, actual
             )));
         }
-        let rule: RuleSpec = serde_yaml::from_str(
-            std::str::from_utf8(&bytes).map_err(|e| LoadError::Io(e.to_string()))?,
-        )
-        .map_err(|e| LoadError::Parse {
+        let rule_text = std::str::from_utf8(&bytes)
+            .map_err(|e| LoadError::Io(e.to_string()))?
+            .replace("\r\n", "\n");
+        let rule: RuleSpec = serde_yaml::from_str(&rule_text).map_err(|e| LoadError::Parse {
             file: path.display().to_string(),
             error: e.to_string(),
         })?;

@@ -1,7 +1,7 @@
 //! End-to-end tests for the detection engine against the real `core-v1` pack.
 
 use dek_detection::eval::ObservedEvent;
-use dek_detection::loader::{verify_and_load_pack, PackManifest};
+use dek_detection::loader::{sha256_text_lf, verify_and_load_pack, PackManifest};
 use dek_detection::{build_coverage, evaluate, glob_match, load_pack_dir};
 use std::path::{Path, PathBuf};
 
@@ -85,6 +85,14 @@ fn glob_matches_secret_paths() {
     assert!(!glob_match("**/.env", "/home/u/project/main.ts"));
     assert!(!glob_match("*.ts", "src/main.tsx"));
     assert!(glob_match("*.ts", "main.ts"));
+}
+
+#[test]
+fn manifest_hashes_are_canonical_across_line_endings() -> anyhow::Result<()> {
+    let lf = b"id: POLLEK-DET-0001\nname: Test\n";
+    let crlf = b"id: POLLEK-DET-0001\r\nname: Test\r\n";
+    assert_eq!(sha256_text_lf(lf)?, sha256_text_lf(crlf)?);
+    Ok(())
 }
 
 #[test]

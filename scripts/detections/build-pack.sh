@@ -30,8 +30,9 @@ import os
 
 rules = []
 for path in sorted(glob.glob("POLLEK-DET-*.yaml")):
-    with open(path, "rb") as handle:
-        digest = hashlib.sha256(handle.read()).hexdigest()
+    with open(path, "r", encoding="utf-8") as handle:
+        canonical = handle.read().replace("\r\n", "\n")
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     with open(path, "r", encoding="utf-8") as handle:
         rule_id = handle.readline().split(":", 1)[1].strip()
     rules.append({"id": rule_id, "file": path, "sha256": digest})
