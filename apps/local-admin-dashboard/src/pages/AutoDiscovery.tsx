@@ -904,6 +904,7 @@ export function AutoDiscovery() {
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Scan:</span>
                 <select
+                  aria-label="Filter discovery candidates by scan"
                   value={scanFilter}
                   onChange={(e) => setScanFilter(e.target.value)}
                   className="rounded-md border bg-background px-3 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
