@@ -35,7 +35,17 @@ test.describe("Governance loop", () => {
     await expect(page.getByText("Antigravity").first()).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByText("Browser Control").first()).toBeVisible();
+    const antigravityCandidate = page
+      .getByRole("option", { name: /Antigravity/ })
+      .first();
+    await expect(antigravityCandidate).toContainText("Control: Standalone");
+    await expect(
+      antigravityCandidate.getByRole("button", { name: /show more/i }),
+    ).toBeVisible();
+    await antigravityCandidate
+      .getByRole("button", { name: /show more/i })
+      .click();
+    await expect(antigravityCandidate).toContainText(/browser[_ .-]?control/i);
 
     await page.goto("/agents?id=agent-antigravity");
     await expect(page.getByText("Record Summary")).toBeVisible();
