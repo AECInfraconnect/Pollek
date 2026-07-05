@@ -15,7 +15,7 @@ anyhow.workspace = true
 pollek-contract = { path = "../../contracts/generated/rust/pollek-contract" }
 dek-agent-binding = { path = "../dek-agent-binding" }
 dek-fingerprint-defs = { path = "../dek-fingerprint-defs" }
-opentelemetry = "0.21"
+opentelemetry = "0.26"
 rusqlite = { version = "0.32", features = ["bundled"] }
 async-trait = "0.1"
 tokio = { workspace = true, features = ["sync"] }
