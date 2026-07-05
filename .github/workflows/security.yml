@@ -22,7 +22,7 @@ jobs:
         run: cargo binstall -y cargo-audit
       - name: Run cargo audit
         run: cargo audit --json | tee cargo-audit.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
           name: cargo-audit-report
@@ -51,7 +51,7 @@ jobs:
             } >> target/security/workspace.geiger.txt
           fi
           exit 0
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
           name: cargo-geiger-reports

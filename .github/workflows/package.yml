@@ -18,7 +18,7 @@ jobs:
       - run: cargo install cargo-deb
       - run: cargo build --release --locked -p dek-core -p dek-mcp-proxy -p dek-updater
       - run: cargo deb -p dek-core
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pollek-dek-linux-deb
           path: target/debian/*.deb
@@ -33,7 +33,7 @@ jobs:
           mkdir -p target/wix
           candle.exe packaging/windows/pollek-dek.wxs -out target/pollek-dek.wixobj
           light.exe -ext WixUIExtension target/pollek-dek.wixobj -o target/wix/pollek-dek.msi
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pollek-dek-windows-msi
           path: target/wix/*.msi
@@ -54,7 +54,7 @@ jobs:
           cp packaging/macos/ai.pollek.dek.plist target/pkg/root/Library/LaunchDaemons/
           VERSION=$(cargo metadata --format-version=1 --no-deps | jq -r '.packages[] | select(.name=="dek-core") | .version')
           pkgbuild --root target/pkg/root --identifier ai.pollek.dek --version "$VERSION" "target/pollek-dek-macos-${VERSION}.pkg"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pollek-dek-macos-pkg
           path: target/*.pkg
