@@ -87,6 +87,69 @@ impl ObservabilityStore for SqliteStore {
         Ok(out)
     }
 
+    async fn query_observation_events(
+        &self,
+        query: ObservationEventQuery,
+    ) -> Result<Vec<AgentObservationEvent>> {
+        let conn_arc = self.conn.clone();
+
+        let json_strs = tokio::task::spawn_blocking(move || -> Result<Vec<String>> {
+            let conn = conn_arc
+                .lock()
+                .map_err(|_| anyhow::anyhow!("sqlite store connection lock poisoned"))?;
+            let mut sql =
+                String::from("SELECT payload_json FROM observation_events WHERE tenant_id = ?");
+            let mut values: Vec<Box<dyn ToSql>> = vec![Box::new(query.tenant_id)];
+            if !query.agent_ids.is_empty() {
+                let placeholders = std::iter::repeat("?")
+                    .take(query.agent_ids.len())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                sql.push_str(&format!(
+                    " AND (agent_id IN ({placeholders}) OR shadow_candidate_id IN ({placeholders}))"
+                ));
+                for agent_id in &query.agent_ids {
+                    values.push(Box::new(agent_id.clone()));
+                }
+                for agent_id in query.agent_ids {
+                    values.push(Box::new(agent_id));
+                }
+            }
+            if let Some(event_kind) = query.event_kind {
+                sql.push_str(" AND event_kind = ?");
+                values.push(Box::new(event_kind));
+            }
+            if let Some(from) = query.from {
+                sql.push_str(" AND timestamp >= ?");
+                values.push(Box::new(from));
+            }
+            if let Some(to) = query.to {
+                sql.push_str(" AND timestamp <= ?");
+                values.push(Box::new(to));
+            }
+            sql.push_str(" ORDER BY timestamp DESC LIMIT ?");
+            values.push(Box::new(query.limit.unwrap_or(200).clamp(1, 5_000)));
+
+            let mut stmt = conn.prepare(&sql)?;
+            let params_iter = values.iter().map(|value| value.as_ref() as &dyn ToSql);
+            let mut rows = stmt.query(params_from_iter(params_iter))?;
+            let mut out = Vec::new();
+            while let Some(row) = rows.next()? {
+                out.push(row.get(0)?);
+            }
+            Ok(out)
+        })
+        .await??;
+
+        let mut out = Vec::new();
+        for j in json_strs {
+            if let Ok(e) = serde_json::from_str(&j) {
+                out.push(e);
+            }
+        }
+        Ok(out)
+    }
+
     async fn insert_cost_ledger(&self, entry: &CostLedgerEntry) -> Result<()> {
         let conn_arc = self.conn.clone();
 

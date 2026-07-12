@@ -1,4 +1,5 @@
 import type {
+  AgentObserveActivity,
   AiAgent,
   McpServer,
   Tool,
@@ -818,6 +819,22 @@ export class ControlPlaneClient {
     );
   }
 
+  async getAgentObserveActivity(
+    agentId: string,
+    options: { altIds?: string[]; limit?: number } = {},
+  ): Promise<AgentObserveActivity> {
+    const params = new URLSearchParams();
+    const altIds = (options.altIds ?? []).filter(Boolean);
+    if (altIds.length > 0) params.set("alt_ids", altIds.join(","));
+    if (options.limit) params.set("limit", String(options.limit));
+    const query = params.toString();
+    return this.fetchApi(
+      `/observations/agents/${encodeURIComponent(agentId)}/activity${
+        query ? `?${query}` : ""
+      }`,
+    );
+  }
+
   async startDiscoveryCandidateEnrichment(
     candidateId: string,
     payload: { sources?: string[] } = {},
@@ -1156,6 +1173,10 @@ export const RegistryApi = {
     defaultClient.getDiscoveryCandidateCapabilities(candidateId),
   retrieveDiscoveryCandidateCapabilities: (candidateId: string) =>
     defaultClient.retrieveDiscoveryCandidateCapabilities(candidateId),
+  getAgentObserveActivity: (
+    agentId: string,
+    options?: { altIds?: string[]; limit?: number },
+  ) => defaultClient.getAgentObserveActivity(agentId, options),
   startDiscoveryCandidateEnrichment: (
     candidateId: string,
     payload?: { sources?: string[] },

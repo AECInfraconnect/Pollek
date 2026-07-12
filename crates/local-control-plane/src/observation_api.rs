@@ -1,6 +1,7 @@
 use crate::state::AppState;
+use crate::store::{AiUsageQuery, ObservationEventQuery};
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
@@ -8,6 +9,7 @@ use axum::{
 };
 use dek_agent_observer::model::AgentObservationEvent;
 use serde_json::json;
+use std::collections::BTreeMap;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -19,6 +21,10 @@ pub fn router() -> Router<AppState> {
         .route(
             "/v1/tenants/:tenant/observations/resources",
             get(list_resources),
+        )
+        .route(
+            "/v1/tenants/:tenant/observations/agents/:agent_id/activity",
+            get(agent_activity),
         )
 }
 
@@ -200,19 +206,34 @@ async fn cost_summary(
     (StatusCode::OK, Json(result))
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Default)]
 struct ListQuery {
     kind: Option<String>,
+    agent_id: Option<String>,
+    from: Option<String>,
+    to: Option<String>,
+    limit: Option<i64>,
+}
+
+fn observation_query(tenant: &str, query: &ListQuery) -> ObservationEventQuery {
+    ObservationEventQuery {
+        tenant_id: tenant.to_string(),
+        agent_ids: query.agent_id.clone().into_iter().collect(),
+        event_kind: query.kind.clone(),
+        from: query.from.clone(),
+        to: query.to.clone(),
+        limit: query.limit,
+    }
 }
 
 async fn list_observations(
     State(state): State<AppState>,
     Path(tenant): Path<String>,
-    axum::extract::Query(query): axum::extract::Query<ListQuery>,
+    Query(query): Query<ListQuery>,
 ) -> impl IntoResponse {
     let events = match state
         .observability_store
-        .list_observation_events(&tenant)
+        .query_observation_events(observation_query(&tenant, &query))
         .await
     {
         Ok(e) => e,
@@ -224,35 +245,22 @@ async fn list_observations(
         }
     };
 
-    let filtered: Vec<_> = if let Some(kind_str) = query.kind {
-        let kind_enum = match kind_str.as_str() {
-            "decision" => dek_agent_observer::model::EventKind::Decision,
-            "tool_call" => dek_agent_observer::model::EventKind::ToolCall,
-            "llm_call" => dek_agent_observer::model::EventKind::LlmCall,
-            "resource_access" => dek_agent_observer::model::EventKind::ResourceAccess,
-            _ => dek_agent_observer::model::EventKind::Generic,
-        };
-        events
-            .into_iter()
-            .filter(|e| e.event_kind == kind_enum)
-            .collect()
-    } else {
-        events
-    };
-
     (
         StatusCode::OK,
-        Json(serde_json::to_value(filtered).unwrap_or(json!([]))),
+        Json(serde_json::to_value(events).unwrap_or(json!([]))),
     )
 }
 
 async fn list_resources(
     State(state): State<AppState>,
     Path(tenant): Path<String>,
+    Query(query): Query<ListQuery>,
 ) -> impl IntoResponse {
+    let mut store_query = observation_query(&tenant, &query);
+    store_query.event_kind = Some("resource_access".to_string());
     let events = match state
         .observability_store
-        .list_observation_events(&tenant)
+        .query_observation_events(store_query)
         .await
     {
         Ok(e) => e,
@@ -284,4 +292,249 @@ async fn list_resources(
         .collect();
 
     (StatusCode::OK, Json(serde_json::Value::Array(resources)))
+}
+
+#[derive(serde::Deserialize, Default)]
+struct AgentActivityQuery {
+    /// Extra ids (comma-separated) that also identify this agent, e.g. the
+    /// discovery candidate id when it differs from the canonical agent id.
+    alt_ids: Option<String>,
+    from: Option<String>,
+    to: Option<String>,
+    limit: Option<i64>,
+}
+
+#[derive(Default)]
+struct ResourceRollup {
+    resource_type: String,
+    verbs: std::collections::BTreeSet<String>,
+    access_count: u64,
+    total_bytes: i64,
+    first_seen: String,
+    last_seen: String,
+}
+
+/// Per-agent observe view: activity timeline, resource-access rollup, and
+/// token/cost usage for one discovered agent.
+async fn agent_activity(
+    State(state): State<AppState>,
+    Path((tenant, agent_id)): Path<(String, String)>,
+    Query(query): Query<AgentActivityQuery>,
+) -> impl IntoResponse {
+    let mut agent_ids = vec![agent_id.clone()];
+    for alt in query
+        .alt_ids
+        .as_deref()
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+    {
+        if !agent_ids.iter().any(|id| id == alt) {
+            agent_ids.push(alt.to_string());
+        }
+    }
+
+    let events = match state
+        .observability_store
+        .query_observation_events(ObservationEventQuery {
+            tenant_id: tenant.clone(),
+            agent_ids: agent_ids.clone(),
+            event_kind: None,
+            from: query.from.clone(),
+            to: query.to.clone(),
+            limit: query.limit,
+        })
+        .await
+    {
+        Ok(e) => e,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()})),
+            )
+        }
+    };
+
+    let mut kind_counts = BTreeMap::<&'static str, u64>::new();
+    let mut resource_rollups = BTreeMap::<String, ResourceRollup>::new();
+    for event in &events {
+        let kind = match event.event_kind {
+            dek_agent_observer::model::EventKind::ResourceAccess => "resource_access",
+            dek_agent_observer::model::EventKind::ToolCall => "tool_call",
+            dek_agent_observer::model::EventKind::LlmCall => "llm_call",
+            dek_agent_observer::model::EventKind::Decision => "decision",
+            dek_agent_observer::model::EventKind::Generic => "generic",
+        };
+        *kind_counts.entry(kind).or_default() += 1;
+
+        if let Some(resource) = &event.resource_access {
+            let rollup = resource_rollups
+                .entry(resource.target_redacted.clone())
+                .or_insert_with(|| ResourceRollup {
+                    resource_type: resource.resource_type.clone(),
+                    first_seen: event.timestamp.clone(),
+                    last_seen: event.timestamp.clone(),
+                    ..ResourceRollup::default()
+                });
+            rollup.verbs.insert(resource.verb.clone());
+            rollup.access_count += 1;
+            rollup.total_bytes += resource.bytes.unwrap_or(0);
+            if event.timestamp < rollup.first_seen {
+                rollup.first_seen = event.timestamp.clone();
+            }
+            if event.timestamp > rollup.last_seen {
+                rollup.last_seen = event.timestamp.clone();
+            }
+        }
+    }
+
+    let items = dek_agent_observer::activity::activity_items_from_observations(&events);
+    let counts = dek_agent_observer::activity::activity_counts(&items);
+
+    let mut resources: Vec<_> = resource_rollups
+        .into_iter()
+        .map(|(target, rollup)| {
+            json!({
+                "target": target,
+                "resource_type": rollup.resource_type,
+                "verbs": rollup.verbs,
+                "access_count": rollup.access_count,
+                "total_bytes": rollup.total_bytes,
+                "first_seen": rollup.first_seen,
+                "last_seen": rollup.last_seen,
+            })
+        })
+        .collect();
+    resources.sort_by(|a, b| {
+        b.get("access_count")
+            .and_then(|v| v.as_u64())
+            .cmp(&a.get("access_count").and_then(|v| v.as_u64()))
+    });
+
+    let usage = agent_usage_rollup(&state, &tenant, &agent_ids, &query).await;
+
+    (
+        StatusCode::OK,
+        Json(json!({
+            "schema_version": "agent-observe-activity.v1",
+            "tenant_id": tenant,
+            "agent_id": agent_id,
+            "matched_agent_ids": agent_ids,
+            "generated_at": chrono::Utc::now().to_rfc3339(),
+            "counts": {
+                "total_events": events.len(),
+                "by_kind": kind_counts,
+                "total_decisions": counts.total_decisions,
+                "denied_actions": counts.denied_actions,
+                "mcp_invocations": counts.mcp_invocations,
+            },
+            "activity": items,
+            "resources": resources,
+            "usage": usage,
+        })),
+    )
+}
+
+/// Token/cost rollup for one agent across every id it is known by. Computed
+/// from raw usage events (rather than `ai_usage_summary`) so the response can
+/// split exact vs estimated capture, which the summary shape does not carry.
+async fn agent_usage_rollup(
+    state: &AppState,
+    tenant: &str,
+    agent_ids: &[String],
+    query: &AgentActivityQuery,
+) -> serde_json::Value {
+    let mut seen_event_ids = std::collections::HashSet::new();
+    let mut usage_events = Vec::new();
+    for agent_id in agent_ids {
+        if let Ok(events) = state
+            .observability_store
+            .list_ai_usage_events(AiUsageQuery {
+                tenant_id: tenant.to_string(),
+                agent_id: Some(agent_id.clone()),
+                from: query.from.clone(),
+                to: query.to.clone(),
+                limit: Some(5_000),
+                ..AiUsageQuery::default()
+            })
+            .await
+        {
+            for event in events {
+                if seen_event_ids.insert(event.event_id.clone()) {
+                    usage_events.push(event);
+                }
+            }
+        }
+    }
+
+    let mut request_count = 0u64;
+    let mut input_tokens = 0i64;
+    let mut output_tokens = 0i64;
+    let mut cached_input_tokens = 0i64;
+    let mut reasoning_output_tokens = 0i64;
+    let mut total_tokens = 0i64;
+    let mut total_cost = 0f64;
+    let mut exact_events = 0u64;
+    let mut estimated_events = 0u64;
+    let mut currency = "USD".to_string();
+    let mut last_event_at: Option<String> = None;
+    let mut by_model = BTreeMap::<String, (u64, i64, f64)>::new();
+
+    for event in &usage_events {
+        request_count += 1;
+        input_tokens += event.tokens.input_tokens;
+        output_tokens += event.tokens.output_tokens;
+        cached_input_tokens += event.tokens.cached_input_tokens;
+        reasoning_output_tokens += event.tokens.reasoning_output_tokens;
+        total_tokens += event.tokens.total_tokens;
+        total_cost += event.cost.total_cost;
+        if event.tokens.estimated {
+            estimated_events += 1;
+        } else {
+            exact_events += 1;
+        }
+        if !event.cost.currency.is_empty() {
+            currency = event.cost.currency.clone();
+        }
+        let occurred = event.occurred_at.to_rfc3339();
+        if last_event_at
+            .as_deref()
+            .is_none_or(|t| occurred.as_str() > t)
+        {
+            last_event_at = Some(occurred);
+        }
+        let model_key = event.model.clone().unwrap_or_else(|| "unknown".to_string());
+        let entry = by_model.entry(model_key).or_insert((0, 0, 0.0));
+        entry.0 += 1;
+        entry.1 += event.tokens.total_tokens;
+        entry.2 += event.cost.total_cost;
+    }
+
+    let by_model: Vec<_> = by_model
+        .into_iter()
+        .map(|(model, (requests, tokens, cost))| {
+            json!({
+                "model": model,
+                "request_count": requests,
+                "total_tokens": tokens,
+                "total_cost": cost,
+            })
+        })
+        .collect();
+
+    json!({
+        "request_count": request_count,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cached_input_tokens": cached_input_tokens,
+        "reasoning_output_tokens": reasoning_output_tokens,
+        "total_tokens": total_tokens,
+        "total_cost": total_cost,
+        "currency": currency,
+        "exact_events": exact_events,
+        "estimated_events": estimated_events,
+        "last_event_at": last_event_at,
+        "by_model": by_model,
+    })
 }

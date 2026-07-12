@@ -206,6 +206,10 @@ pub trait PdpStore: Send + Sync {
 pub trait ObservabilityStore: Send + Sync {
     async fn insert_observation_event(&self, event: &AgentObservationEvent) -> Result<()>;
     async fn list_observation_events(&self, tenant_id: &str) -> Result<Vec<AgentObservationEvent>>;
+    async fn query_observation_events(
+        &self,
+        query: ObservationEventQuery,
+    ) -> Result<Vec<AgentObservationEvent>>;
     async fn clear_observation_events(&self, tenant_id: &str) -> Result<u64>;
     async fn insert_cost_ledger(&self, entry: &CostLedgerEntry) -> Result<()>;
     async fn list_cost_ledger(&self) -> Result<Vec<CostLedgerEntry>>;
@@ -227,6 +231,20 @@ pub trait ObservabilityStore: Send + Sync {
     async fn cost_breakdown_by_agent(&self, tenant: &str, since: &str)
         -> Result<Vec<AgentCostRow>>;
     async fn tool_usage_by_agent(&self, tenant: &str, since: &str) -> Result<Vec<ToolUsageRow>>;
+}
+
+/// Filtered query over `observation_events`. `agent_ids` matches an event when
+/// either its `agent_id` or its `shadow_candidate_id` equals one of the given
+/// ids, so discovery candidates whose events were correlated under a shadow id
+/// still surface in their per-agent view.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ObservationEventQuery {
+    pub tenant_id: String,
+    pub agent_ids: Vec<String>,
+    pub event_kind: Option<String>,
+    pub from: Option<String>,
+    pub to: Option<String>,
+    pub limit: Option<i64>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

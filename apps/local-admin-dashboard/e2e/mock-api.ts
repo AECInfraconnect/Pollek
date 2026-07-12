@@ -1385,6 +1385,80 @@ export async function installMockApi(page: Page) {
     (route) => json(route, capabilityInventory),
   );
   await page.route(
+    "**/v1/tenants/local/observations/agents/*/activity**",
+    (route) =>
+      json(route, {
+        schema_version: "agent-observe-activity.v1",
+        tenant_id: "local",
+        agent_id: "agent_claude_desktop",
+        matched_agent_ids: ["agent_claude_desktop"],
+        generated_at: new Date().toISOString(),
+        counts: {
+          total_events: 2,
+          by_kind: { resource_access: 1, tool_call: 1 },
+          total_decisions: 0,
+          denied_actions: 0,
+          mcp_invocations: 1,
+        },
+        activity: [
+          {
+            timestamp: "2026-06-26T00:01:00Z",
+            event_type: "resource_access",
+            decision: null,
+            resource: "~/projects/notes.txt",
+            reason: "observe",
+            pep_plane: "mcp_proxy",
+            enforced_for_real: null,
+            status_badge: null,
+            message_th: null,
+          },
+          {
+            timestamp: "2026-06-26T00:02:00Z",
+            event_type: "mcp_tool_call",
+            decision: "allow",
+            resource: "filesystem",
+            reason: "observe",
+            pep_plane: "mcp_proxy",
+            enforced_for_real: null,
+            status_badge: null,
+            message_th: null,
+          },
+        ],
+        resources: [
+          {
+            target: "~/projects/notes.txt",
+            resource_type: "file",
+            verbs: ["read"],
+            access_count: 1,
+            total_bytes: 2048,
+            first_seen: "2026-06-26T00:01:00Z",
+            last_seen: "2026-06-26T00:01:00Z",
+          },
+        ],
+        usage: {
+          request_count: 2,
+          input_tokens: 200,
+          output_tokens: 50,
+          cached_input_tokens: 20,
+          reasoning_output_tokens: 10,
+          total_tokens: 250,
+          total_cost: 0.03,
+          currency: "USD",
+          exact_events: 2,
+          estimated_events: 0,
+          last_event_at: "2026-06-26T00:02:00Z",
+          by_model: [
+            {
+              model: "fixture-model",
+              request_count: 2,
+              total_tokens: 250,
+              total_cost: 0.03,
+            },
+          ],
+        },
+      }),
+  );
+  await page.route(
     "**/v1/tenants/local/discovery/candidates/*/enrichment/start",
     (route) => {
       enrichmentStatus = "waiting_for_consent";
