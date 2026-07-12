@@ -628,15 +628,34 @@ fn aggregate_by_merge_key(
                     }
                 }
                 EvidenceSource::PortProbe => {
-                    if let Some(key_url) = &ev.merge_key {
+                    let endpoint_url = ev
+                        .data
+                        .get("endpoint")
+                        .and_then(|v| v.as_str())
+                        .map(str::to_string)
+                        .or_else(|| ev.source_path_redacted.clone());
+                    if let Some(url) = endpoint_url {
+                        let transport = ev
+                            .data
+                            .get("transport")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("sse")
+                            .to_string();
                         endpoints.push(DiscoveredEndpointRef {
-                            url: key_url.clone(),
-                            protocol: "sse".into(),
+                            url,
+                            protocol: transport.clone(),
                         });
 
+                        let server_name = ev
+                            .data
+                            .get("mcp")
+                            .and_then(|m| m.get("server_name"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("sse_server")
+                            .to_string();
                         mcp_servers.push(DiscoveredMcpServerRef {
-                            server_name: "sse_server".into(),
-                            transport: "sse".into(),
+                            server_name,
+                            transport,
                             command: None,
                         });
                     }
@@ -1410,6 +1429,40 @@ fn observe_enforce_class_for_candidate(agent_type: &InferredAgentType) -> &'stat
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn port_probe_endpoint_uses_real_url_not_merge_key() {
+        let candidates = aggregate_evidence(
+            "local",
+            "device-local",
+            vec![DiscoveryEvidenceV2 {
+                evidence_id: "ev_mcp_port_probe".into(),
+                source: EvidenceSource::PortProbe,
+                confidence: 0.70,
+                observed_at: "2026-06-25T00:00:00Z".into(),
+                privacy_class: PrivacyClass::PublicMetadata,
+                redacted: false,
+                data: serde_json::json!({
+                    "provider": "mcp_server",
+                    "transport": "sse",
+                    "endpoint": "http://127.0.0.1:3000/sse",
+                }),
+                merge_key: Some("mcp_sse_3000".into()),
+                source_path_hash: None,
+                source_path_redacted: Some("http://127.0.0.1:3000/sse".into()),
+            }],
+        );
+
+        assert_eq!(candidates.len(), 1);
+        let candidate = &candidates[0];
+        assert_eq!(candidate.discovered_endpoints.len(), 1);
+        assert_eq!(
+            candidate.discovered_endpoints[0].url,
+            "http://127.0.0.1:3000/sse"
+        );
+        assert_eq!(candidate.discovered_mcp_servers.len(), 1);
+        assert_eq!(candidate.discovered_mcp_servers[0].transport, "sse");
+    }
 
     #[test]
     fn browser_session_origin_resolves_web_ai_identity() {

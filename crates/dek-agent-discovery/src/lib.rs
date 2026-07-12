@@ -6,6 +6,7 @@ pub mod browser_scan;
 pub mod browser_session_reader;
 pub mod browser_window_scan;
 pub mod capability_inventory;
+pub mod capability_retrieval;
 pub mod cli_agent_scan;
 pub mod config;
 pub mod config_paths;

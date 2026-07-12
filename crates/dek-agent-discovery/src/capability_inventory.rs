@@ -111,7 +111,7 @@ pub fn capabilities_for_candidate(
     }
 
     for evidence in &candidate.evidence {
-        if let Some(capability) = capability_from_evidence(candidate, evidence) {
+        for capability in capabilities_from_evidence(candidate, evidence) {
             by_id
                 .entry(capability.capability_id.clone())
                 .or_insert(capability);
@@ -153,6 +153,175 @@ pub fn entities_for_candidates(
     candidates: &[DiscoveredAgentCandidateV2],
 ) -> Vec<DiscoveryEntityCandidate> {
     candidates.iter().map(entity_for_candidate).collect()
+}
+
+fn capabilities_from_evidence(
+    candidate: &DiscoveredAgentCandidateV2,
+    evidence: &DiscoveryEvidenceV2,
+) -> Vec<CanonicalCapability> {
+    if evidence.source == EvidenceSource::PortProbe {
+        return capabilities_from_mcp_port_probe(candidate, evidence);
+    }
+    capability_from_evidence(candidate, evidence)
+        .into_iter()
+        .collect()
+}
+
+fn capabilities_from_mcp_port_probe(
+    candidate: &DiscoveredAgentCandidateV2,
+    evidence: &DiscoveryEvidenceV2,
+) -> Vec<CanonicalCapability> {
+    let endpoint = evidence
+        .data
+        .get("endpoint")
+        .and_then(|v| v.as_str())
+        .unwrap_or("mcp_endpoint");
+
+    let Some(mcp) = evidence.data.get("mcp") else {
+        return vec![CanonicalCapability {
+            capability_id: capability_id(&candidate.candidate_id, "mcp_endpoint", endpoint),
+            candidate_id: candidate.candidate_id.clone(),
+            capability_kind: "mcp_endpoint".into(),
+            name: "MCP-compatible endpoint".into(),
+            description: Some(format!(
+                "A local MCP-compatible endpoint was detected at {endpoint}, but live capability retrieval has not yet succeeded."
+            )),
+            input_schema: None,
+            output_schema: None,
+            modality: vec!["tool".into()],
+            actions: vec!["observe_endpoint".into()],
+            source: "port_probe".into(),
+            confidence: evidence.confidence,
+            risk_tags: vec!["tool_surface".into()],
+            evidence_ids: vec![evidence.evidence_id.clone()],
+            privacy_class: evidence.privacy_class.clone(),
+        }];
+    };
+
+    let server_label = mcp
+        .get("server_name")
+        .and_then(|v| v.as_str())
+        .unwrap_or(endpoint);
+
+    let mut caps = vec![CanonicalCapability {
+        capability_id: capability_id(&candidate.candidate_id, "mcp_server_live", server_label),
+        candidate_id: candidate.candidate_id.clone(),
+        capability_kind: "mcp_server".into(),
+        name: server_label.to_string(),
+        description: Some(format!(
+            "MCP server at {endpoint} responded to a bounded tools/resources/prompts listing. Discovery does not invoke tools or read resource/prompt content."
+        )),
+        input_schema: None,
+        output_schema: None,
+        modality: vec!["tool".into()],
+        actions: vec!["list_tools".into(), "list_resources".into(), "list_prompts".into()],
+        source: "mcp_initialize_live".into(),
+        confidence: evidence.confidence,
+        risk_tags: vec!["tool_surface".into()],
+        evidence_ids: vec![evidence.evidence_id.clone()],
+        privacy_class: evidence.privacy_class.clone(),
+    }];
+
+    if let Some(tools) = mcp.get("tools").and_then(|v| v.as_array()) {
+        for tool in tools {
+            let Some(tool_name) = tool.get("name").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            caps.push(CanonicalCapability {
+                capability_id: capability_id(
+                    &candidate.candidate_id,
+                    "mcp_tool",
+                    &format!("{server_label}_{tool_name}"),
+                ),
+                candidate_id: candidate.candidate_id.clone(),
+                capability_kind: "mcp_tool".into(),
+                name: tool_name.to_string(),
+                description: tool
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_string),
+                input_schema: tool.get("inputSchema").cloned(),
+                output_schema: None,
+                modality: vec!["tool".into()],
+                actions: vec!["use_tool".into()],
+                source: "mcp_tools_list_live".into(),
+                confidence: evidence.confidence,
+                risk_tags: vec!["tool_execution".into()],
+                evidence_ids: vec![evidence.evidence_id.clone()],
+                privacy_class: evidence.privacy_class.clone(),
+            });
+        }
+    }
+
+    if let Some(resources) = mcp.get("resources").and_then(|v| v.as_array()) {
+        for resource in resources {
+            let Some(uri) = resource.get("uri").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let name = resource.get("name").and_then(|v| v.as_str()).unwrap_or(uri);
+            caps.push(CanonicalCapability {
+                capability_id: capability_id(
+                    &candidate.candidate_id,
+                    "mcp_resource",
+                    &format!("{server_label}_{uri}"),
+                ),
+                candidate_id: candidate.candidate_id.clone(),
+                capability_kind: "mcp_resource".into(),
+                name: name.to_string(),
+                description: resource
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_string)
+                    .or_else(|| {
+                        Some(format!(
+                            "MCP resource exposed at {uri}. Discovery lists resource metadata only and does not read its content."
+                        ))
+                    }),
+                input_schema: None,
+                output_schema: None,
+                modality: vec!["resource".into()],
+                actions: vec!["observe_resource".into()],
+                source: "mcp_resources_list_live".into(),
+                confidence: evidence.confidence,
+                risk_tags: vec!["data_access".into()],
+                evidence_ids: vec![evidence.evidence_id.clone()],
+                privacy_class: evidence.privacy_class.clone(),
+            });
+        }
+    }
+
+    if let Some(prompts) = mcp.get("prompts").and_then(|v| v.as_array()) {
+        for prompt in prompts {
+            let Some(prompt_name) = prompt.get("name").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            caps.push(CanonicalCapability {
+                capability_id: capability_id(
+                    &candidate.candidate_id,
+                    "mcp_prompt",
+                    &format!("{server_label}_{prompt_name}"),
+                ),
+                candidate_id: candidate.candidate_id.clone(),
+                capability_kind: "mcp_prompt".into(),
+                name: prompt_name.to_string(),
+                description: prompt
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_string),
+                input_schema: None,
+                output_schema: None,
+                modality: vec!["prompt".into()],
+                actions: vec!["observe_prompt".into()],
+                source: "mcp_prompts_list_live".into(),
+                confidence: evidence.confidence,
+                risk_tags: vec![],
+                evidence_ids: vec![evidence.evidence_id.clone()],
+                privacy_class: evidence.privacy_class.clone(),
+            });
+        }
+    }
+
+    caps
 }
 
 fn capability_from_evidence(
@@ -476,6 +645,82 @@ mod tests {
         assert!(capabilities
             .iter()
             .any(|cap| cap.capability_kind == "endpoint"));
+    }
+
+    #[test]
+    fn derives_live_mcp_tool_resource_and_prompt_capabilities() {
+        let mut candidate = sample_candidate();
+        candidate.evidence.push(DiscoveryEvidenceV2 {
+            evidence_id: "ev_mcp_live".into(),
+            source: EvidenceSource::PortProbe,
+            confidence: 0.98,
+            observed_at: "2026-06-26T00:00:00Z".into(),
+            privacy_class: PrivacyClass::PublicMetadata,
+            redacted: false,
+            data: serde_json::json!({
+                "provider": "mcp_server",
+                "transport": "http",
+                "endpoint": "http://127.0.0.1:3000/mcp",
+                "mcp": {
+                    "server_name": "demo-mcp",
+                    "server_version": "1.0.0",
+                    "protocol_version": "2025-03-26",
+                    "tools": [{"name": "search", "description": "Search things", "inputSchema": {"type": "object"}}],
+                    "tools_truncated": false,
+                    "resources": [{"uri": "file:///demo.txt", "name": "demo"}],
+                    "resources_truncated": false,
+                    "prompts": [{"name": "greet"}],
+                    "prompts_truncated": false,
+                },
+            }),
+            merge_key: Some("mcp_sse_3000".into()),
+            source_path_hash: None,
+            source_path_redacted: Some("http://127.0.0.1:3000/mcp".into()),
+        });
+
+        let capabilities = capabilities_for_candidate(&candidate);
+
+        let tool = capabilities
+            .iter()
+            .find(|cap| cap.capability_kind == "mcp_tool");
+        assert!(tool.is_some(), "expected a live mcp_tool capability");
+        if let Some(tool) = tool {
+            assert_eq!(tool.name, "search");
+            assert!(tool.input_schema.is_some());
+        }
+
+        assert!(capabilities
+            .iter()
+            .any(|cap| cap.capability_kind == "mcp_resource" && cap.name == "demo"));
+        assert!(capabilities
+            .iter()
+            .any(|cap| cap.capability_kind == "mcp_prompt" && cap.name == "greet"));
+    }
+
+    #[test]
+    fn falls_back_to_generic_capability_when_mcp_probe_has_no_live_data() {
+        let mut candidate = sample_candidate();
+        candidate.evidence.push(DiscoveryEvidenceV2 {
+            evidence_id: "ev_mcp_heuristic".into(),
+            source: EvidenceSource::PortProbe,
+            confidence: 0.70,
+            observed_at: "2026-06-26T00:00:00Z".into(),
+            privacy_class: PrivacyClass::PublicMetadata,
+            redacted: false,
+            data: serde_json::json!({
+                "provider": "mcp_server",
+                "transport": "sse",
+                "endpoint": "http://127.0.0.1:3001/sse",
+            }),
+            merge_key: Some("mcp_sse_3001".into()),
+            source_path_hash: None,
+            source_path_redacted: Some("http://127.0.0.1:3001/sse".into()),
+        });
+
+        let capabilities = capabilities_for_candidate(&candidate);
+        assert!(capabilities
+            .iter()
+            .any(|cap| cap.capability_kind == "mcp_endpoint"));
     }
 
     #[test]
