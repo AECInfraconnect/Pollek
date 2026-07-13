@@ -138,6 +138,34 @@ pub async fn start_cloud_registry_sync_loop(state: AppState) -> anyhow::Result<(
                 }
             }
 
+            // Canonical discovery capability inventory. Unlike raw discovery
+            // scans/candidates/evidence (which stay local by design), these are
+            // the user-approved, metadata-only entities produced by
+            // retrieve-capabilities. Raw evidence is stripped before upload;
+            // capabilities and relationships reference evidence by id only.
+            if let Ok(entities) = state
+                .registry_store
+                .list_raw(tenant_id, "discovery_entity")
+                .await
+            {
+                for item in entities {
+                    all_objects.push(serde_json::json!({
+                        "type": "discovery_entity",
+                        "data": sanitize_discovery_entity(item)
+                    }));
+                }
+            }
+            for object_type in ["discovered_capability", "discovered_relationship"] {
+                if let Ok(items) = state.registry_store.list_raw(tenant_id, object_type).await {
+                    for item in items {
+                        all_objects.push(serde_json::json!({
+                            "type": object_type,
+                            "data": item
+                        }));
+                    }
+                }
+            }
+
             // Telemetry: Deployments (Phase 7)
             if let Ok(deployments) = state
                 .telemetry_store
@@ -357,4 +385,40 @@ pub async fn start_cloud_registry_sync_loop(state: AppState) -> anyhow::Result<(
     });
 
     Ok(())
+}
+
+/// Strips raw discovery evidence from a persisted `discovery_entity` before it
+/// leaves the device. Cloud receives the canonical entity, its capabilities,
+/// and relationships — evidence records stay local and are referenced from
+/// capabilities by `evidence_ids` only.
+fn sanitize_discovery_entity(mut value: serde_json::Value) -> serde_json::Value {
+    if let Some(obj) = value.as_object_mut() {
+        obj.remove("evidence");
+    }
+    value
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_strips_evidence_but_keeps_capabilities() {
+        let entity = serde_json::json!({
+            "candidate_id": "agent_demo",
+            "entity_kind": "agent",
+            "evidence": [{"evidence_id": "ev_1", "data": {"process": "secret"}}],
+            "capabilities": [{"capability_id": "cap_1", "evidence_ids": ["ev_1"]}],
+            "relationships": [],
+        });
+
+        let sanitized = sanitize_discovery_entity(entity);
+
+        assert!(sanitized.get("evidence").is_none());
+        assert_eq!(
+            sanitized["capabilities"][0]["capability_id"].as_str(),
+            Some("cap_1")
+        );
+        assert_eq!(sanitized["candidate_id"].as_str(), Some("agent_demo"));
+    }
 }
