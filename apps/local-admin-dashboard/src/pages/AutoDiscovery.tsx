@@ -20,6 +20,7 @@ import {
   type LocalObserveRefreshResponse,
 } from "../services/api";
 import type {
+  AgentObserveActivity,
   DiscoveredAgentCandidateV2,
   DiscoveryEnrichmentSession,
   DiscoveryCapabilityInventory,
@@ -307,6 +308,12 @@ export function AutoDiscovery() {
     Record<string, DiscoveryEnrichmentSession>
   >({});
   const [enrichmentBusyId, setEnrichmentBusyId] = useState<string | null>(null);
+  const [activityViews, setActivityViews] = useState<
+    Record<string, AgentObserveActivity>
+  >({});
+  const [activityLoadingId, setActivityLoadingId] = useState<string | null>(
+    null,
+  );
 
   const scanBusy =
     isScanning ||
@@ -437,6 +444,50 @@ export function AutoDiscovery() {
     if (!selectedId || capabilityInventories[selectedId]) return;
     void loadCapabilities(selectedId, false);
   }, [selectedId]);
+
+  useEffect(() => {
+    if (!selectedId || activityViews[selectedId]) return;
+    const candidate = candidates.find((c) => c.candidate_id === selectedId);
+    if (candidate) void loadAgentActivity(candidate, false);
+  }, [selectedId, candidates]);
+
+  const observeIdsForCandidate = (candidate: DiscoveredAgentCandidateV2) => {
+    const primary =
+      candidate.labels?.registered_agent_id ||
+      candidate.suggested_registration?.agent_id ||
+      candidate.candidate_id;
+    const altIds = [
+      candidate.candidate_id,
+      candidate.suggested_registration?.agent_id ?? "",
+    ].filter((id) => id && id !== primary);
+    return { primary, altIds: Array.from(new Set(altIds)) };
+  };
+
+  const loadAgentActivity = async (
+    candidate: DiscoveredAgentCandidateV2,
+    manual: boolean,
+  ) => {
+    setActivityLoadingId(candidate.candidate_id);
+    try {
+      const { primary, altIds } = observeIdsForCandidate(candidate);
+      const view = await RegistryApi.getAgentObserveActivity(primary, {
+        altIds,
+        limit: 500,
+      });
+      setActivityViews((prev) => ({
+        ...prev,
+        [candidate.candidate_id]: view,
+      }));
+      if (manual) toast.success("Agent activity refreshed");
+      return view;
+    } catch (e) {
+      console.error("Failed to load agent activity:", e);
+      if (manual) toast.error("Failed to load agent activity");
+      return null;
+    } finally {
+      setActivityLoadingId(null);
+    }
+  };
 
   const loadCapabilities = async (candidateId: string, persist: boolean) => {
     setCapabilityLoadingId(candidateId);
@@ -1359,6 +1410,8 @@ export function AutoDiscovery() {
           const canonicalCapabilities = inventory?.capabilities ?? [];
           const relationships = inventory?.relationships ?? [];
           const capabilityLoading = capabilityLoadingId === c.candidate_id;
+          const activityView = activityViews[c.candidate_id];
+          const activityLoading = activityLoadingId === c.candidate_id;
           const enrichmentSession = enrichmentSessions[c.candidate_id];
           const enrichmentBusy = enrichmentBusyId === c.candidate_id;
           const candidateStatusLabel = isRegistered
@@ -1942,6 +1995,204 @@ export function AutoDiscovery() {
                     ) : (
                       <p className="text-sm text-muted-foreground">
                         No relationships derived yet.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: "activity",
+              label: "Activity",
+              content: (
+                <div className="space-y-5">
+                  <div className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <h4 className="text-sm font-semibold">
+                        Observed Activity
+                      </h4>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Resource access, tool calls, and token/cost usage
+                        observed for this AI app only. Run Observe Now to
+                        collect fresh events.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => void loadAgentActivity(c, true)}
+                      disabled={activityLoading}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 ${
+                          activityLoading ? "animate-spin" : ""
+                        }`}
+                      />
+                      Refresh activity
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                    <div className="rounded-xl border bg-muted/30 p-4">
+                      <span className="block text-muted-foreground">
+                        Events
+                      </span>
+                      <span className="text-lg font-semibold">
+                        {activityView?.counts.total_events ?? 0}
+                      </span>
+                    </div>
+                    <div className="rounded-xl border bg-muted/30 p-4">
+                      <span className="block text-muted-foreground">
+                        AI Requests
+                      </span>
+                      <span className="text-lg font-semibold">
+                        {activityView?.usage.request_count ?? 0}
+                      </span>
+                    </div>
+                    <div className="rounded-xl border bg-muted/30 p-4">
+                      <span className="block text-muted-foreground">
+                        Tokens
+                      </span>
+                      <span className="text-lg font-semibold">
+                        {(activityView?.usage.total_tokens ?? 0).toLocaleString()}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {(activityView?.usage.input_tokens ?? 0).toLocaleString()}{" "}
+                        in /{" "}
+                        {(activityView?.usage.output_tokens ?? 0).toLocaleString()}{" "}
+                        out
+                      </span>
+                    </div>
+                    <div className="rounded-xl border bg-muted/30 p-4">
+                      <span className="block text-muted-foreground">Cost</span>
+                      <span className="text-lg font-semibold">
+                        {(activityView?.usage.total_cost ?? 0).toLocaleString(
+                          undefined,
+                          { maximumFractionDigits: 4 },
+                        )}{" "}
+                        {activityView?.usage.currency ?? "USD"}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {activityView?.usage.exact_events ?? 0} exact /{" "}
+                        {activityView?.usage.estimated_events ?? 0} estimated
+                      </span>
+                    </div>
+                  </div>
+
+                  {(activityView?.usage.by_model.length ?? 0) > 0 && (
+                    <div className="rounded-xl border bg-muted/30 p-4">
+                      <h4 className="mb-3 text-sm font-semibold">
+                        Usage by Model
+                      </h4>
+                      <div className="space-y-2">
+                        {activityView?.usage.by_model.map((row) => (
+                          <div
+                            key={row.model}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-background/70 p-3 text-sm"
+                          >
+                            <span className="font-medium">{row.model}</span>
+                            <span className="text-muted-foreground">
+                              {row.request_count} request(s) -{" "}
+                              {row.total_tokens.toLocaleString()} tokens -{" "}
+                              {row.total_cost.toLocaleString(undefined, {
+                                maximumFractionDigits: 4,
+                              })}{" "}
+                              {activityView?.usage.currency ?? "USD"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="rounded-xl border bg-muted/30 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <h4 className="text-sm font-semibold">
+                        Resources Accessed
+                      </h4>
+                      <span className="rounded-full bg-background px-2 py-1 text-xs text-muted-foreground">
+                        {activityView?.resources.length ?? 0} target(s)
+                      </span>
+                    </div>
+                    {(activityView?.resources.length ?? 0) > 0 ? (
+                      <div className="space-y-2">
+                        {activityView?.resources.map((resource) => (
+                          <div
+                            key={resource.target}
+                            className="rounded-lg border bg-background/70 p-3 text-sm"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="break-all font-medium">
+                                {resource.target}
+                              </span>
+                              <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
+                                {resource.access_count} access(es)
+                              </span>
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {resource.resource_type} -{" "}
+                              {resource.verbs.join(", ")} - last seen{" "}
+                              {new Date(resource.last_seen).toLocaleString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No resource access has been observed for this AI app
+                        yet.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border bg-muted/30 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <h4 className="text-sm font-semibold">Recent Events</h4>
+                      <span className="rounded-full bg-background px-2 py-1 text-xs text-muted-foreground">
+                        {activityView?.counts.denied_actions ?? 0} denied
+                      </span>
+                    </div>
+                    {(activityView?.activity.length ?? 0) > 0 ? (
+                      <div className="space-y-2">
+                        {activityView?.activity
+                          .slice(-30)
+                          .reverse()
+                          .map((item, index) => (
+                            <div
+                              key={`${item.timestamp}-${index}`}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-background/70 p-3 text-sm"
+                            >
+                              <div className="min-w-0">
+                                <span className="font-medium">
+                                  {item.event_type.replace(/_/g, " ")}
+                                </span>
+                                <span className="ml-2 break-all text-muted-foreground">
+                                  {item.resource}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {item.decision && (
+                                  <span
+                                    className={`rounded-full px-2 py-0.5 ${
+                                      item.decision === "deny"
+                                        ? "bg-destructive/10 text-destructive"
+                                        : "bg-primary/10 text-primary"
+                                    }`}
+                                  >
+                                    {item.decision}
+                                  </span>
+                                )}
+                                <span>
+                                  {new Date(item.timestamp).toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No activity events yet. Use Observe Now, or install a
+                        control method (MCP wrapper, proxy, or browser
+                        extension) to capture live per-agent activity.
                       </p>
                     )}
                   </div>

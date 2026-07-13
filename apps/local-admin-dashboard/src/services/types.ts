@@ -609,6 +609,68 @@ export interface DiscoveryCapabilityInventory {
   privacy_note?: string;
 }
 
+export interface AgentObserveActivityItem {
+  timestamp: string;
+  event_type: string;
+  decision: string | null;
+  resource: string;
+  reason: string;
+  pep_plane?: string | null;
+  enforced_for_real?: boolean | null;
+  status_badge?: string | null;
+  message_th?: string | null;
+}
+
+export interface AgentObserveResourceRollup {
+  target: string;
+  resource_type: string;
+  verbs: string[];
+  access_count: number;
+  total_bytes: number;
+  first_seen: string;
+  last_seen: string;
+}
+
+export interface AgentObserveUsageByModel {
+  model: string;
+  request_count: number;
+  total_tokens: number;
+  total_cost: number;
+}
+
+export interface AgentObserveUsage {
+  request_count: number;
+  input_tokens: number;
+  output_tokens: number;
+  cached_input_tokens: number;
+  reasoning_output_tokens: number;
+  total_tokens: number;
+  total_cost: number;
+  currency: string;
+  exact_events: number;
+  estimated_events: number;
+  last_event_at: string | null;
+  by_model: AgentObserveUsageByModel[];
+}
+
+export interface AgentObserveActivity {
+  schema_version: string;
+  tenant_id: string;
+  agent_id: string;
+  matched_agent_ids: string[];
+  generated_at: string;
+  counts: {
+    total_events: number;
+    by_kind: Record<string, number>;
+    total_decisions: number;
+    denied_actions: number;
+    mcp_invocations: number;
+  };
+  activity: AgentObserveActivityItem[];
+  resources: AgentObserveResourceRollup[];
+  usage: AgentObserveUsage;
+}
+
 export interface IdentityConfirmation {
   candidate_id: string;
   confirmed_signature_id?: string;

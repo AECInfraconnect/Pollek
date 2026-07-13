@@ -48,7 +48,7 @@ test.describe("Auto Discovery grouped enrichment", () => {
     await expect(coverageToggle).toBeVisible();
     await expect(
       page.getByText("Privacy guardrail: discovery uses metadata"),
-    ).toHaveCount(0);
+    ).toBeHidden();
 
     const deepScanButton = page.getByRole("button", { name: /^Deep Scan$/ }).first();
     await deepScanButton.click();

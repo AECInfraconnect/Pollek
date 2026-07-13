@@ -36,7 +36,7 @@ test.describe("Prompt Guard activity visibility", () => {
       page.getByText("Antigravity protected Prompt injection attempt").first(),
     ).toBeVisible();
     await expect(
-      page.getByText("Prompt Guard and private data safety"),
+      page.getByText("Prompt Guard and private data safety").first(),
     ).toBeVisible();
 
     await page.goto("/alerts?tab=guard");
