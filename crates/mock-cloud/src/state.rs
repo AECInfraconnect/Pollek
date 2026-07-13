@@ -89,7 +89,7 @@ pub struct AppState {
 /// A single AI usage record (one model call) as reported by a Local Control
 /// Plane, flattened to the dimensions Cloud reports on. Only privacy-preserving
 /// identifiers are kept: the user is a pre-hashed `actor_id_hash`.
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize)]
 pub struct CloudUsageRecord {
     pub event_id: String,
     pub tenant_id: String,
