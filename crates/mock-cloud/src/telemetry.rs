@@ -97,6 +97,9 @@ fn ingest(state: &AppState, events: Vec<serde_json::Value>, kind: &str) -> Resul
     for event_val in events {
         validate_redaction(&event_val)?;
         mirror_audit_event(state, &event_val);
+        // AI usage events are additionally flattened into the usage ledger for
+        // per-device / per-user / per-agent / per-tenant cost & token reports.
+        state.record_usage_envelope(&event_val);
         logs.push_front(event_val);
         if logs.len() > 2000 {
             logs.pop_back();

@@ -694,6 +694,9 @@ mod sync_tests {
                 global_latency_ms: 0_i64,
             })),
             approvals: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+            usage_ledger: std::sync::Arc::new(std::sync::Mutex::new(
+                crate::state::UsageLedger::default(),
+            )),
         }
     }
 
