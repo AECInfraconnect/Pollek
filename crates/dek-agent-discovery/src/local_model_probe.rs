@@ -111,12 +111,52 @@ pub async fn probe_local_models() -> Result<Vec<DiscoveryEvidenceV2>> {
         }));
     }
 
-    // 3. Probe typical MCP SSE ports
+    // 3. Probe typical MCP ports: first attempt a bounded, read-only MCP
+    // capability listing (Streamable HTTP transport); fall back to the
+    // lighter SSE-detection heuristic when that doesn't yield a live
+    // handshake so we still record the endpoint as a candidate.
     let mcp_ports = [3000, 3001, 8080, 8000];
     for port in mcp_ports {
         let client_cl = client.clone();
         tasks.push(tokio::spawn(async move {
             let mut local_ev = Vec::new();
+
+            for mcp_path in ["/mcp", "/sse"] {
+                let url = format!("http://127.0.0.1:{}{}", port, mcp_path);
+                if let Some(snapshot) =
+                    crate::capability_retrieval::probe_mcp_http_capabilities(&client_cl, &url).await
+                {
+                    local_ev.push(DiscoveryEvidenceV2 {
+                        evidence_id: uuid::Uuid::new_v4().to_string(),
+                        source: EvidenceSource::PortProbe,
+                        confidence: 0.98,
+                        observed_at: chrono::Utc::now().to_rfc3339(),
+                        privacy_class: PrivacyClass::PublicMetadata,
+                        redacted: false,
+                        data: serde_json::json!({
+                            "provider": "mcp_server",
+                            "transport": "http",
+                            "endpoint": url,
+                            "mcp": {
+                                "server_name": snapshot.server_name,
+                                "server_version": snapshot.server_version,
+                                "protocol_version": snapshot.protocol_version,
+                                "tools": snapshot.tools,
+                                "tools_truncated": snapshot.tools_truncated,
+                                "resources": snapshot.resources,
+                                "resources_truncated": snapshot.resources_truncated,
+                                "prompts": snapshot.prompts,
+                                "prompts_truncated": snapshot.prompts_truncated,
+                            },
+                        }),
+                        merge_key: Some(format!("mcp_sse_{}", port)),
+                        source_path_hash: None,
+                        source_path_redacted: Some(url),
+                    });
+                    return local_ev;
+                }
+            }
+
             let url = format!("http://127.0.0.1:{}/sse", port);
             if let Ok(res) = client_cl.get(&url).send().await {
                 // MCP SSE might return 405 Method Not Allowed on GET, or 200 with text/event-stream

@@ -36,9 +36,18 @@ Pollek now exposes a first canonical discovery inventory slice:
 - Contract Hub TypeSpec/OpenAPI/TypeScript artifacts include the same
   `DiscoveryEntityCandidateV1` and `DiscoveryCapabilityInventoryResponse`
   shapes for Local Dashboard and Pollek Cloud.
+- `dek-agent-discovery::capability_retrieval` performs a bounded, read-only MCP
+  Streamable HTTP capability listing (`initialize`, `notifications/initialized`,
+  `tools/list`, `resources/list`, `prompts/list` only) against loopback
+  MCP-compatible ports found during the local model/MCP port probe. It never
+  sends `tools/call`, `resources/read`, or `prompts/get`. Retrieved tool,
+  resource, and prompt metadata (including declared `inputSchema`) flows through
+  `capability_inventory` into per-item `CanonicalCapability` records
+  (`mcp_tool`, `mcp_resource`, `mcp_prompt`) so `retrieve-capabilities` reflects
+  real server-declared capabilities instead of only inferred placeholders.
 
-This slice is intentionally metadata-derived. It does not invoke MCP tools, read
-MCP resources, read raw prompts/responses, call external provider APIs, or
+Beyond that MCP listing vertical, this slice remains metadata-derived. It does
+not read raw prompts/responses, call authenticated external provider APIs, or
 download model weights.
 
 ## Design Principles
@@ -84,9 +93,14 @@ local engine version.
 ## Capability Retrieval Layer
 
 Add retrievers as small bounded modules under
-`crates/dek-agent-discovery/src/capability_retrieval/`:
+`crates/dek-agent-discovery/src/capability_retrieval.rs` (and split into a
+directory as more transports are added):
 
 - MCP: initialize, `tools/list`, `resources/list`, and `prompts/list` only.
+  **Implemented** for loopback Streamable HTTP MCP servers found by the local
+  model/MCP port probe; still outstanding for stdio-launched and
+  configured-remote MCP servers, which are not probed live for privacy/consent
+  reasons (config discovery only stores a redacted domain, not a full URL).
 - A2A: retrieve and validate `/.well-known/agent-card.json` when configured or
   discovered.
 - OpenAI-compatible: loopback/configured `/v1/models`.
