@@ -352,7 +352,7 @@ mod tests {
                 "prompts/list" => rpc_response(2, json!({"prompts": [{"name": "greet"}]})),
                 _ => ResponseTemplate::new(400),
             })
-            .expect(5)
+            .expect(5) // wiremock expected-call count, not Option::expect
             .mount(&server)
             .await;
 
