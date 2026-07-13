@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
 use crate::state::AppState;
@@ -63,7 +63,9 @@ pub fn router() -> Router<AppState> {
         .route(
             "/pep_deployments/:id",
             get(get_pep_deployment).patch(patch_pep_deployment),
-        );
+        )
+        // Local Control Plane snapshot sync (push from cloud_sync loop)
+        .route("/sync", post(registry_sync).get(get_registry_sync));
 
     Router::new()
         .nest("/v1/registry", internal_routes.clone())
@@ -551,5 +553,219 @@ async fn patch_pep_deployment(
         (StatusCode::OK, Json(json!(payload)))
     } else {
         (StatusCode::NOT_FOUND, Json(json!({"error": "not found"})))
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct RegistrySyncRequest {
+    #[serde(default)]
+    tenant_id: Option<String>,
+    #[serde(default)]
+    items: Vec<RegistrySyncItem>,
+}
+
+#[derive(serde::Deserialize)]
+struct RegistrySyncItem {
+    #[serde(rename = "type")]
+    item_type: String,
+    data: serde_json::Value,
+}
+
+/// Accepts the full registry snapshot pushed by a Local Control Plane's cloud
+/// sync loop. Every item is kept in the raw per-type snapshot store; items
+/// whose shape matches the cloud's typed registry objects are additionally
+/// upserted into the typed maps so they show up in the admin registry views.
+async fn registry_sync(
+    State(state): State<AppState>,
+    Json(payload): Json<RegistrySyncRequest>,
+) -> impl IntoResponse {
+    let tenant_id = payload.tenant_id.unwrap_or_else(|| "local".to_string());
+    let mut by_type = std::collections::BTreeMap::<String, u64>::new();
+    let mut snapshot = std::collections::HashMap::<String, Vec<serde_json::Value>>::new();
+    let received = payload.items.len();
+
+    {
+        let mut reg = state.registry.lock().unwrap(); //
+        for item in payload.items {
+            match item.item_type.as_str() {
+                "agent" => {
+                    if let Ok(agent) = serde_json::from_value::<AiAgent>(item.data.clone()) {
+                        reg.agents.insert(agent.agent_id.clone(), agent);
+                    }
+                }
+                "mcp_server" => {
+                    if let Ok(server) = serde_json::from_value::<McpServer>(item.data.clone()) {
+                        reg.mcp_servers.insert(server.server_id.clone(), server);
+                    }
+                }
+                "tool" => {
+                    if let Ok(tool) = serde_json::from_value::<Tool>(item.data.clone()) {
+                        reg.tools.insert(tool.tool_id.clone(), tool);
+                    }
+                }
+                "resource" => {
+                    if let Ok(resource) = serde_json::from_value::<Resource>(item.data.clone()) {
+                        reg.resources.insert(resource.resource_id.clone(), resource);
+                    }
+                }
+                _ => {}
+            }
+            *by_type.entry(item.item_type.clone()).or_default() += 1;
+            snapshot.entry(item.item_type).or_default().push(item.data);
+        }
+        for (item_type, items) in snapshot {
+            reg.synced_objects.insert(item_type, items);
+        }
+    }
+
+    state.audit_push(
+        "local-control-plane",
+        "registry_sync",
+        &format!("tenant={tenant_id} received={received}"),
+    );
+
+    (
+        StatusCode::OK,
+        Json(json!({
+            "schema_version": "registry-sync-ack.v1",
+            "status": "accepted",
+            "tenant_id": tenant_id,
+            "received": received,
+            "by_type": by_type,
+        })),
+    )
+}
+
+async fn get_registry_sync(State(state): State<AppState>) -> impl IntoResponse {
+    let reg = state.registry.lock().unwrap(); //
+    let by_type: std::collections::BTreeMap<String, usize> = reg
+        .synced_objects
+        .iter()
+        .map(|(item_type, items)| (item_type.clone(), items.len()))
+        .collect();
+    (
+        StatusCode::OK,
+        Json(json!({
+            "schema_version": "registry-sync-snapshot.v1",
+            "by_type": by_type,
+            "items": reg.synced_objects,
+        })),
+    )
+}
+
+#[cfg(test)]
+mod sync_tests {
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use serde_json::{json, Value};
+    use tower::util::ServiceExt;
+
+    fn test_state() -> crate::state::AppState {
+        crate::state::AppState {
+            revision: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(1)),
+            rsa_public_key_pem: "".to_string(),
+            pending: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+            devices: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+            telemetry_events: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::VecDeque::new(),
+            )),
+            rollout: std::sync::Arc::new(std::sync::Mutex::new(crate::state::RolloutConfig {
+                latest_bundle: crate::state::PolicyBundle {
+                    version: "1.0".to_string(),
+                    cedar_src: "".to_string(),
+                    openfga_store: "".to_string(),
+                },
+                canary_bundle: None,
+                canary_percentage: 0,
+            })),
+            audit_logs: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            pending_policies: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::HashMap::new(),
+            )),
+            trusted_keys: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            active_seed: std::sync::Arc::new(std::sync::Mutex::new(crate::BUNDLE_SEED.to_vec())),
+            revocation_list: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            registry: std::sync::Arc::new(std::sync::Mutex::new(
+                crate::state::RegistryState::default(),
+            )),
+            network_rules: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            chaos_config: std::sync::Arc::new(std::sync::Mutex::new(crate::state::ChaosConfig {
+                outage_enabled: false,
+                global_latency_ms: 0_i64,
+            })),
+            approvals: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+        }
+    }
+
+    async fn body_json(res: axum::response::Response) -> Value {
+        let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap(); //
+        serde_json::from_slice(&bytes).unwrap() //
+    }
+
+    #[tokio::test]
+    async fn registry_sync_accepts_local_snapshot_and_serves_it_back() {
+        let state = test_state();
+        let app = super::router().with_state(state.clone());
+
+        let payload = json!({
+            "tenant_id": "local",
+            "items": [
+                {"type": "agent", "data": {"agent_id": "agent-local-shape", "name": "Local Agent"}},
+                {"type": "discovery_entity", "data": {
+                    "candidate_id": "agent_demo",
+                    "entity_kind": "agent",
+                    "capabilities": [{"capability_id": "cap_1", "evidence_ids": ["ev_1"]}]
+                }},
+                {"type": "discovered_capability", "data": {"capability_id": "cap_1", "name": "search"}},
+                {"type": "discovered_relationship", "data": {"relationship_id": "rel_1"}}
+            ]
+        });
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/v1/tenants/local/registry/sync")
+            .header("content-type", "application/json")
+            .body(Body::from(payload.to_string()))
+            .unwrap(); //
+        let res = app.clone().oneshot(req).await.unwrap(); //
+        assert_eq!(res.status(), StatusCode::OK);
+        let ack = body_json(res).await;
+        assert_eq!(ack["status"].as_str(), Some("accepted"));
+        assert_eq!(ack["received"].as_u64(), Some(4));
+        assert_eq!(ack["by_type"]["discovery_entity"].as_u64(), Some(1));
+
+        let req = Request::builder()
+            .uri("/v1/tenants/local/registry/sync")
+            .body(Body::empty())
+            .unwrap(); //
+        let res = app.oneshot(req).await.unwrap(); //
+        assert_eq!(res.status(), StatusCode::OK);
+        let snapshot = body_json(res).await;
+        assert_eq!(
+            snapshot["by_type"]["discovered_capability"].as_u64(),
+            Some(1)
+        );
+        assert_eq!(
+            snapshot["items"]["discovery_entity"][0]["candidate_id"].as_str(),
+            Some("agent_demo")
+        );
+    }
+
+    #[tokio::test]
+    async fn tenant_bundles_latest_returns_summary() {
+        let state = test_state();
+        let app = crate::bundles::router().with_state(state);
+
+        let req = Request::builder()
+            .uri("/v1/tenants/local/bundles/latest")
+            .body(Body::empty())
+            .unwrap(); //
+        let res = app.oneshot(req).await.unwrap(); //
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = body_json(res).await;
+        assert_eq!(body["schema_version"].as_str(), Some("bundle-summary.v1"));
+        assert_eq!(body["version"].as_str(), Some("1.0"));
     }
 }

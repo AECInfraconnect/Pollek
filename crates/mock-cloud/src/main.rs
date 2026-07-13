@@ -184,6 +184,7 @@ CwIDAQAB\n-----END PUBLIC KEY-----\n"
                         "contract.discovery.v1",
                         "bundle.signed-envelope.v1",
                         "telemetry.batch.v1",
+                        "registry.sync.v1",
                         "policy.opa-wasm.v1",
                         "policy.cedar.v1",
                         "policy.openfga.v1"

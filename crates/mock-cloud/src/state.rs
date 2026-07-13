@@ -95,6 +95,11 @@ pub struct RegistryState {
     pub relationships: Vec<dek_domain_schema::Relationship>,
     pub policies: HashMap<String, dek_domain_schema::Policy>,
     pub pep_deployments: HashMap<String, dek_domain_schema::PepDeployment>,
+    /// Latest raw registry-sync snapshot from a Local Control Plane, keyed by
+    /// item type (e.g. `agent`, `discovery_entity`, `discovered_capability`).
+    /// Local pushes a full snapshot each cycle, so each sync replaces the
+    /// previous list for the types it carries.
+    pub synced_objects: HashMap<String, Vec<serde_json::Value>>,
 }
 
 pub fn rand_hex(n_bytes: usize) -> String {

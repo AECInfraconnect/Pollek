@@ -31,6 +31,10 @@ pub fn router() -> Router<AppState> {
             get(get_desired_state),
         )
         .route(
+            "/v1/tenants/:tenant_id/bundles/latest",
+            get(get_latest_bundle_for_tenant),
+        )
+        .route(
             "/v1/tenants/:tenant_id/bundles/publish",
             post(publish_bundle),
         )
@@ -142,6 +146,28 @@ fn sign_bundle(manifest: &BundleManifest) -> serde_json::Value {
             "public_key_fingerprint": base64::prelude::BASE64_STANDARD.encode(public_key.as_bytes()),
         }]
     })
+}
+
+/// Tenant-level bundle summary used by the Local Control Plane cloud sync
+/// loop's poll. Devices still fetch full signed bundles via the per-device
+/// endpoint.
+async fn get_latest_bundle_for_tenant(
+    Path(tenant_id): Path<String>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let revision = state.revision.load(std::sync::atomic::Ordering::Relaxed) as u64;
+    let rollout = state.rollout.lock().unwrap(); //
+    (
+        StatusCode::OK,
+        Json(json!({
+            "schema_version": "bundle-summary.v1",
+            "tenant_id": tenant_id,
+            "generation": revision,
+            "version": rollout.latest_bundle.version,
+            "canary_percentage": rollout.canary_percentage,
+            "has_canary": rollout.canary_bundle.is_some(),
+        })),
+    )
 }
 
 async fn get_latest_bundle(
