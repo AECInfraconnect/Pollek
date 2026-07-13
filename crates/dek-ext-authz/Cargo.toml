@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 tonic = "0.12"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time", "net", "signal"] }
-prost = "0.13"
+prost = "0.14"
 serde_json.workspace = true
 dek-policy-router = { path = "../dek-policy-router" }
 dek-policy-syncer = { path = "../dek-policy-syncer" }
