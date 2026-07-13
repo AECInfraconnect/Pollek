@@ -101,8 +101,7 @@ impl ObservabilityStore for SqliteStore {
                 String::from("SELECT payload_json FROM observation_events WHERE tenant_id = ?");
             let mut values: Vec<Box<dyn ToSql>> = vec![Box::new(query.tenant_id)];
             if !query.agent_ids.is_empty() {
-                let placeholders = std::iter::repeat("?")
-                    .take(query.agent_ids.len())
+                let placeholders = std::iter::repeat_n("?", query.agent_ids.len())
                     .collect::<Vec<_>>()
                     .join(", ");
                 sql.push_str(&format!(
