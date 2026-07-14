@@ -12,7 +12,7 @@ serde_json.workspace = true
 anyhow.workspace = true
 wasmtime = "24.0.0"
 async-trait = "0.1.89"
-wasmtime-wasi = "24.0.0"
+wasmtime-wasi = "46.0.1"
 cap-std = "3.0.0"
 bytes = "1.11.1"
 
