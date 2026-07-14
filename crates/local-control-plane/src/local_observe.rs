@@ -869,11 +869,25 @@ fn collect_usage_log_paths() -> Vec<PathBuf> {
     }
     files.sort();
     files.dedup();
+    // Newest sessions first: real agents keep appending fresh session files
+    // (e.g. Codex writes a new rollout file per session) and the scan is
+    // capped, so recency decides which files make the cut.
+    files.sort_by_key(|path| {
+        std::cmp::Reverse(
+            std::fs::metadata(path)
+                .and_then(|meta| meta.modified())
+                .unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+        )
+    });
+    files.truncate(60);
     files
 }
 
 fn collect_usage_files(path: &Path, out: &mut Vec<PathBuf>, depth: usize) {
-    if out.len() >= 60 || depth > 3 || !path.exists() {
+    // Codex session logs live four levels deep
+    // (~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl), so the walk must go
+    // deeper than the agent config roots themselves.
+    if out.len() >= 400 || depth > 6 || !path.exists() {
         return;
     }
     if path.is_file() {
@@ -887,7 +901,7 @@ fn collect_usage_files(path: &Path, out: &mut Vec<PathBuf>, depth: usize) {
     };
     for entry in entries.flatten() {
         collect_usage_files(&entry.path(), out, depth + 1);
-        if out.len() >= 60 {
+        if out.len() >= 400 {
             break;
         }
     }
@@ -925,8 +939,23 @@ fn extract_exact_usage_events_from_path(
         })
         .unwrap_or(false)
     {
+        // Codex CLI rollout files carry the model in `turn_context` lines and
+        // token counts in later `token_count` event lines; remember the most
+        // recent model while streaming so each usage event gets attributed.
+        let mut current_model: Option<String> = None;
         for line in content.lines().take(20_000) {
             if let Ok(value) = serde_json::from_str::<Value>(line) {
+                if let Some(model) = model_hint_from_line(&value) {
+                    current_model = Some(model);
+                }
+                if let Some(event) =
+                    codex_token_count_event(tenant, path, &value, current_model.as_deref())
+                {
+                    if events.len() < 100 {
+                        events.push(event);
+                    }
+                    continue;
+                }
                 collect_exact_usage_from_value(tenant, path, &value, &mut events);
             }
         }
@@ -935,6 +964,157 @@ fn extract_exact_usage_events_from_path(
     }
 
     Ok(events)
+}
+
+/// Remembers the model named in a Codex rollout `turn_context` line (or any
+/// line that carries a plain `model` string) for later token_count events.
+fn model_hint_from_line(value: &Value) -> Option<String> {
+    let model = value
+        .get("payload")
+        .and_then(|payload| payload.get("model"))
+        .or_else(|| value.get("model"))
+        .or_else(|| {
+            value
+                .get("payload")
+                .and_then(|payload| payload.get("info"))
+                .and_then(|info| info.get("model"))
+        })?
+        .as_str()?
+        .trim();
+    if model.is_empty() {
+        return None;
+    }
+    Some(model.to_string())
+}
+
+/// Parses a Codex CLI rollout `token_count` event line:
+/// `{"timestamp":"…","type":"event_msg","payload":{"type":"token_count",
+///   "info":{"total_token_usage":{…},"last_token_usage":{…}}}}`
+/// The per-turn `last_token_usage` is preferred so consecutive lines do not
+/// double-count; `total_token_usage` is the fallback for older files.
+fn codex_token_count_event(
+    tenant: &str,
+    path: &Path,
+    value: &Value,
+    current_model: Option<&str>,
+) -> Option<AiUsageEventV1> {
+    let payload = value.get("payload")?;
+    let payload_type = payload.get("type").and_then(Value::as_str)?;
+    if payload_type != "token_count" {
+        return None;
+    }
+    let info = payload.get("info")?;
+    let usage = info
+        .get("last_token_usage")
+        .or_else(|| info.get("total_token_usage"))?;
+    let token_field = |key: &str| usage.get(key).and_then(Value::as_i64).unwrap_or(0);
+
+    let input_tokens = token_field("input_tokens");
+    let output_tokens = token_field("output_tokens");
+    let cached_input_tokens = token_field("cached_input_tokens");
+    let reasoning_output_tokens = token_field("reasoning_output_tokens");
+    let total_tokens = {
+        let reported = token_field("total_tokens");
+        if reported > 0 {
+            reported
+        } else {
+            input_tokens + output_tokens
+        }
+    };
+    if total_tokens == 0 {
+        return None;
+    }
+
+    let model = current_model.unwrap_or("codex-session").to_string();
+    let source_path_hash = hash_hex(&path.to_string_lossy());
+    let event_id = stable_event_id(
+        "usage_log_codex",
+        &[
+            tenant,
+            &model,
+            &source_path_hash,
+            &hash_hex(&usage.to_string()),
+        ],
+    );
+    let occurred_at = value
+        .get("timestamp")
+        .and_then(Value::as_str)
+        .and_then(|ts| chrono::DateTime::parse_from_rfc3339(ts).ok())
+        .map(|dt| dt.with_timezone(&Utc))
+        .unwrap_or_else(Utc::now);
+
+    let tokens = CanonicalTokenUsage {
+        input_tokens,
+        output_tokens,
+        cached_input_tokens,
+        reasoning_output_tokens,
+        total_tokens,
+        estimated: false,
+        source: UsageSource::ProviderResponse,
+        ..CanonicalTokenUsage::default()
+    };
+
+    Some(
+        AiUsageEventV1 {
+            schema_version: AiUsageEventV1::SCHEMA_VERSION.to_string(),
+            event_id,
+            event_kind: AiUsageEventKind::ModelCallCompleted,
+            occurred_at,
+            received_at: Utc::now(),
+            tenant_id: tenant.to_string(),
+            workspace_id: Some("default".to_string()),
+            device_id: Some(local_device_id()),
+            actor_id_hash: None,
+            actor_kind: None,
+            trace_id: format!("trace_{}", uuid::Uuid::new_v4()),
+            span_id: format!("span_{}", uuid::Uuid::new_v4()),
+            parent_span_id: None,
+            session_id: string_path(value, &["session_id"]),
+            task_id: None,
+            agent_run_id: None,
+            agent_step_id: None,
+            invocation_id: None,
+            agent_id: Some("codex_cli".to_string()),
+            agent_instance_id: None,
+            agent_type: AgentType::CodexCli,
+            parent_agent_id: None,
+            subagent_id: None,
+            shadow_candidate_id: None,
+            provider: Some("openai".to_string()),
+            provider_api: None,
+            provider_request_id: None,
+            model: Some(model),
+            model_version: None,
+            service_tier: None,
+            inference_region: None,
+            surface: "local_usage_log".to_string(),
+            pep_type: Some("local_log_reader".to_string()),
+            control_mode: Some("observe".to_string()),
+            policy_ids: vec![],
+            tokens,
+            cost: CanonicalCostBreakdown::default(),
+            tool_id: None,
+            tool_name: None,
+            mcp_server_id: None,
+            resource_id: None,
+            resource_type: None,
+            latency_ms: None,
+            status: "ok".to_string(),
+            error_code: None,
+            provider_usage_raw: usage.clone(),
+            metadata: json!({
+                "capture_quality": "exact_local_log",
+                "capture_source": "codex_rollout_token_count",
+                "source_path_hash": source_path_hash,
+                "source_path_redacted": redact_path(path),
+                "raw_prompt_or_response_stored": false
+            }),
+            local_sequence: None,
+            cloud_sync_status: Some("pending".to_string()),
+            idempotency_key: String::new(),
+        }
+        .finalize(),
+    )
 }
 
 fn extract_resource_trace_events_from_path(
@@ -1964,6 +2144,87 @@ mod tests {
         assert_eq!(events[0].metadata["capture_quality"], "exact_local_log");
         assert!(events[0].provider_usage_raw.get("prompt_tokens").is_some());
         assert!(events[0].provider_usage_raw.get("output").is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn codex_rollout_token_count_extracts_exact_usage_with_model() -> anyhow::Result<()> {
+        let dir = tempfile::tempdir()?;
+        let path = dir.path().join("rollout-2026-07-14.jsonl");
+        let mut file = std::fs::File::create(&path)?;
+        // Real Codex CLI rollout shape: turn_context carries the model,
+        // token_count carries the usage — no `usage` object anywhere.
+        writeln!(
+            file,
+            "{}",
+            json!({
+                "timestamp": "2026-07-14T09:17:23.456Z",
+                "type": "turn_context",
+                "payload": { "model": "gpt-5.1-codex", "cwd": "/redacted" }
+            })
+        )?;
+        writeln!(
+            file,
+            "{}",
+            json!({
+                "timestamp": "2026-07-14T09:17:41.000Z",
+                "type": "event_msg",
+                "payload": {
+                    "type": "token_count",
+                    "info": {
+                        "total_token_usage": {
+                            "input_tokens": 5000,
+                            "cached_input_tokens": 4000,
+                            "output_tokens": 900,
+                            "reasoning_output_tokens": 300,
+                            "total_tokens": 5900
+                        },
+                        "last_token_usage": {
+                            "input_tokens": 1200,
+                            "cached_input_tokens": 1000,
+                            "output_tokens": 250,
+                            "reasoning_output_tokens": 80,
+                            "total_tokens": 1450
+                        }
+                    }
+                }
+            })
+        )?;
+
+        let events = extract_exact_usage_events_from_path("local", &path)?;
+        assert_eq!(events.len(), 1, "one usage event per token_count line");
+        let event = &events[0];
+        assert_eq!(event.model.as_deref(), Some("gpt-5.1-codex"));
+        assert_eq!(event.provider.as_deref(), Some("openai"));
+        assert_eq!(event.tokens.input_tokens, 1200, "uses per-turn last usage");
+        assert_eq!(event.tokens.output_tokens, 250);
+        assert_eq!(event.tokens.cached_input_tokens, 1000);
+        assert_eq!(event.tokens.reasoning_output_tokens, 80);
+        assert_eq!(event.tokens.total_tokens, 1450);
+        assert!(!event.tokens.estimated, "local-log capture is exact");
+        assert_eq!(
+            event.metadata["capture_source"],
+            "codex_rollout_token_count"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn usage_files_are_found_at_codex_session_depth() -> anyhow::Result<()> {
+        // ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl is four levels below
+        // the scanned root; the old depth cap silently skipped it.
+        let dir = tempfile::tempdir()?;
+        let deep = dir.path().join("sessions/2026/07/14");
+        std::fs::create_dir_all(&deep)?;
+        let file_path = deep.join("rollout-abc.jsonl");
+        std::fs::write(&file_path, "{}\n")?;
+
+        let mut found = Vec::new();
+        collect_usage_files(dir.path(), &mut found, 0);
+        assert!(
+            found.contains(&file_path),
+            "codex-depth session file must be discovered, got {found:?}"
+        );
         Ok(())
     }
 

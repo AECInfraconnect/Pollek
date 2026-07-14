@@ -886,7 +886,25 @@ fn load_price_catalog_v2() -> Option<PriceCatalogV2> {
         return Some(catalog);
     }
 
-    load_legacy_price_catalog_v1()
+    if let Some(catalog) = load_legacy_price_catalog_v1() {
+        return Some(catalog);
+    }
+
+    embedded_price_catalog()
+}
+
+/// Built-in price catalog used when no `pollek-local-data/price_catalog.*`
+/// file exists on the device (fresh installs, or the process running from a
+/// different working directory). Without this fallback every usage event kept
+/// cost = $0.00 even though exact tokens had been captured. Prices are
+/// estimated list prices per 1M tokens; a shipped catalog file always wins.
+fn embedded_price_catalog() -> Option<PriceCatalogV2> {
+    static CATALOG: std::sync::OnceLock<Option<PriceCatalogV2>> = std::sync::OnceLock::new();
+    CATALOG
+        .get_or_init(|| {
+            serde_json::from_str(include_str!("../data/price_catalog.default.json")).ok()
+        })
+        .clone()
 }
 
 fn load_legacy_price_catalog_v1() -> Option<PriceCatalogV2> {
@@ -1053,5 +1071,98 @@ mod tests {
                 "{model}"
             );
         }
+    }
+
+    fn catalog_test_event(provider: &str, model: &str) -> AiUsageEventV1 {
+        AiUsageEventV1 {
+            schema_version: AiUsageEventV1::SCHEMA_VERSION.to_string(),
+            event_id: "evt_test".to_string(),
+            event_kind: AiUsageEventKind::ModelCallCompleted,
+            occurred_at: Utc::now(),
+            received_at: Utc::now(),
+            tenant_id: "local".to_string(),
+            workspace_id: None,
+            device_id: None,
+            actor_id_hash: None,
+            actor_kind: None,
+            trace_id: "trace_test".to_string(),
+            span_id: "span_test".to_string(),
+            parent_span_id: None,
+            session_id: None,
+            task_id: None,
+            agent_run_id: None,
+            agent_step_id: None,
+            invocation_id: None,
+            agent_id: None,
+            agent_instance_id: None,
+            agent_type: AgentType::Unknown,
+            parent_agent_id: None,
+            subagent_id: None,
+            shadow_candidate_id: None,
+            provider: Some(provider.to_string()),
+            provider_api: None,
+            provider_request_id: None,
+            model: Some(model.to_string()),
+            model_version: None,
+            service_tier: None,
+            inference_region: None,
+            surface: "test".to_string(),
+            pep_type: None,
+            control_mode: None,
+            policy_ids: vec![],
+            tokens: CanonicalTokenUsage {
+                input_tokens: 1_000_000,
+                output_tokens: 100_000,
+                total_tokens: 1_100_000,
+                estimated: false,
+                ..CanonicalTokenUsage::default()
+            },
+            cost: CanonicalCostBreakdown::default(),
+            tool_id: None,
+            tool_name: None,
+            mcp_server_id: None,
+            resource_id: None,
+            resource_type: None,
+            latency_ms: None,
+            status: "ok".to_string(),
+            error_code: None,
+            provider_usage_raw: json!({}),
+            metadata: json!({}),
+            local_sequence: None,
+            cloud_sync_status: None,
+            idempotency_key: String::new(),
+        }
+    }
+
+    #[test]
+    fn embedded_price_catalog_prices_codex_usage_when_no_catalog_file_exists() {
+        // Test cwd (the crate dir) has no pollek-local-data catalog, so this
+        // exercises the embedded fallback that real fresh installs hit.
+        let catalog = embedded_price_catalog();
+        assert!(catalog.is_some(), "embedded price catalog must parse");
+        let Some(catalog) = catalog else {
+            return;
+        };
+        assert_eq!(catalog.schema_version, "pollek.price_catalog.v2");
+
+        let mut event = catalog_test_event("openai", "gpt-5.1-codex");
+        event = apply_cost_catalog(event);
+        assert!(
+            event.cost.total_cost > 0.0,
+            "captured codex tokens must produce a nonzero cost, got {}",
+            event.cost.total_cost
+        );
+
+        // Local engines are explicitly zero-cost (not unknown).
+        let mut local = catalog_test_event("ollama", "llama3.2:latest");
+        local = apply_cost_catalog(local);
+        assert_eq!(local.cost.total_cost, 0.0);
+        assert!(
+            !matches!(
+                local.cost.cost_source,
+                dek_agent_observer::usage_model::CostSource::Unknown
+            ),
+            "local engine pricing should resolve via catalog, not stay unknown"
+        );
     }
 }
