@@ -58,14 +58,20 @@ pub async fn probe_local_models() -> Result<Vec<DiscoveryEvidenceV2>> {
         }));
     }
 
-    // 2. Probe OpenAI-compatible APIs (LM Studio, vLLM, Jan, GPT4All, llama.cpp, text-gen-webui)
+    // 2. Probe OpenAI-compatible APIs. Provider labels use the matching
+    // fingerprint signature id so a port-probe candidate coalesces with the
+    // process-scan candidate for the same engine (one agent, not duplicates).
     let openai_probes = vec![
         ("lmstudio", 1234),
         ("vllm", 8000),
         ("jan", 1337),
         ("gpt4all", 4891),
-        ("llama.cpp/localai", 8080),
-        ("text-gen-webui", 5000),
+        ("llamacpp", 8080),
+        ("text_gen_webui", 5000),
+        ("sglang", 30000),
+        ("xinference", 9997),
+        ("koboldcpp", 5001),
+        ("tgi", 3000),
     ];
 
     for (provider, port) in openai_probes {

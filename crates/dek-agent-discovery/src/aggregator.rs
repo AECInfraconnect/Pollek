@@ -264,6 +264,33 @@ fn coalesce_by_identity(
     by_key.into_values().collect()
 }
 
+/// Extracts the port from a probe endpoint URL like `http://127.0.0.1:11434`.
+fn port_from_url(url: &str) -> Option<u16> {
+    let rest = url.split("://").nth(1).unwrap_or(url);
+    let host_port = rest.split('/').next().unwrap_or(rest);
+    host_port.rsplit_once(':')?.1.parse::<u16>().ok()
+}
+
+/// The catalog carries a few near-duplicate signature ids for the same real
+/// product (e.g. `openclaw` matched from the gateway process vs
+/// `openclaw_agent` matched from an installed binary). Normalize them to one
+/// canonical id for identity bucketing so a single agent never shows up as
+/// several duplicate candidates.
+fn canonical_signature_alias(id: &str) -> &str {
+    match id {
+        "openclaw_agent" => "openclaw",
+        "hiclaw_agent" => "hiclaw",
+        "cursor_desktop" | "cursor_app" => "cursor",
+        "claude_desktop_app" => "claude_desktop",
+        "opencode_cli" => "opencode",
+        "aider_cli" => "aider",
+        "goose_cli" => "goose",
+        "open_interpreter_cli" => "open_interpreter",
+        "antigravity_desktop" => "antigravity_cli",
+        other => other,
+    }
+}
+
 fn candidate_identity_bucket(candidate: &DiscoveredAgentCandidateV2) -> String {
     if matches!(
         candidate.authority_boundary,
@@ -280,7 +307,10 @@ fn candidate_identity_bucket(candidate: &DiscoveredAgentCandidateV2) -> String {
     }
 
     crate::identity_key::identity_key(
-        candidate.matched_signature_id.as_deref(),
+        candidate
+            .matched_signature_id
+            .as_deref()
+            .map(canonical_signature_alias),
         candidate.vendor.as_deref(),
         candidate.product.as_deref(),
         candidate
@@ -481,6 +511,7 @@ fn aggregate_by_merge_key(
         let mut mcp_servers = Vec::new();
         let mut endpoints = Vec::new();
         let mut redacted_env_keys = Vec::new();
+        let mut local_model_provider: Option<String> = None;
 
         let mut ctx = crate::identity::ResolutionContext::default();
         let mut best_hint = crate::identity_hint::IdentityHint::default();
@@ -588,8 +619,22 @@ fn aggregate_by_merge_key(
                             protocol: "http".into(),
                         });
                     }
+                    if let Some(provider) = ev.data.get("provider").and_then(|v| v.as_str()) {
+                        local_model_provider = Some(provider.to_string());
+                    }
+                    // Real listening port: explicit field first, otherwise the
+                    // probed endpoint URL (previously this fell back to 80 and
+                    // broke port-based signature attribution → duplicates).
                     if let Some(port) = ev.data.get("port").and_then(|v| v.as_u64()) {
                         ctx.listening_ports.push(port as u16);
+                    } else if let Some(port) = ev
+                        .data
+                        .get("endpoint")
+                        .and_then(|v| v.as_str())
+                        .or(ev.merge_key.as_deref())
+                        .and_then(port_from_url)
+                    {
+                        ctx.listening_ports.push(port);
                     } else {
                         ctx.listening_ports.push(80);
                     }
@@ -661,6 +706,14 @@ fn aggregate_by_merge_key(
                     }
                     if let Some(port) = ev.data.get("port").and_then(|v| v.as_u64()) {
                         ctx.listening_ports.push(port as u16);
+                    } else if let Some(port) = ev
+                        .data
+                        .get("endpoint")
+                        .and_then(|v| v.as_str())
+                        .or(ev.source_path_redacted.as_deref())
+                        .and_then(port_from_url)
+                    {
+                        ctx.listening_ports.push(port);
                     } else {
                         ctx.listening_ports.push(80);
                     }
@@ -968,6 +1021,38 @@ fn aggregate_by_merge_key(
             for cap in best.capability_tags {
                 if !capability_tags.contains(&cap) {
                     capability_tags.push(cap);
+                }
+            }
+        }
+
+        // A local-model port probe labels its evidence with the engine's
+        // signature id (ollama, vllm, lmstudio, sglang, …). Attribute the
+        // candidate to that signature so it shares an identity bucket with the
+        // process-scan candidate for the same engine — one agent, not two.
+        if matched_signature_id.is_none() {
+            if let Some(provider) = &local_model_provider {
+                let provider_slug = provider.to_lowercase();
+                if let Some(sig) = signatures.iter().find(|s| s.id == provider_slug) {
+                    matched_signature_id = Some(sig.id.clone());
+                    name = sig.display_name.clone();
+                    if vendor.is_none() {
+                        vendor = sig.vendor.clone();
+                    }
+                    if product.is_none() {
+                        product = sig.product.clone();
+                    }
+                    agent_type = InferredAgentType::LocalModelServer;
+                    max_confidence = f64::max(max_confidence, 0.9);
+                    for cap in &sig.capability_tags {
+                        if !capability_tags.contains(cap) {
+                            capability_tags.push(cap.clone());
+                        }
+                    }
+                    matched_signals.push(MatchedSignal {
+                        kind: "local_model_provider".into(),
+                        detail: sig.id.clone(),
+                        weight: 0.9,
+                    });
                 }
             }
         }
@@ -1683,5 +1768,144 @@ mod tests {
             .related_surfaces
             .iter()
             .any(|surface| surface.service_id == "google_ai_studio"));
+    }
+
+    #[test]
+    fn port_from_url_parses_probe_endpoints() {
+        assert_eq!(port_from_url("http://127.0.0.1:11434"), Some(11434));
+        assert_eq!(
+            port_from_url("http://127.0.0.1:30000/v1/models"),
+            Some(30000)
+        );
+        assert_eq!(port_from_url("http://localhost/nope"), None);
+    }
+
+    #[test]
+    fn process_scan_and_port_probe_of_same_engine_coalesce_to_one_agent() {
+        // The same Ollama instance seen two ways: as a process and as the
+        // probed local endpoint on 11434. Must become ONE candidate.
+        let candidates = aggregate_evidence(
+            "local",
+            "device-local",
+            vec![
+                DiscoveryEvidenceV2 {
+                    evidence_id: "ev_ollama_process".into(),
+                    source: EvidenceSource::ProcessScan,
+                    confidence: 0.9,
+                    observed_at: "2026-07-14T00:00:00Z".into(),
+                    privacy_class: PrivacyClass::InternalMetadata,
+                    redacted: true,
+                    data: serde_json::json!({
+                        "resolved_name": "Ollama",
+                        "vendor": "Ollama",
+                        "matched_signature_id": "ollama",
+                        "capability_tags": ["model.server"],
+                        "confirmed": true,
+                    }),
+                    merge_key: Some("process:ollama".into()),
+                    source_path_hash: Some("ollama_hash".into()),
+                    source_path_redacted: Some("<bin>/ollama".into()),
+                },
+                DiscoveryEvidenceV2 {
+                    evidence_id: "ev_ollama_probe".into(),
+                    source: EvidenceSource::LocalModelServer,
+                    confidence: 0.95,
+                    observed_at: "2026-07-14T00:00:01Z".into(),
+                    privacy_class: PrivacyClass::PublicMetadata,
+                    redacted: false,
+                    data: serde_json::json!({
+                        "provider": "ollama",
+                        "endpoint": "http://127.0.0.1:11434",
+                        "models": ["llama3.2:latest"],
+                    }),
+                    merge_key: Some("http://127.0.0.1:11434".into()),
+                    source_path_hash: None,
+                    source_path_redacted: Some("http://127.0.0.1:11434".into()),
+                },
+            ],
+        );
+
+        let ollama_candidates: Vec<_> = candidates
+            .iter()
+            .filter(|c| c.matched_signature_id.as_deref() == Some("ollama"))
+            .collect();
+        assert_eq!(
+            ollama_candidates.len(),
+            1,
+            "process + probe must coalesce into one Ollama candidate, got {:?}",
+            candidates
+                .iter()
+                .map(|c| (&c.display_name, &c.matched_signature_id))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            ollama_candidates[0].evidence.len(),
+            2,
+            "both evidence records belong to the single candidate"
+        );
+    }
+
+    #[test]
+    fn near_duplicate_signature_ids_bucket_as_one_agent() {
+        // The catalog has both `openclaw` (gateway process signature) and
+        // `openclaw_agent` (installed binary signature) for the same product.
+        let candidates = aggregate_evidence(
+            "local",
+            "device-local",
+            vec![
+                DiscoveryEvidenceV2 {
+                    evidence_id: "ev_openclaw_gateway".into(),
+                    source: EvidenceSource::ProcessScan,
+                    confidence: 0.9,
+                    observed_at: "2026-07-14T00:00:00Z".into(),
+                    privacy_class: PrivacyClass::InternalMetadata,
+                    redacted: true,
+                    data: serde_json::json!({
+                        "resolved_name": "OpenClaw Gateway",
+                        "vendor": "OpenClaw",
+                        "matched_signature_id": "openclaw",
+                        "confirmed": true,
+                    }),
+                    merge_key: Some("process:openclaw".into()),
+                    source_path_hash: Some("openclaw_hash".into()),
+                    source_path_redacted: Some("<bin>/node".into()),
+                },
+                DiscoveryEvidenceV2 {
+                    evidence_id: "ev_openclaw_installed".into(),
+                    source: EvidenceSource::ProcessScan,
+                    confidence: 0.85,
+                    observed_at: "2026-07-14T00:00:01Z".into(),
+                    privacy_class: PrivacyClass::InternalMetadata,
+                    redacted: true,
+                    data: serde_json::json!({
+                        "resolved_name": "OpenClaw Agent",
+                        "vendor": "OpenClaw",
+                        "matched_signature_id": "openclaw_agent",
+                        "confirmed": true,
+                    }),
+                    merge_key: Some("installed:openclaw_agent".into()),
+                    source_path_hash: Some("openclaw_hash".into()),
+                    source_path_redacted: Some("<bin>/openclaw".into()),
+                },
+            ],
+        );
+
+        let claw_candidates: Vec<_> = candidates
+            .iter()
+            .filter(|c| {
+                c.matched_signature_id.as_deref() == Some("openclaw")
+                    || c.matched_signature_id.as_deref() == Some("openclaw_agent")
+            })
+            .collect();
+        assert_eq!(
+            claw_candidates.len(),
+            1,
+            "openclaw + openclaw_agent must group into one agent, got {:?}",
+            candidates
+                .iter()
+                .map(|c| (&c.display_name, &c.matched_signature_id))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(claw_candidates[0].instance_count, 2);
     }
 }

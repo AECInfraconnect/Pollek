@@ -103,4 +103,76 @@ mod tests {
                     .any(|d| d == "gemini.google.com")));
         Ok(())
     }
+
+    #[test]
+    fn embedded_baseline_covers_claw_family_engines_and_agentic_browsers() -> anyhow::Result<()> {
+        let baseline: crate::model::FingerprintDefinition =
+            serde_json::from_str(include_str!("../data/baseline.v4.json"))?;
+
+        // Claw family: current + legacy footprints on one signature.
+        let openclaw = baseline
+            .signatures
+            .iter()
+            .find(|s| s.id == "openclaw")
+            .ok_or_else(|| anyhow::anyhow!("openclaw signature missing"))?;
+        assert!(openclaw.ports.contains(&18789), "gateway port footprint");
+        assert!(openclaw.cli_binaries.iter().any(|b| b == "clawdbot"));
+        assert!(openclaw.cli_binaries.iter().any(|b| b == "moltbot"));
+        assert!(openclaw
+            .install_markers
+            .iter()
+            .any(|m| m.path.contains(".clawdbot")));
+
+        // Local model engines running under third-party runtimes.
+        for id in [
+            "vllm",
+            "ollama",
+            "lmstudio",
+            "sglang",
+            "tgi",
+            "xinference",
+            "llamafile",
+            "mlx_lm",
+            "anythingllm",
+            "msty",
+            "koboldcpp",
+        ] {
+            assert!(
+                baseline.signatures.iter().any(|s| s.id == id),
+                "engine signature {id} missing"
+            );
+        }
+
+        // Black-box / agentic browser coverage.
+        for id in [
+            "comet_browser",
+            "dia_browser",
+            "chatgpt_atlas_browser",
+            "headless_browser_automation",
+            "browser_use_agent",
+        ] {
+            assert!(
+                baseline.signatures.iter().any(|s| s.id == id),
+                "browser agent signature {id} missing"
+            );
+        }
+        for id in [
+            "qwen_web",
+            "kimi_web",
+            "zai_web",
+            "notebooklm_web",
+            "genspark_web",
+            "chatgpt_operator_web",
+        ] {
+            assert!(
+                baseline.web_ai_signatures.iter().any(|s| s.id == id),
+                "web ai signature {id} missing"
+            );
+        }
+        assert!(baseline
+            .browser_processes
+            .iter()
+            .any(|b| b.process_names.iter().any(|n| n == "comet")));
+        Ok(())
+    }
 }
