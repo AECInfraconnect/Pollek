@@ -15,7 +15,7 @@ sha2 = "0.10"
 hex = "0.4"
 tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
 tracing = "0.1"
-wasmtime = { version = "24", features = ["async", "pooling-allocator", "cache"] }
+wasmtime = { version = "46", features = ["async", "pooling-allocator", "cache"] }
 
 [lints]
 workspace = true

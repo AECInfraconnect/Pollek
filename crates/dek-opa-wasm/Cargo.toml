@@ -16,7 +16,7 @@ serde_json.workspace = true
 async-trait.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
-wasmtime = "24.0.0"
+wasmtime = "46.0.1"
 bytes = "1.5"
 uuid = { version = "1", features = ["v4"] }
 tokio = { version = "1", features = ["time"] }

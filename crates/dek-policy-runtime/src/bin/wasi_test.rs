@@ -4,7 +4,7 @@
 #![allow(unused)]
 use std::io::Cursor;
 use wasmtime::*;
-use wasmtime_wasi::pipe::{MemoryInputPipe, MemoryOutputPipe};
+use wasmtime_wasi::p2::pipe::{MemoryInputPipe, MemoryOutputPipe};
 use wasmtime_wasi::WasiCtxBuilder;
 
 // ...
