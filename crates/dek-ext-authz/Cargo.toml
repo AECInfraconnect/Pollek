@@ -7,9 +7,10 @@ edition = "2021"
 
 
 [dependencies]
-tonic = "0.12"
+tonic = "0.14"
+tonic-prost = "0.14"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time", "net", "signal"] }
-prost = "0.13"
+prost = "0.14"
 serde_json.workspace = true
 dek-policy-router = { path = "../dek-policy-router" }
 dek-policy-syncer = { path = "../dek-policy-syncer" }
@@ -31,7 +32,7 @@ chrono.workspace = true
 dek-secure-spool = { version = "0.1.0", path = "../dek-secure-spool" }
 
 [build-dependencies]
-tonic-build = "0.12"
+tonic-prost-build = "0.14"
 protoc-bin-vendored = "3.0.0"
 
 [lints]
