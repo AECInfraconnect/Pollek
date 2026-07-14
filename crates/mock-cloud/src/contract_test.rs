@@ -49,6 +49,9 @@ async fn trusted_keys_contract_path_serves_signed_envelope() {
             global_latency_ms: 0_i64,
         })),
         approvals: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+        usage_ledger: std::sync::Arc::new(std::sync::Mutex::new(
+            crate::state::UsageLedger::default(),
+        )),
     };
 
     let app = axum::Router::new()
@@ -123,6 +126,9 @@ async fn telemetry_decision_logs_endpoint_accepts_and_redacts() {
             global_latency_ms: 0_i64,
         })),
         approvals: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+        usage_ledger: std::sync::Arc::new(std::sync::Mutex::new(
+            crate::state::UsageLedger::default(),
+        )),
     };
 
     let app = axum::Router::new()

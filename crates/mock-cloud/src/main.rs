@@ -25,6 +25,7 @@ pub mod threats;
 pub mod tuf;
 pub mod ui;
 pub mod update_server;
+pub mod usage;
 
 #[cfg(test)]
 mod contract_test;
@@ -137,6 +138,7 @@ CwIDAQAB\n-----END PUBLIC KEY-----\n"
             global_latency_ms: 0_i64,
         })),
         approvals: Arc::new(Mutex::new(HashMap::new())),
+        usage_ledger: Arc::new(Mutex::new(crate::state::UsageLedger::default())),
     };
 
     if let Some(profile) = args.seed {
@@ -185,6 +187,7 @@ CwIDAQAB\n-----END PUBLIC KEY-----\n"
                         "bundle.signed-envelope.v1",
                         "telemetry.batch.v1",
                         "registry.sync.v1",
+                        "usage.reporting.v1",
                         "policy.opa-wasm.v1",
                         "policy.cedar.v1",
                         "policy.openfga.v1"
@@ -199,6 +202,7 @@ CwIDAQAB\n-----END PUBLIC KEY-----\n"
         // And telemetry / threats routes are merged before the layer so they are wrapped, BUT
         // the middleware internally explicitly filters to only act on `/v1/` routes.
         .merge(crate::telemetry::router())
+        .merge(crate::usage::router())
         .merge(crate::threats::router())
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
