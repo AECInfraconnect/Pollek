@@ -482,6 +482,7 @@ mod tests {
                 collect_raw_response: false,
                 retention_days: 30,
             },
+            observation_coverage: Vec::new(),
             suggested_control_bindings: vec![],
             telemetry_plan: TelemetryPlan {
                 events_endpoint: "/v1/telemetry/events".into(),

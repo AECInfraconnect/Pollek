@@ -494,9 +494,22 @@ export interface DiscoveredAgentCandidateV2 {
   discovered_mcp_servers: any[];
   suggested_registration: any;
   suggested_observation_profile: any;
+  observation_coverage?: ObservationSignalCoverage[];
   suggested_control_bindings: ControlBindingPlan[];
   telemetry_plan: any;
   labels: Record<string, string>;
+}
+
+export type ObservationSignalStatus =
+  | "active"
+  | "available"
+  | "not_applicable";
+
+export interface ObservationSignalCoverage {
+  signal: string;
+  label: string;
+  status: ObservationSignalStatus;
+  method: string;
 }
 
 export interface DiscoveryEnrichmentSession {

@@ -142,6 +142,7 @@ pub fn entity_for_candidate(candidate: &DiscoveredAgentCandidateV2) -> Discovery
         suggested_registration: serde_json::to_value(&candidate.suggested_registration)
             .unwrap_or_default(),
         suggested_control_bindings: candidate.suggested_control_bindings.clone(),
+        observation_coverage: candidate.observation_coverage.clone(),
         privacy_profile: privacy_profile(candidate),
         performance_cost_class: performance_cost_class(candidate),
         first_seen: candidate.first_seen.clone(),
@@ -824,6 +825,7 @@ mod tests {
                 collect_raw_response: false,
                 retention_days: 7,
             },
+            observation_coverage: Vec::new(),
             suggested_control_bindings: Vec::<ControlBindingPlan>::new(),
             telemetry_plan: TelemetryPlan {
                 events_endpoint: "/events".into(),

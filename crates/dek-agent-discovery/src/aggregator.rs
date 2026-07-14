@@ -120,6 +120,201 @@ fn semantic_defaults_for_agent_type(agent_type: &InferredAgentType) -> Candidate
     }
 }
 
+/// Derives the observation profile (which signals to collect) tailored to the
+/// agent type, so every discovered type is observed for what is actually
+/// observable for it — rather than a single generic profile for all types.
+///
+/// `wants_token_usage` reflects whether the candidate's capability tags imply
+/// LLM/model usage; it is only honored for types where token accounting is
+/// meaningful (an MCP *server*, for instance, exposes tools but does not emit
+/// tokens itself).
+fn observation_profile_for_agent_type(
+    agent_type: &InferredAgentType,
+    wants_token_usage: bool,
+) -> ObservationProfile {
+    let base = ObservationProfile {
+        mode: ObservationMode::ObserveOnly,
+        collect_process_metadata: true,
+        collect_network_metadata: true,
+        collect_mcp_tool_metadata: false,
+        collect_token_usage: wants_token_usage,
+        collect_file_metadata: false,
+        collect_raw_prompt: false,
+        collect_raw_response: false,
+        retention_days: 30,
+    };
+    match agent_type {
+        // Local host agents run on the device: they drive MCP tools and touch
+        // local files, in addition to process/network/token signals.
+        InferredAgentType::DesktopAgent
+        | InferredAgentType::IdeAgent
+        | InferredAgentType::CliAgent
+        | InferredAgentType::AutomationAgent
+        | InferredAgentType::CustomScriptAgent => ObservationProfile {
+            collect_mcp_tool_metadata: true,
+            collect_file_metadata: true,
+            ..base
+        },
+        // An MCP server is the tool surface itself: tool-call metadata and the
+        // resources it exposes matter; the server does not emit model tokens.
+        InferredAgentType::McpServer => ObservationProfile {
+            collect_mcp_tool_metadata: true,
+            collect_file_metadata: true,
+            collect_token_usage: false,
+            ..base
+        },
+        // An MCP client both calls tools and (usually) drives a model.
+        InferredAgentType::McpClient => ObservationProfile {
+            collect_mcp_tool_metadata: true,
+            collect_file_metadata: true,
+            ..base
+        },
+        // A local model server is a network endpoint; token usage comes from
+        // its responses, so keep the token flag and emphasize network metadata.
+        InferredAgentType::LocalModelServer => ObservationProfile {
+            collect_network_metadata: true,
+            ..base
+        },
+        // Browser / web AI surfaces are observed through the browser and the
+        // network (SNI) — there is no local process/file footprint to collect.
+        InferredAgentType::BrowserAgent | InferredAgentType::WebAIApp => ObservationProfile {
+            collect_process_metadata: false,
+            collect_file_metadata: false,
+            collect_network_metadata: true,
+            ..base
+        },
+        // IDE extensions act inside the editor: tool and file metadata.
+        InferredAgentType::IdeExtension => ObservationProfile {
+            collect_mcp_tool_metadata: true,
+            collect_file_metadata: true,
+            ..base
+        },
+        // Unknown AI processes stay metadata-only (no token accounting) until a
+        // user confirms what they are.
+        InferredAgentType::UnknownAiProcess => ObservationProfile {
+            collect_token_usage: false,
+            ..base
+        },
+    }
+}
+
+/// Names the concrete method Pollek uses to retrieve token/cost accounting for
+/// a given agent type. Different types report usage in different places, so the
+/// method is type-specific — this is what LCP/Cloud surface as "how observed".
+fn token_usage_method_for(agent_type: &InferredAgentType) -> &'static str {
+    match agent_type {
+        // CLI / desktop / IDE coding agents persist usage in local session logs
+        // (e.g. ~/.codex/sessions, ~/.claude) which the LCP bridge parses.
+        InferredAgentType::CliAgent
+        | InferredAgentType::DesktopAgent
+        | InferredAgentType::IdeAgent
+        | InferredAgentType::IdeExtension
+        | InferredAgentType::AutomationAgent
+        | InferredAgentType::CustomScriptAgent => "local_session_log + egress_llm_usage_parser",
+        // Local model servers (Ollama, LM Studio, …) return usage inline in the
+        // response body (prompt_eval_count/eval_count, usage.*).
+        InferredAgentType::LocalModelServer => "egress_llm_usage_parser (response body)",
+        // MCP clients drive a model; usage arrives via the provider-response
+        // endpoint or the egress parser.
+        InferredAgentType::McpClient => "provider_response_endpoint + egress_llm_usage_parser",
+        // Browser / web AI surfaces have no local usage log; tokens are
+        // estimated from observed request/response sizes.
+        InferredAgentType::BrowserAgent | InferredAgentType::WebAIApp => "browser_network_estimate",
+        // MCP servers and unconfirmed processes do not emit model tokens.
+        InferredAgentType::McpServer | InferredAgentType::UnknownAiProcess => "not_applicable",
+    }
+}
+
+/// Derives the per-signal observation coverage for a discovered agent from its
+/// type and its suggested observation profile. A signal is `Active` when the
+/// profile collects it, `Available` when Pollek could collect it but leaves it
+/// off by default for this type, and `NotApplicable` when the signal is not
+/// meaningful for the type. This is the displayable, type-aware answer to
+/// "what can Pollek observe for this agent, and how".
+fn observation_coverage_for(
+    agent_type: &InferredAgentType,
+    profile: &ObservationProfile,
+) -> Vec<ObservationSignalCoverage> {
+    let is_web = matches!(
+        agent_type,
+        InferredAgentType::BrowserAgent | InferredAgentType::WebAIApp
+    );
+    let is_mcp_server = matches!(agent_type, InferredAgentType::McpServer);
+    let is_unknown = matches!(agent_type, InferredAgentType::UnknownAiProcess);
+
+    // Helper: pick Active if collected, else Available/NotApplicable.
+    let status = |collected: bool, applicable: bool| {
+        if collected {
+            ObservationSignalStatus::Active
+        } else if applicable {
+            ObservationSignalStatus::Available
+        } else {
+            ObservationSignalStatus::NotApplicable
+        }
+    };
+
+    let mut coverage = Vec::with_capacity(5);
+
+    // Process metadata — meaningful for anything with a local process; web
+    // surfaces have no local process footprint.
+    coverage.push(ObservationSignalCoverage {
+        signal: "process_metadata".into(),
+        label: "Process activity".into(),
+        status: status(profile.collect_process_metadata, !is_web),
+        method: if is_web {
+            "not_applicable".into()
+        } else {
+            "process_scan + ebpf_exec".into()
+        },
+    });
+
+    // Network metadata — always meaningful (egress/SNI).
+    coverage.push(ObservationSignalCoverage {
+        signal: "network_metadata".into(),
+        label: "Network egress".into(),
+        status: status(profile.collect_network_metadata, true),
+        method: "ebpf_egress + sni_inspection".into(),
+    });
+
+    // MCP tool metadata — meaningful for agents that speak MCP; web surfaces do
+    // not expose local MCP tool calls.
+    let mcp_applicable = !is_web && !is_unknown;
+    coverage.push(ObservationSignalCoverage {
+        signal: "mcp_tool_metadata".into(),
+        label: "MCP tool calls".into(),
+        status: status(profile.collect_mcp_tool_metadata, mcp_applicable),
+        method: if mcp_applicable {
+            "mcp_tool_call_metadata".into()
+        } else {
+            "not_applicable".into()
+        },
+    });
+
+    // Token / cost usage — the retrieval method is type-specific.
+    let token_applicable = !is_mcp_server && !is_unknown;
+    coverage.push(ObservationSignalCoverage {
+        signal: "token_usage".into(),
+        label: "Token & cost usage".into(),
+        status: status(profile.collect_token_usage, token_applicable),
+        method: token_usage_method_for(agent_type).into(),
+    });
+
+    // File metadata — meaningful for local host agents; web surfaces have no
+    // local file footprint.
+    coverage.push(ObservationSignalCoverage {
+        signal: "file_metadata".into(),
+        label: "File access".into(),
+        status: status(profile.collect_file_metadata, !is_web),
+        method: if is_web {
+            "not_applicable".into()
+        } else {
+            "ebpf_file_access".into()
+        },
+    });
+
+    coverage
+}
+
 fn service_slug(value: &str) -> String {
     let slug = value
         .chars()
@@ -1227,6 +1422,10 @@ fn aggregate_by_merge_key(
             }
         }
 
+        let observation_profile =
+            observation_profile_for_agent_type(&agent_type, should_collect_token_usage);
+        let observation_coverage = observation_coverage_for(&agent_type, &observation_profile);
+
         candidates.push(DiscoveredAgentCandidateV2 {
             schema_version: "pollek.agent_discovery_candidate.v2".into(),
             candidate_id: cand_id,
@@ -1277,17 +1476,8 @@ fn aggregate_by_merge_key(
                 trust_level: "Unknown".into(),
                 initial_status: "pending_approval".into(),
             },
-            suggested_observation_profile: ObservationProfile {
-                mode: ObservationMode::ObserveOnly,
-                collect_process_metadata: true,
-                collect_network_metadata: true,
-                collect_mcp_tool_metadata: false,
-                collect_token_usage: should_collect_token_usage,
-                collect_file_metadata: false,
-                collect_raw_prompt: false,
-                collect_raw_response: false,
-                retention_days: 30,
-            },
+            suggested_observation_profile: observation_profile,
+            observation_coverage,
             suggested_control_bindings: control_bindings,
             telemetry_plan: TelemetryPlan {
                 events_endpoint: "/v1/telemetry/events".into(),
@@ -1683,5 +1873,130 @@ mod tests {
             .related_surfaces
             .iter()
             .any(|surface| surface.service_id == "google_ai_studio"));
+    }
+
+    #[test]
+    fn observation_profile_is_tailored_per_agent_type() {
+        // An MCP server exposes tools but emits no model tokens itself.
+        let server = observation_profile_for_agent_type(&InferredAgentType::McpServer, true);
+        assert!(server.collect_mcp_tool_metadata);
+        assert!(!server.collect_token_usage, "mcp server has no tokens");
+        assert!(server.collect_file_metadata);
+
+        // A CLI coding agent runs locally: MCP tools + local files + tokens.
+        let cli = observation_profile_for_agent_type(&InferredAgentType::CliAgent, true);
+        assert!(cli.collect_mcp_tool_metadata);
+        assert!(cli.collect_file_metadata);
+        assert!(cli.collect_token_usage);
+
+        // A web AI surface has no local process/file footprint.
+        let web = observation_profile_for_agent_type(&InferredAgentType::WebAIApp, true);
+        assert!(!web.collect_process_metadata);
+        assert!(!web.collect_file_metadata);
+        assert!(web.collect_network_metadata);
+
+        // The profiles are genuinely different, not a single generic one.
+        assert_ne!(
+            server.collect_token_usage, cli.collect_token_usage,
+            "server and cli profiles must differ on token usage"
+        );
+        assert_ne!(
+            web.collect_process_metadata, cli.collect_process_metadata,
+            "web and cli profiles must differ on process metadata"
+        );
+    }
+
+    #[test]
+    fn observation_coverage_reports_status_and_method_per_type() {
+        // Non-panicking lookup so this test cannot trip the panic-guard scan.
+        fn signal(coverage: &[ObservationSignalCoverage], name: &str) -> ObservationSignalCoverage {
+            coverage
+                .iter()
+                .find(|c| c.signal == name)
+                .cloned()
+                .unwrap_or(ObservationSignalCoverage {
+                    signal: format!("MISSING:{name}"),
+                    label: String::new(),
+                    status: ObservationSignalStatus::NotApplicable,
+                    method: String::new(),
+                })
+        }
+
+        // Local model server: token usage is Active and comes from the response
+        // body parser (Ollama-style prompt_eval_count/eval_count).
+        let profile =
+            observation_profile_for_agent_type(&InferredAgentType::LocalModelServer, true);
+        let coverage = observation_coverage_for(&InferredAgentType::LocalModelServer, &profile);
+        let token = signal(&coverage, "token_usage");
+        assert_eq!(token.status, ObservationSignalStatus::Active);
+        assert!(
+            token.method.contains("response body"),
+            "local model token method should be response-body based, got {}",
+            token.method
+        );
+
+        // MCP server: token usage is NotApplicable.
+        let server_profile =
+            observation_profile_for_agent_type(&InferredAgentType::McpServer, true);
+        let server_cov = observation_coverage_for(&InferredAgentType::McpServer, &server_profile);
+        assert_eq!(
+            signal(&server_cov, "token_usage").status,
+            ObservationSignalStatus::NotApplicable
+        );
+
+        // Web AI: process/file are NotApplicable, network is Active, token is
+        // estimated from browser network traffic.
+        let web_profile = observation_profile_for_agent_type(&InferredAgentType::WebAIApp, true);
+        let web_cov = observation_coverage_for(&InferredAgentType::WebAIApp, &web_profile);
+        assert_eq!(
+            signal(&web_cov, "process_metadata").status,
+            ObservationSignalStatus::NotApplicable
+        );
+        assert_eq!(
+            signal(&web_cov, "file_metadata").status,
+            ObservationSignalStatus::NotApplicable
+        );
+        assert_eq!(
+            signal(&web_cov, "network_metadata").status,
+            ObservationSignalStatus::Active
+        );
+        assert!(signal(&web_cov, "token_usage").method.contains("browser"));
+
+        // Every type reports all five canonical signals.
+        assert_eq!(coverage.len(), 5);
+        assert_eq!(server_cov.len(), 5);
+        assert_eq!(web_cov.len(), 5);
+    }
+
+    #[test]
+    fn aggregated_candidate_carries_observation_coverage() {
+        let candidates = aggregate_evidence(
+            "local",
+            "device-local",
+            vec![DiscoveryEvidenceV2 {
+                evidence_id: "ev_ollama".into(),
+                source: EvidenceSource::LocalModelServer,
+                confidence: 0.9,
+                observed_at: "2026-07-14T00:00:00Z".into(),
+                privacy_class: PrivacyClass::PublicMetadata,
+                redacted: false,
+                data: serde_json::json!({
+                    "endpoint": "http://127.0.0.1:11434",
+                    "provider": "ollama",
+                    "capability_tags": ["model.server", "net.egress.llm"],
+                }),
+                merge_key: Some("local_model:ollama:11434".into()),
+                source_path_hash: None,
+                source_path_redacted: Some("http://127.0.0.1:11434".into()),
+            }],
+        );
+
+        assert_eq!(candidates.len(), 1);
+        let coverage = &candidates[0].observation_coverage;
+        assert_eq!(coverage.len(), 5, "candidate exposes all five signals");
+        assert!(
+            coverage.iter().any(|c| c.signal == "token_usage"),
+            "candidate coverage includes token usage"
+        );
     }
 }
