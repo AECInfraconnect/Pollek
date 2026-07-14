@@ -1,5 +1,5 @@
 use crate::{compiled_plugin::CompiledPlugin, host_state::HostState};
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Result};
 use std::time::{Duration, Instant};
 use wasmtime::{Engine, Instance, Memory, Store, TypedFunc};
 
@@ -34,7 +34,7 @@ impl PluginWorker {
             dirty: false,
             limits: wasmtime::StoreLimitsBuilder::new()
                 .memory_size(max_memory_bytes)
-                .table_elements(table_elements)
+                .table_elements(table_elements as usize)
                 .instances(2)
                 .memories(1)
                 .tables(1)
@@ -48,27 +48,29 @@ impl PluginWorker {
             .instance_pre
             .instantiate_async(&mut store)
             .await
-            .context("failed to instantiate pre-warmed plugin worker")?;
+            .map_err(|e| {
+                anyhow::anyhow!("failed to instantiate pre-warmed plugin worker: {e:#}")
+            })?;
 
         let memory = instance
             .get_memory(&mut store, "memory")
-            .context("plugin missing exported memory")?;
+            .ok_or_else(|| anyhow::anyhow!("plugin missing exported memory"))?;
 
         let alloc = instance
             .get_typed_func::<i32, i32>(&mut store, "alloc")
-            .context("plugin missing alloc(size)->ptr")?;
+            .map_err(|e| anyhow::anyhow!("plugin missing alloc(size)->ptr: {e:#}"))?;
 
         let dealloc = instance
             .get_typed_func::<(i32, i32), ()>(&mut store, "dealloc")
-            .context("plugin missing dealloc(ptr,len)")?;
+            .map_err(|e| anyhow::anyhow!("plugin missing dealloc(ptr,len): {e:#}"))?;
 
         let reset = instance
             .get_typed_func::<(), i32>(&mut store, "pollek_plugin_reset")
-            .context("plugin missing pollek_plugin_reset()")?;
+            .map_err(|e| anyhow::anyhow!("plugin missing pollek_plugin_reset(): {e:#}"))?;
 
         let decide = instance
             .get_typed_func::<(i32, i32), i64>(&mut store, "pollek_plugin_decide")
-            .context("plugin missing pollek_plugin_decide(ptr,len)")?;
+            .map_err(|e| anyhow::anyhow!("plugin missing pollek_plugin_decide(ptr,len): {e:#}"))?;
 
         Ok(Self {
             generation,
@@ -95,7 +97,7 @@ impl PluginWorker {
 
         self.store
             .set_fuel(fuel_limit)
-            .context("failed to set fuel limit")?;
+            .map_err(|e| anyhow::anyhow!("failed to set fuel limit: {e:#}"))?;
 
         self.uses += 1;
 
@@ -109,7 +111,7 @@ impl PluginWorker {
 
         self.memory
             .write(&mut self.store, ptr as usize, input)
-            .context("failed to write input to guest memory")?;
+            .map_err(|e| anyhow::anyhow!("failed to write input to guest memory: {e:#}"))?;
 
         let result = match self
             .decide
@@ -145,7 +147,7 @@ impl PluginWorker {
         let mut out = vec![0u8; out_len as usize];
         self.memory
             .read(&mut self.store, out_ptr as usize, &mut out)
-            .context("failed to read output from guest memory")?;
+            .map_err(|e| anyhow::anyhow!("failed to read output from guest memory: {e:#}"))?;
 
         self.dealloc
             .call_async(&mut self.store, (out_ptr, out_len))

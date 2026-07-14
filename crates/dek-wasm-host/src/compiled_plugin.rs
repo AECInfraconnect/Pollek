@@ -1,5 +1,5 @@
 use crate::{config::WasmHostConfig, host_state::HostState, plugin_key::PluginKey};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::sync::Arc;
 use wasmtime::{
     Caller, Config, Engine, InstanceAllocationStrategy, InstancePre, Linker, Module,
@@ -15,8 +15,9 @@ pub struct CompiledPlugin {
 pub fn build_engine(cfg: &WasmHostConfig) -> Result<Engine> {
     let mut config = Config::new();
 
-    // Required if the host uses async functions or wants async execution.
-    config.async_support(true);
+    // Async execution is enabled implicitly in wasmtime 46 when the `_async`
+    // instantiation/call APIs are used; `Config::async_support` was deprecated
+    // to a no-op, so it is no longer set here.
 
     // Fuel for limiting CPU instructions
     config.consume_fuel(true);
@@ -31,7 +32,7 @@ pub fn build_engine(cfg: &WasmHostConfig) -> Result<Engine> {
         pool.total_memories(cfg.total_memories);
         pool.total_tables(cfg.total_tables);
         pool.max_memory_size(cfg.max_memory_bytes);
-        pool.table_elements(cfg.table_elements);
+        pool.table_elements(cfg.table_elements as usize);
 
         // Optional: keep a number of warm affine slots for frequently used modules.
         pool.max_unused_warm_slots(cfg.max_core_instances / 2);
@@ -40,16 +41,23 @@ pub fn build_engine(cfg: &WasmHostConfig) -> Result<Engine> {
     }
 
     if cfg.enable_wasmtime_cache {
-        // Uses default cache config. For production, load an explicit cache config path.
-        if let Err(err) = config.cache_config_load_default() {
-            tracing::warn!(
-                error = %err,
-                "failed to load Wasmtime cache config; continuing without the cache"
-            );
+        // wasmtime 46 replaced `Config::cache_config_load_default()` with an
+        // explicit `Cache` handle. `Cache::from_file(None)` loads the default
+        // on-disk cache config; on failure we continue without the cache.
+        match wasmtime::Cache::from_file(None) {
+            Ok(cache) => {
+                config.cache(Some(cache));
+            }
+            Err(err) => {
+                tracing::warn!(
+                    error = %err,
+                    "failed to load Wasmtime cache config; continuing without the cache"
+                );
+            }
         }
     }
 
-    Engine::new(&config)
+    Engine::new(&config).map_err(|e| anyhow::anyhow!("failed to build wasm engine: {e:#}"))
 }
 
 pub fn build_linker(engine: &Engine) -> Result<Linker<HostState>> {
@@ -87,11 +95,12 @@ pub fn compile_plugin(
     wasm_bytes: &[u8],
 ) -> Result<CompiledPlugin> {
     // Signature and hash verification must happen before this function.
-    let module = Module::new(engine, wasm_bytes).context("failed to compile wasm module")?;
+    let module = Module::new(engine, wasm_bytes)
+        .map_err(|e| anyhow::anyhow!("failed to compile wasm module: {e:#}"))?;
 
     let instance_pre = linker
         .instantiate_pre(&module)
-        .context("failed to pre-instantiate plugin imports")?;
+        .map_err(|e| anyhow::anyhow!("failed to pre-instantiate plugin imports: {e:#}"))?;
 
     Ok(CompiledPlugin {
         key,

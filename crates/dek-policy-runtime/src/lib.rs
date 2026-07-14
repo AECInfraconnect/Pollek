@@ -104,9 +104,10 @@ impl PolicyRuntime for MockPolicyRuntime {
     }
 }
 
+use anyhow::Result;
 use wasmtime::*;
-use wasmtime_wasi::pipe::{MemoryInputPipe, MemoryOutputPipe};
-use wasmtime_wasi::preview1;
+use wasmtime_wasi::p1;
+use wasmtime_wasi::p2::pipe::{MemoryInputPipe, MemoryOutputPipe};
 use wasmtime_wasi::WasiCtxBuilder;
 
 /// WASM execution profile defining resource limits
@@ -156,7 +157,7 @@ pub async fn probe_local_pdp(runtime: &dyn PolicyRuntime) -> PdpProbeResult {
 }
 
 struct RuntimeState {
-    wasi: wasmtime_wasi::preview1::WasiP1Ctx,
+    wasi: wasmtime_wasi::p1::WasiP1Ctx,
     limits: StoreLimits,
 }
 
@@ -177,14 +178,17 @@ impl WasmtimePolicyRuntime {
         config.max_wasm_stack(1024 * 1024); // 1 MB stack limit
 
         let engine =
-            Engine::new(&config).map_err(|e| anyhow::anyhow!("Failed to init Engine: {}", e))?;
+            Engine::new(&config).map_err(|e| ::anyhow::anyhow!("Failed to init Engine: {}", e))?;
         let module = Module::from_file(&engine, wasm_path)
-            .map_err(|e| anyhow::anyhow!("Failed to load WASM module: {}", e))?;
+            .map_err(|e| ::anyhow::anyhow!("Failed to load WASM module: {}", e))?;
 
         let mut linker = Linker::new(&engine);
         // Link WASI preview 1 functions to our custom state
-        preview1::add_to_linker_sync(&mut linker, |s: &mut RuntimeState| &mut s.wasi)?;
-        let instance_pre = linker.instantiate_pre(&module)?;
+        p1::add_to_linker_sync(&mut linker, |s: &mut RuntimeState| &mut s.wasi)
+            .map_err(|e| ::anyhow::anyhow!("Failed to link WASI preview1: {e}"))?;
+        let instance_pre = linker
+            .instantiate_pre(&module)
+            .map_err(|e| ::anyhow::anyhow!("Failed to pre-instantiate module: {e}"))?;
 
         Ok(Self {
             engine,
@@ -254,7 +258,18 @@ impl PolicyRuntime for WasmtimePolicyRuntime {
                 }
             }
             Err(e) => {
-                reason = format!("WASM execution failed: {}", e);
+                // Classify the wasm trap by type rather than Display text,
+                // which is not stable across wasmtime versions. Out-of-fuel is
+                // the CPU/instruction guardrail; surface it explicitly so audit
+                // logs distinguish a resource-limit stop from other traps.
+                reason = match e.downcast_ref::<wasmtime::Trap>() {
+                    Some(wasmtime::Trap::OutOfFuel) => {
+                        "WASM execution failed: out of fuel (CPU/instruction limit exceeded)"
+                            .to_string()
+                    }
+                    Some(trap) => format!("WASM execution failed: wasm trap: {trap}"),
+                    None => format!("WASM execution failed: {e:#}"),
+                };
             }
         }
 
