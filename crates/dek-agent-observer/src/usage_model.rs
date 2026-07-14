@@ -40,7 +40,11 @@ pub enum AgentType {
     ManagedAgent,
     GatewayAgent,
     ShadowAi,
+    // Tolerate unrecognized agent-type labels (e.g. a new/local runtime the
+    // caller names itself) by mapping them to `Unknown` rather than rejecting
+    // the whole usage event and losing its exact token/cost data.
     #[default]
+    #[serde(other)]
     Unknown,
 }
 
