@@ -216,3 +216,58 @@ Evidence should classify privacy as `public_metadata`, `internal_metadata`,
   evidence.
 - Dashboard cards show friendly summary details for discovered agents, tools,
   resources, models, and related entities.
+
+## Type-Aware Observability Coverage
+
+Discovery infers an `InferredAgentType` for every candidate (12 variants:
+desktop/IDE/CLI/browser/web-AI agents, MCP client/server, local model server,
+IDE extension, custom-script/automation agents, and unknown AI processes). Early
+builds then attached the *same* generic `ObservationProfile` to all of them,
+which understated observability: a browser-hosted web-AI surface has no local
+process or file footprint, while an MCP server exposes tool calls but emits no
+model tokens of its own.
+
+`aggregator.rs` now derives observability per type:
+
+- `observation_profile_for_agent_type(agent_type, wants_token_usage)` tailors the
+  `collect_*` flags. Local host agents (desktop/IDE/CLI/automation/custom-script)
+  add MCP tool + file metadata; MCP servers add tool + file metadata but force
+  `collect_token_usage = false`; MCP clients add tool + file metadata; local model
+  servers keep network + token; browser/web-AI surfaces drop process + file and
+  keep network; unknown processes stay metadata-only with token accounting off.
+- `observation_coverage_for(agent_type, profile)` produces a displayable
+  `Vec<ObservationSignalCoverage>` — one entry per canonical signal
+  (`process_metadata`, `network_metadata`, `mcp_tool_metadata`, `token_usage`,
+  `file_metadata`). Each entry carries a `status` (`active` when the profile
+  collects it, `available` when Pollek could but the type disables it by default,
+  `not_applicable` when the signal is meaningless for the type) and a
+  type-specific `method` describing *how* the signal is collected.
+
+The `token_usage` method is deliberately type-specific, reflecting that each
+agent type reports usage differently:
+
+| Agent type | Token/cost retrieval method |
+|---|---|
+| CLI / desktop / IDE / automation / custom-script agents | `local_session_log + egress_llm_usage_parser` (e.g. `~/.codex/sessions`, `~/.claude`) |
+| Local model server (Ollama, LM Studio, …) | `egress_llm_usage_parser (response body)` — `prompt_eval_count`/`eval_count`, `usage.*` |
+| MCP client | `provider_response_endpoint + egress_llm_usage_parser` |
+| Browser / web-AI surface | `browser_network_estimate` |
+| MCP server / unknown process | `not_applicable` |
+
+### Surfacing on LCP and Cloud
+
+- **Pollek LCP**: `DiscoveredAgentCandidateV2.observation_coverage` rides on the
+  discovery candidate the Auto Discovery detail pane already loads. The Overview
+  tab renders an "Observability coverage" card showing each signal's status badge
+  (Observed / Available / N/A) and its collection method.
+- **Pollek Cloud**: `capability_inventory::entity_for_candidate` copies the
+  coverage onto the metadata-only `DiscoveryEntityCandidate`, which the LCP cloud
+  sync loop already forwards as a `discovery_entity` object (raw prompts/responses
+  and secrets are never included). The Cloud endpoint
+  `GET /v1/tenants/{tenant}/registry/observability/coverage` aggregates coverage
+  across synced entities — per device, per agent, plus a fleet-wide tally of how
+  many agents actively report each signal — mirroring the LCP Activity view on
+  the Cloud side.
+
+Coverage is derived, metadata-only, and privacy-preserving: it describes *what*
+Pollek can observe and *how*, never the observed content itself.

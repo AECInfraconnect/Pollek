@@ -134,6 +134,36 @@ pub enum ObservationMode {
     EnforceAfterPolicy,
 }
 
+/// A single observation signal and whether it is being (or can be) collected
+/// for a given agent, plus the concrete method used to collect it. This makes
+/// the observability of every discovered type explicit and displayable on both
+/// Pollek LCP and Pollek Cloud, instead of leaving operators to infer it from
+/// the raw `ObservationProfile` booleans.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ObservationSignalCoverage {
+    /// Stable machine identifier for the signal (e.g. `token_usage`).
+    pub signal: String,
+    /// Human-readable label for UIs.
+    pub label: String,
+    /// Whether this signal is actively collected, merely available, or does
+    /// not apply to this agent type.
+    pub status: ObservationSignalStatus,
+    /// The concrete collection method for this signal on this agent type
+    /// (e.g. `egress_llm_usage_parser`, `mcp_tool_call_metadata`).
+    pub method: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ObservationSignalStatus {
+    /// The signal is collected for this agent under the suggested profile.
+    Active,
+    /// The signal could be collected but is disabled by default for this type.
+    Available,
+    /// The signal is not meaningful for this agent type.
+    NotApplicable,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscoveryEvidenceV2 {
     pub evidence_id: String,
@@ -297,6 +327,11 @@ pub struct DiscoveredAgentCandidateV2 {
     pub discovered_mcp_servers: Vec<DiscoveredMcpServerRef>,
     pub suggested_registration: SuggestedAgentRegistration,
     pub suggested_observation_profile: ObservationProfile,
+    /// Per-signal observability derived from the agent type and profile: what
+    /// Pollek can actually observe for this specific agent, and how. Surfaced
+    /// on Pollek LCP (Activity tab) and forwarded to Pollek Cloud.
+    #[serde(default)]
+    pub observation_coverage: Vec<ObservationSignalCoverage>,
     pub suggested_control_bindings: Vec<ControlBindingPlan>,
     pub telemetry_plan: TelemetryPlan,
     pub labels: BTreeMap<String, String>,
@@ -389,6 +424,11 @@ pub struct DiscoveryEntityCandidate {
     pub relationships: Vec<DiscoveredRelationship>,
     pub suggested_registration: serde_json::Value,
     pub suggested_control_bindings: Vec<ControlBindingPlan>,
+    /// Per-signal observability for this entity (metadata-only, safe to sync to
+    /// Pollek Cloud), so the Cloud console can show what Pollek observes for
+    /// each discovered agent and how — mirroring the LCP Activity view.
+    #[serde(default)]
+    pub observation_coverage: Vec<ObservationSignalCoverage>,
     pub privacy_profile: String,
     pub performance_cost_class: String,
     pub first_seen: String,

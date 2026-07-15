@@ -1583,6 +1583,53 @@ export function AutoDiscovery() {
                     </div>
                   </div>
 
+                  {c.observation_coverage &&
+                    c.observation_coverage.length > 0 && (
+                      <div className="rounded-xl border bg-muted/30 p-4">
+                        <h4 className="text-sm font-semibold">
+                          Observability coverage
+                        </h4>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          What Pollek can observe for this {c.inferred_agent_type}{" "}
+                          agent, and how each signal is collected.
+                        </p>
+                        <div className="mt-3 grid gap-2 md:grid-cols-2">
+                          {c.observation_coverage.map((signal) => (
+                            <div
+                              key={signal.signal}
+                              className="rounded-lg border bg-background/70 p-3"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-medium">
+                                  {signal.label}
+                                </span>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                    signal.status === "active"
+                                      ? "bg-emerald-500/15 text-emerald-700"
+                                      : signal.status === "available"
+                                        ? "bg-sky-500/15 text-sky-700"
+                                        : "bg-muted text-muted-foreground"
+                                  }`}
+                                >
+                                  {signal.status === "active"
+                                    ? "Observed"
+                                    : signal.status === "available"
+                                      ? "Available"
+                                      : "N/A"}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {signal.method === "not_applicable"
+                                  ? "Not applicable to this agent type."
+                                  : `via ${signal.method}`}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                   {c.related_surfaces?.length > 0 && (
                     <div className="rounded-xl border bg-muted/30 p-4">
                       <h4 className="text-sm font-semibold">
