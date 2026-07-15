@@ -1,0 +1,152 @@
+{
+  "schema_version": "pollek.price_catalog.v2",
+  "catalog_version": "embedded-2026-07",
+  "default_currency": "USD",
+  "models": [
+    {
+      "provider": "openai",
+      "model_match": "^gpt-5.*",
+      "prices_per_1m": { "input_tokens": 1.25, "output_tokens": 10.0, "cached_input_tokens": 0.125 }
+    },
+    {
+      "provider": "openai",
+      "model_match": "^gpt-5.*mini.*",
+      "prices_per_1m": { "input_tokens": 0.25, "output_tokens": 2.0, "cached_input_tokens": 0.025 }
+    },
+    {
+      "provider": "openai",
+      "model_match": "^gpt-4o.*",
+      "prices_per_1m": { "input_tokens": 2.5, "output_tokens": 10.0, "cached_input_tokens": 1.25 }
+    },
+    {
+      "provider": "openai",
+      "model_match": "^gpt-4\\.1.*",
+      "prices_per_1m": { "input_tokens": 2.0, "output_tokens": 8.0, "cached_input_tokens": 0.5 }
+    },
+    {
+      "provider": "openai",
+      "model_match": "^o[34].*",
+      "prices_per_1m": { "input_tokens": 2.0, "output_tokens": 8.0, "cached_input_tokens": 0.5 }
+    },
+    {
+      "provider": "openai",
+      "model_match": "^(codex|.*-codex).*",
+      "prices_per_1m": { "input_tokens": 1.5, "output_tokens": 6.0, "cached_input_tokens": 0.375 }
+    },
+    {
+      "provider": "openai",
+      "model_match": "^codex-session$",
+      "prices_per_1m": { "input_tokens": 1.5, "output_tokens": 6.0, "cached_input_tokens": 0.375 }
+    },
+    {
+      "provider": "anthropic",
+      "model_match": "^claude.*opus.*",
+      "prices_per_1m": { "input_tokens": 15.0, "output_tokens": 75.0, "cached_input_tokens": 1.5 }
+    },
+    {
+      "provider": "anthropic",
+      "model_match": "^claude.*sonnet.*",
+      "prices_per_1m": { "input_tokens": 3.0, "output_tokens": 15.0, "cached_input_tokens": 0.3 }
+    },
+    {
+      "provider": "anthropic",
+      "model_match": "^claude.*haiku.*",
+      "prices_per_1m": { "input_tokens": 1.0, "output_tokens": 5.0, "cached_input_tokens": 0.1 }
+    },
+    {
+      "provider": "anthropic",
+      "model_match": "^claude.*",
+      "prices_per_1m": { "input_tokens": 3.0, "output_tokens": 15.0, "cached_input_tokens": 0.3 }
+    },
+    {
+      "provider": "google",
+      "model_match": "^gemini.*pro.*",
+      "prices_per_1m": { "input_tokens": 1.25, "output_tokens": 10.0 }
+    },
+    {
+      "provider": "google",
+      "model_match": "^gemini.*flash.*",
+      "prices_per_1m": { "input_tokens": 0.3, "output_tokens": 2.5 }
+    },
+    {
+      "provider": "google",
+      "model_match": "^gemini.*",
+      "prices_per_1m": { "input_tokens": 1.25, "output_tokens": 10.0 }
+    },
+    {
+      "provider": "deepseek",
+      "model_match": "^deepseek.*",
+      "prices_per_1m": { "input_tokens": 0.27, "output_tokens": 1.1 }
+    },
+    {
+      "provider": "xai",
+      "model_match": "^grok.*",
+      "prices_per_1m": { "input_tokens": 3.0, "output_tokens": 15.0 }
+    },
+    {
+      "provider": "mistral",
+      "model_match": "^mistral.*",
+      "prices_per_1m": { "input_tokens": 2.0, "output_tokens": 6.0 }
+    },
+    {
+      "provider": "ollama",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "lmstudio",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "vllm",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "llamacpp",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "sglang",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "xinference",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "jan",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "gpt4all",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "localai",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "koboldcpp",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "tgi",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    },
+    {
+      "provider": "mlx_lm",
+      "model_match": ".*",
+      "prices_per_1m": { "input_tokens": 0.0, "output_tokens": 0.0 }
+    }
+  ]
+}
