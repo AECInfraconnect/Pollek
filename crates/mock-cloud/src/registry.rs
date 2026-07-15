@@ -65,7 +65,10 @@ pub fn router() -> Router<AppState> {
             get(get_pep_deployment).patch(patch_pep_deployment),
         )
         // Local Control Plane snapshot sync (push from cloud_sync loop)
-        .route("/sync", post(registry_sync).get(get_registry_sync));
+        .route("/sync", post(registry_sync).get(get_registry_sync))
+        // Cloud-side observability coverage: what Pollek observes for each
+        // discovered agent, aggregated from synced discovery entities.
+        .route("/observability/coverage", get(observability_coverage));
 
     Router::new()
         .nest("/v1/registry", internal_routes.clone())
@@ -653,6 +656,91 @@ async fn get_registry_sync(State(state): State<AppState>) -> impl IntoResponse {
     )
 }
 
+/// Aggregates the per-signal observation coverage carried by synced discovery
+/// entities, so the Cloud console can show what Pollek observes for every
+/// discovered agent — broken down per device and per agent, plus a fleet-wide
+/// tally of how many agents actively report each signal. This mirrors the LCP
+/// Activity view on the Cloud side.
+async fn observability_coverage(State(state): State<AppState>) -> impl IntoResponse {
+    let reg = match state.registry.lock() {
+        Ok(reg) => reg,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    let entities = reg
+        .synced_objects
+        .get("discovery_entity")
+        .cloned()
+        .unwrap_or_default();
+
+    let mut agents: Vec<serde_json::Value> = Vec::new();
+    // signal -> (active, available, not_applicable)
+    let mut signal_tally: std::collections::BTreeMap<String, (u64, u64, u64)> =
+        std::collections::BTreeMap::new();
+    let mut devices: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+
+    for entity in &entities {
+        let coverage = entity
+            .get("observation_coverage")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        if coverage.is_empty() {
+            continue;
+        }
+        let device_id = entity
+            .get("device_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+        devices.insert(device_id.clone());
+
+        for signal in &coverage {
+            let name = signal
+                .get("signal")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown")
+                .to_string();
+            let status = signal.get("status").and_then(|v| v.as_str()).unwrap_or("");
+            let counters = signal_tally.entry(name).or_insert((0, 0, 0));
+            match status {
+                "active" => counters.0 += 1,
+                "available" => counters.1 += 1,
+                _ => counters.2 += 1,
+            }
+        }
+
+        agents.push(json!({
+            "candidate_id": entity.get("candidate_id"),
+            "display_name": entity.get("display_name"),
+            "device_id": device_id,
+            "observation_coverage": coverage,
+        }));
+    }
+
+    let signals: Vec<serde_json::Value> = signal_tally
+        .into_iter()
+        .map(|(signal, (active, available, not_applicable))| {
+            json!({
+                "signal": signal,
+                "active": active,
+                "available": available,
+                "not_applicable": not_applicable,
+            })
+        })
+        .collect();
+
+    (
+        StatusCode::OK,
+        Json(json!({
+            "schema_version": "observability-coverage.v1",
+            "device_count": devices.len(),
+            "agent_count": agents.len(),
+            "signals": signals,
+            "agents": agents,
+        })),
+    )
+}
+
 #[cfg(test)]
 mod sync_tests {
     use axum::body::Body;
@@ -754,6 +842,76 @@ mod sync_tests {
             snapshot["items"]["discovery_entity"][0]["candidate_id"].as_str(),
             Some("agent_demo")
         );
+    }
+
+    #[tokio::test]
+    async fn observability_coverage_aggregates_synced_entities() {
+        let state = test_state();
+        let app = super::router().with_state(state.clone());
+
+        let payload = json!({
+            "tenant_id": "local",
+            "items": [
+                {"type": "discovery_entity", "data": {
+                    "candidate_id": "agent_cli",
+                    "display_name": "Claude Code",
+                    "device_id": "device-a",
+                    "observation_coverage": [
+                        {"signal": "token_usage", "label": "Token & cost usage",
+                         "status": "active", "method": "local_session_log + egress_llm_usage_parser"},
+                        {"signal": "file_metadata", "label": "File access",
+                         "status": "active", "method": "ebpf_file_access"}
+                    ]
+                }},
+                {"type": "discovery_entity", "data": {
+                    "candidate_id": "agent_web",
+                    "display_name": "ChatGPT Web",
+                    "device_id": "device-b",
+                    "observation_coverage": [
+                        {"signal": "token_usage", "label": "Token & cost usage",
+                         "status": "active", "method": "browser_network_estimate"},
+                        {"signal": "file_metadata", "label": "File access",
+                         "status": "not_applicable", "method": "not_applicable"}
+                    ]
+                }}
+            ]
+        });
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/v1/tenants/local/registry/sync")
+            .header("content-type", "application/json")
+            .body(Body::from(payload.to_string()))
+            .unwrap(); //
+        let res = app.clone().oneshot(req).await.unwrap(); //
+        assert_eq!(res.status(), StatusCode::OK);
+
+        let req = Request::builder()
+            .uri("/v1/tenants/local/registry/observability/coverage")
+            .body(Body::empty())
+            .unwrap(); //
+        let res = app.oneshot(req).await.unwrap(); //
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = body_json(res).await;
+        assert_eq!(
+            body["schema_version"].as_str(),
+            Some("observability-coverage.v1")
+        );
+        assert_eq!(body["device_count"].as_u64(), Some(2));
+        assert_eq!(body["agent_count"].as_u64(), Some(2));
+
+        // token_usage is active for both agents; file_metadata is active once
+        // and not-applicable once (the web surface has no local files).
+        let signals = body["signals"].as_array().cloned().unwrap_or_default();
+        let token = signals
+            .iter()
+            .find(|s| s["signal"].as_str() == Some("token_usage"));
+        let file = signals
+            .iter()
+            .find(|s| s["signal"].as_str() == Some("file_metadata"));
+        assert_eq!(token.and_then(|s| s["active"].as_u64()), Some(2));
+        assert_eq!(file.and_then(|s| s["active"].as_u64()), Some(1));
+        assert_eq!(file.and_then(|s| s["not_applicable"].as_u64()), Some(1));
     }
 
     #[tokio::test]

@@ -238,6 +238,38 @@ const candidate = {
     exact_usage_first: true,
     sources: ["process", "filesystem", "usage_logs"],
   },
+  observation_coverage: [
+    {
+      signal: "process_metadata",
+      label: "Process activity",
+      status: "active",
+      method: "process_scan + ebpf_exec",
+    },
+    {
+      signal: "network_metadata",
+      label: "Network egress",
+      status: "active",
+      method: "ebpf_egress + sni_inspection",
+    },
+    {
+      signal: "mcp_tool_metadata",
+      label: "MCP tool calls",
+      status: "active",
+      method: "mcp_tool_call_metadata",
+    },
+    {
+      signal: "token_usage",
+      label: "Token & cost usage",
+      status: "active",
+      method: "local_session_log + egress_llm_usage_parser",
+    },
+    {
+      signal: "file_metadata",
+      label: "File access",
+      status: "active",
+      method: "ebpf_file_access",
+    },
+  ],
   suggested_control_bindings: [
     {
       binding_id: "binding-workspace-files",
