@@ -51,11 +51,15 @@ pub fn score_signature(ctx: &ResolutionContext, sig: &AgentSignatureV2) -> Optio
     let mut score = 0.0_f64;
 
     // --- สัญญาณอ่อน: ชื่อ process ---
+    // ชื่อ interpreter กลาง (node/python/bun/…) ไม่นับเป็นสัญญาณ: agent คนละตัว
+    // จำนวนมากรันใต้ interpreter เดียวกัน จะกลายเป็น false positive/candidate ซ้ำ
     if !ctx.process_name.trim().is_empty()
-        && sig
-            .process_names
-            .iter()
-            .any(|n| !n.trim().is_empty() && n.eq_ignore_ascii_case(&ctx.process_name))
+        && !crate::signature_match::is_generic_host_process(&ctx.process_name)
+        && sig.process_names.iter().any(|n| {
+            !n.trim().is_empty()
+                && !crate::signature_match::is_generic_host_process(n)
+                && n.eq_ignore_ascii_case(&ctx.process_name)
+        })
     {
         push(
             &mut signals,

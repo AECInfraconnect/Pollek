@@ -315,9 +315,13 @@ pub fn fingerprint_process_v2_with_hints(
         {
             consider(0.95, s);
         }
-        if s.process_names.iter().any(|n| {
-            n.eq_ignore_ascii_case(&pname) || strip_ext(&n.to_lowercase()) == strip_ext(&pname)
-        }) {
+        if !crate::signature_match::is_generic_host_process(&pname)
+            && s.process_names.iter().any(|n| {
+                !crate::signature_match::is_generic_host_process(n)
+                    && (n.eq_ignore_ascii_case(&pname)
+                        || strip_ext(&n.to_lowercase()) == strip_ext(&pname))
+            })
+        {
             consider(0.9, s);
         }
         if !cmd.is_empty()

@@ -217,6 +217,68 @@ Evidence should classify privacy as `public_metadata`, `internal_metadata`,
 - Dashboard cards show friendly summary details for discovered agents, tools,
   resources, models, and related entities.
 
+## Coverage Expansion: Black-Box Browser Agents, Claw Family, Third-Party Engines (2026-07-14)
+
+Definition `20260714001` expands the signature/footprint catalog and fixes the
+grouping defects that made one real agent show up as several duplicate
+candidates.
+
+### Black-box agents in browsers
+
+- New process signatures: `comet_browser` (Perplexity Comet), `dia_browser`
+  (The Browser Company Dia), `chatgpt_atlas_browser` (OpenAI's agentic
+  browser), plus matching `browser_processes` entries so tab/window scanning
+  works inside those browsers.
+- `headless_browser_automation` detects CDP/headless-driven black-box
+  automation (Playwright/Puppeteer/Selenium/browser-use style) **only** from
+  automation-specific evidence — `--remote-debugging-port=`, `--headless`,
+  driver binaries (`chromedriver`, `geckodriver`, `headless_shell`), or
+  playwright/puppeteer module paths — never from a normal interactive browser
+  process.
+- `browser_use_agent` fingerprints the Python `browser-use` library.
+- New web-AI domain signatures: Qwen Chat, Kimi, Z.ai GLM, NotebookLM,
+  Genspark, and `operator.chatgpt.com` (ChatGPT agent surface, excluded from
+  the plain `chatgpt.com` signature via `not_alias_domains` so it is counted
+  once, as the agentic surface).
+
+### Claw-family agents
+
+- `openclaw` now carries the full footprint: gateway port `18789`, legacy
+  Clawdbot/Moltbot config dirs (`~/.clawdbot`, `~/.moltbot`), legacy npm
+  package/cli/env markers, and dual-form cmd patterns. Legacy installs that
+  never migrated still resolve to the same canonical agent.
+- `hiclaw` / `claw_orchestrator` gained glob-form cmd patterns that work in
+  the glob-based matchers (regex-only patterns were dead there).
+
+### Local agents in third-party engines
+
+- New engine signatures: `sglang` (30000), `tgi`
+  (text-generation-launcher/router, 3000), `xinference` (9997), `llamafile`
+  (8080), `mlx_lm` (8080), `anythingllm` (3001), `msty`; `vllm` now matches
+  real launch forms (`vllm serve`, `python -m vllm.entrypoints...`).
+- The local model probe now scans SGLang/Xinference/KoboldCpp/TGI ports and
+  labels each probe hit with the engine's signature id.
+
+### Duplicate-candidate prevention (grouping)
+
+One real agent discovered through several sources now coalesces into one
+candidate:
+
+- Probe evidence without an explicit `port` field previously fell back to
+  `listening_ports = 80`, breaking port-based signature attribution; the port
+  is now parsed from the probed endpoint URL.
+- A local-model probe candidate adopts the signature id carried in its
+  provider label, so it lands in the same identity bucket as the process-scan
+  candidate for the same engine (Ollama process + `:11434` endpoint = one
+  agent).
+- Near-duplicate catalog ids (`openclaw_agent` vs `openclaw`, `cursor_desktop`
+  vs `cursor`, `aider_cli` vs `aider`, …) normalize to one canonical id during
+  identity bucketing.
+- Generic interpreter process names (`node`, `python`, `bun`, …) no longer
+  match a signature on the bare process name alone — previously every `node`
+  process on the machine scored 0.9 as OpenClaw, creating both false positives
+  and duplicates. Cmd patterns, exe paths, markers, and ports still match.
+
 ## Type-Aware Observability Coverage
 
 Discovery infers an `InferredAgentType` for every candidate (12 variants:

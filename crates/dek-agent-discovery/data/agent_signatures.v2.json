@@ -1,6 +1,6 @@
 {
   "schema_version": "pollek.agent_signature_catalog.v2",
-  "catalog_version": "2026-06-21",
+  "catalog_version": "2026-07-14",
   "signatures": [
     {
       "id": "claude_desktop",
@@ -236,10 +236,23 @@
       "id": "openclaw_agent",
       "display_name": "OpenClaw Agent",
       "agent_type": "desktop_agent",
-      "process_names": ["openclaw", "openclaw.exe"],
-      "exe_path_patterns": ["**/*openclaw*/**"],
-      "cli_binaries": ["openclaw"],
-      "control_strategies": ["observe_only"]
+      "process_names": ["openclaw", "openclaw.exe", "clawdbot", "moltbot"],
+      "exe_path_patterns": [
+        "**/*openclaw*/**",
+        "**/*clawdbot*/**",
+        "**/*moltbot*/**"
+      ],
+      "cli_binaries": ["openclaw", "clawdbot", "moltbot"],
+      "ports": [18789],
+      "forensic_artifacts": {
+        "config": [
+          "~/.openclaw/openclaw.json",
+          "~/.clawdbot/clawdbot.json",
+          "~/.moltbot/moltbot.json"
+        ],
+        "agents": ["~/.openclaw/agents"]
+      },
+      "control_strategies": ["network_egress_pep", "observe_only"]
     },
     {
       "id": "hiclaw_agent",
@@ -270,6 +283,95 @@
       "agent_type": "web_agent",
       "process_names": [],
       "control_strategies": ["observe_only"]
+    },
+    {
+      "id": "sglang",
+      "display_name": "SGLang",
+      "agent_type": "local_model_server",
+      "process_names": ["sglang"],
+      "ports": [30000],
+      "control_strategies": ["network_egress_pep", "observe_only"]
+    },
+    {
+      "id": "tgi",
+      "display_name": "Text Generation Inference (TGI)",
+      "agent_type": "local_model_server",
+      "process_names": ["text-generation-launcher", "text-generation-router"],
+      "ports": [3000],
+      "control_strategies": ["network_egress_pep", "observe_only"]
+    },
+    {
+      "id": "xinference",
+      "display_name": "Xinference",
+      "agent_type": "local_model_server",
+      "process_names": ["xinference", "xinference-local"],
+      "ports": [9997],
+      "control_strategies": ["network_egress_pep", "observe_only"]
+    },
+    {
+      "id": "llamafile",
+      "display_name": "llamafile",
+      "agent_type": "local_model_server",
+      "process_names": ["llamafile"],
+      "ports": [8080],
+      "control_strategies": ["network_egress_pep", "observe_only"]
+    },
+    {
+      "id": "mlx_lm",
+      "display_name": "MLX LM Server",
+      "agent_type": "local_model_server",
+      "process_names": ["mlx_lm.server"],
+      "ports": [8080],
+      "control_strategies": ["network_egress_pep", "observe_only"]
+    },
+    {
+      "id": "anythingllm",
+      "display_name": "AnythingLLM",
+      "agent_type": "desktop_agent",
+      "process_names": ["AnythingLLM", "anythingllm", "anything-llm"],
+      "ports": [3001],
+      "control_strategies": ["network_egress_pep", "observe_only"]
+    },
+    {
+      "id": "msty",
+      "display_name": "Msty",
+      "agent_type": "desktop_agent",
+      "process_names": ["Msty", "msty", "Msty.exe"],
+      "control_strategies": ["network_egress_pep", "observe_only"]
+    },
+    {
+      "id": "comet_browser",
+      "display_name": "Perplexity Comet Browser",
+      "agent_type": "browser_agent",
+      "process_names": ["Comet", "comet.exe"],
+      "control_strategies": ["network_egress_pep", "observe_only"]
+    },
+    {
+      "id": "dia_browser",
+      "display_name": "Dia Browser",
+      "agent_type": "browser_agent",
+      "process_names": ["Dia", "dia.exe"],
+      "control_strategies": ["network_egress_pep", "observe_only"]
+    },
+    {
+      "id": "chatgpt_atlas_browser",
+      "display_name": "ChatGPT Atlas Browser",
+      "agent_type": "browser_agent",
+      "process_names": ["ChatGPT Atlas", "ChatGPT Atlas.exe"],
+      "control_strategies": ["network_egress_pep", "observe_only"]
+    },
+    {
+      "id": "headless_browser_automation",
+      "display_name": "Headless/CDP Browser Automation",
+      "agent_type": "browser_agent",
+      "process_names": [
+        "headless_shell",
+        "chrome-headless-shell",
+        "chromedriver",
+        "geckodriver",
+        "msedgedriver"
+      ],
+      "control_strategies": ["network_egress_pep", "observe_only"]
     }
   ],
   "web_ai_signatures": [

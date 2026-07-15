@@ -17,6 +17,33 @@ pub struct SignatureMatch {
     pub capability_tags: Vec<String>,
 }
 
+/// Interpreter/runtime host processes that many different agents run under.
+/// A signature listing one of these as a `process_name` must never match on
+/// the bare process name alone — that would tag every `node`/`python` on the
+/// machine as that agent (false positives and duplicate candidates). Such
+/// signatures still match through cmd patterns, exe paths, and markers.
+pub(crate) const GENERIC_HOST_PROCESSES: &[&str] = &[
+    "node",
+    "node.exe",
+    "python",
+    "python.exe",
+    "python3",
+    "python3.exe",
+    "bun",
+    "bun.exe",
+    "deno",
+    "deno.exe",
+    "java",
+    "java.exe",
+    "dotnet",
+    "dotnet.exe",
+];
+
+pub(crate) fn is_generic_host_process(name: &str) -> bool {
+    let name = name.trim().to_ascii_lowercase();
+    GENERIC_HOST_PROCESSES.contains(&name.as_str())
+}
+
 pub fn match_process(
     facts: &ProcessFacts,
     sigs: &[AgentSignatureV2],
@@ -32,8 +59,10 @@ pub fn match_process(
         let mut by = "";
 
         if !pname.trim().is_empty()
+            && !is_generic_host_process(&pname)
             && s.process_names.iter().any(|n| {
                 !n.trim().is_empty()
+                    && !is_generic_host_process(n)
                     && (n.eq_ignore_ascii_case(&pname)
                         || strip_ext(&pname) == strip_ext(&n.to_lowercase()))
             })
@@ -158,9 +187,166 @@ pub fn glob_match(pat: &str, text: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn glob_handles_windowsapps_codex() {
         assert!(glob_match("**/windowsapps/openai.codex_*/**",
             "c:/program files/windowsapps/openai.codex_26.616.3767.0_x64__2p2nqsd0c76g0/app/codex.exe"));
+    }
+
+    fn baseline_match(process_name: &str, exe_path: &str, cmdline: &str) -> Option<SignatureMatch> {
+        let baseline = dek_fingerprint_defs::embedded_baseline();
+        let facts = ProcessFacts {
+            process_name,
+            exe_path,
+            cmdline,
+            installed_paths: &[],
+        };
+        match_process(
+            &facts,
+            &baseline.signatures,
+            &baseline.installed_app_signatures,
+        )
+    }
+
+    #[test]
+    fn vllm_matches_from_real_launch_cmdline() {
+        let m = baseline_match(
+            "python3",
+            "/usr/bin/python3",
+            "python3 -m vllm.entrypoints.openai.api_server --model meta-llama/Llama-3-8b",
+        );
+        assert_eq!(m.map(|m| m.id), Some("vllm".to_string()));
+
+        let m2 = baseline_match("python3", "/usr/bin/python3", "vllm serve Qwen/Qwen3-8B");
+        assert_eq!(m2.map(|m| m.id), Some("vllm".to_string()));
+    }
+
+    #[test]
+    fn sglang_matches_from_launch_server_cmdline() {
+        let m = baseline_match(
+            "python3",
+            "/usr/bin/python3",
+            "python3 -m sglang.launch_server --model-path Qwen/Qwen3-8B --port 30000",
+        );
+        assert_eq!(m.map(|m| m.id), Some("sglang".to_string()));
+    }
+
+    #[test]
+    fn claw_family_legacy_installs_match_openclaw() {
+        // Legacy Clawdbot install (pre-rename) still running under node.
+        let clawdbot = baseline_match(
+            "node",
+            "/usr/local/bin/node",
+            "node /usr/local/lib/node_modules/clawdbot/dist/index.js gateway",
+        );
+        assert_eq!(clawdbot.map(|m| m.id), Some("openclaw".to_string()));
+
+        // Moltbot-era install.
+        let moltbot = baseline_match(
+            "node",
+            "/usr/local/bin/node",
+            "node /home/user/.moltbot/gateway.js",
+        );
+        assert_eq!(moltbot.map(|m| m.id), Some("openclaw".to_string()));
+
+        // Current OpenClaw gateway.
+        let openclaw = baseline_match(
+            "node",
+            "/usr/local/bin/node",
+            "node /usr/local/lib/node_modules/openclaw/dist/gateway.js",
+        );
+        assert_eq!(openclaw.map(|m| m.id), Some("openclaw".to_string()));
+    }
+
+    #[test]
+    fn headless_cdp_browser_matches_blackbox_automation() {
+        // A CDP-driven Chromium (Playwright/Puppeteer/browser-use style).
+        let m = baseline_match(
+            "chromium",
+            "/usr/bin/chromium",
+            "/usr/bin/chromium --headless --remote-debugging-port=9222 --user-data-dir=/tmp/pw",
+        );
+        assert_eq!(
+            m.map(|m| m.id),
+            Some("headless_browser_automation".to_string())
+        );
+
+        // The headless-only shell binary matches by process name alone.
+        let shell = baseline_match(
+            "headless_shell",
+            "/opt/pw-browsers/chromium/headless_shell",
+            "",
+        );
+        assert_eq!(
+            shell.map(|m| m.id),
+            Some("headless_browser_automation".to_string())
+        );
+    }
+
+    #[test]
+    fn browser_use_agent_matches_from_python_cmdline() {
+        let m = baseline_match(
+            "python3",
+            "/usr/bin/python3",
+            "python3 -c import browser_use; agent.run()",
+        );
+        assert_eq!(m.map(|m| m.id), Some("browser_use_agent".to_string()));
+    }
+
+    #[test]
+    fn agentic_browsers_match_by_process_name() {
+        let comet = baseline_match("Comet", "/applications/comet.app/contents/macos/comet", "");
+        assert_eq!(comet.map(|m| m.id), Some("comet_browser".to_string()));
+
+        let atlas = baseline_match(
+            "ChatGPT Atlas",
+            "/applications/chatgpt atlas.app/contents/macos/chatgpt atlas",
+            "",
+        );
+        assert_eq!(
+            atlas.map(|m| m.id),
+            Some("chatgpt_atlas_browser".to_string())
+        );
+
+        let dia = baseline_match("Dia", "/applications/dia.app/contents/macos/dia", "");
+        assert_eq!(dia.map(|m| m.id), Some("dia_browser".to_string()));
+    }
+
+    #[test]
+    fn bare_interpreter_processes_never_match_agent_signatures() {
+        // node/python with no agent-specific cmdline must not be tagged as
+        // OpenClaw/HiClaw/etc. (that caused false positives + duplicates).
+        for (proc_name, exe) in [
+            ("node", "/usr/local/bin/node"),
+            ("node.exe", "c:/program files/nodejs/node.exe"),
+            ("python3", "/usr/bin/python3"),
+            ("bun", "/usr/local/bin/bun"),
+        ] {
+            let m = baseline_match(proc_name, exe, "");
+            assert!(
+                m.is_none(),
+                "bare interpreter {proc_name} must not match, got {:?}",
+                m.map(|m| m.id)
+            );
+        }
+    }
+
+    #[test]
+    fn new_local_engines_match_by_process_name() {
+        for (proc_name, expected) in [
+            ("text-generation-launcher", "tgi"),
+            ("xinference-local", "xinference"),
+            ("llamafile", "llamafile"),
+            ("AnythingLLM", "anythingllm"),
+            ("Msty", "msty"),
+        ] {
+            let m = baseline_match(proc_name, "", "");
+            assert_eq!(
+                m.map(|m| m.id),
+                Some(expected.to_string()),
+                "{proc_name} should match {expected}"
+            );
+        }
     }
 }

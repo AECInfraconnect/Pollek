@@ -1,7 +1,7 @@
 {
   "schema_version": "pollek.def.v4",
-  "definition_version": 20260629001,
-  "released_at": "2026-06-29T00:00:00Z",
+  "definition_version": 20260714001,
+  "released_at": "2026-07-14T00:00:00Z",
   "min_engine_version": "1.0.0",
   "kind": "full",
   "base_version": null,
@@ -976,6 +976,34 @@
     },
     {
       "process_names": [
+        "comet.exe",
+        "comet"
+      ],
+      "engine": "chromium"
+    },
+    {
+      "process_names": [
+        "dia.exe",
+        "dia"
+      ],
+      "engine": "chromium"
+    },
+    {
+      "process_names": [
+        "chatgpt atlas.exe",
+        "chatgpt atlas"
+      ],
+      "engine": "chromium"
+    },
+    {
+      "process_names": [
+        "headless_shell",
+        "chrome-headless-shell"
+      ],
+      "engine": "chromium"
+    },
+    {
+      "process_names": [
         "firefox.exe",
         "firefox"
       ],
@@ -994,10 +1022,13 @@
       "agent",
       "aider",
       "antigravity",
+      "anythingllm",
       "autogen",
       "claude",
+      "clawdbot",
       "cline",
       "codex",
+      "comet",
       "continue",
       "copilot",
       "crewai",
@@ -1010,34 +1041,49 @@
       "koboldcpp",
       "langchain",
       "llama",
+      "llamafile",
       "lm studio",
       "lmstudio",
       "localai",
       "mcp",
+      "moltbot",
+      "msty",
       "ollama",
       "opencode",
       "openclaw",
       "roo",
+      "sglang",
       "vllm",
-      "windsurf"
+      "windsurf",
+      "xinference"
     ],
     "cmd_tokens": [
       "--model",
+      "--remote-debugging-port",
       "@anthropic-ai/claude-code",
       "@google/gemini-cli",
       "@openai/codex",
       "autogen",
+      "browser-use",
+      "browser_use",
       "claude-code",
+      "clawdbot",
       "codex",
       "crewai",
       "gemini-cli",
       "langchain",
       "llama_index",
       "mcp-server",
+      "mlx_lm",
       "modelcontextprotocol",
+      "moltbot",
       "ollama serve",
       "openai",
-      "anthropic"
+      "anthropic",
+      "sglang",
+      "text-generation-launcher",
+      "vllm serve",
+      "xinference"
     ],
     "deny_tokens": [
       "adobe",
@@ -1084,7 +1130,9 @@
         "api.openai.com",
         "platform.openai.com"
       ],
-      "not_alias_domains": [],
+      "not_alias_domains": [
+        "operator.chatgpt.com"
+      ],
       "exclusive_match": true,
       "parent_precedence": [
         "chatgpt_desktop",
@@ -1800,6 +1848,219 @@
       "enforce_scope": "browser_extension_or_workspace_settings",
       "ui_class": "remote_coding_workspace",
       "alias_domains": []
+    },
+    {
+      "id": "qwen_web",
+      "domain": "chat.qwen.ai",
+      "name": "Qwen Chat (Web)",
+      "vendor": "Alibaba",
+      "title_patterns": [
+        "Qwen"
+      ],
+      "app_cmdline_patterns": [
+        "--app=*chat.qwen.ai*"
+      ],
+      "capability_tags": [
+        "llm.chat",
+        "web.chat"
+      ],
+      "risk_weight": 0.5,
+      "canonical_service_id": "alibaba_qwen_chat",
+      "surface_group_id": "alibaba_qwen",
+      "entity_role": "web_ai_surface",
+      "authority_boundary": "local_browser_profile",
+      "related_domains": [
+        "dashscope.aliyuncs.com"
+      ],
+      "not_alias_domains": [],
+      "exclusive_match": true,
+      "parent_precedence": [
+        "browser_profile"
+      ],
+      "observe_scope": "browser_metadata_network_and_prompt_guard_extension",
+      "enforce_scope": "browser_extension_or_agent_settings",
+      "ui_class": "web_chat",
+      "alias_domains": []
+    },
+    {
+      "id": "kimi_web",
+      "domain": "kimi.com",
+      "name": "Kimi (Web)",
+      "vendor": "Moonshot AI",
+      "title_patterns": [
+        "Kimi"
+      ],
+      "app_cmdline_patterns": [
+        "--app=*kimi.com*",
+        "--app=*kimi.moonshot.cn*"
+      ],
+      "capability_tags": [
+        "llm.chat",
+        "web.chat"
+      ],
+      "risk_weight": 0.5,
+      "canonical_service_id": "moonshot_kimi",
+      "surface_group_id": "moonshot",
+      "entity_role": "web_ai_surface",
+      "authority_boundary": "local_browser_profile",
+      "related_domains": [
+        "api.moonshot.cn"
+      ],
+      "not_alias_domains": [],
+      "exclusive_match": true,
+      "parent_precedence": [
+        "browser_profile"
+      ],
+      "observe_scope": "browser_metadata_network_and_prompt_guard_extension",
+      "enforce_scope": "browser_extension_or_agent_settings",
+      "ui_class": "web_chat",
+      "alias_domains": [
+        "kimi.moonshot.cn",
+        "www.kimi.com"
+      ]
+    },
+    {
+      "id": "zai_web",
+      "domain": "chat.z.ai",
+      "name": "Z.ai GLM Chat (Web)",
+      "vendor": "Z.ai",
+      "title_patterns": [
+        "Z.ai",
+        "GLM"
+      ],
+      "app_cmdline_patterns": [
+        "--app=*chat.z.ai*"
+      ],
+      "capability_tags": [
+        "llm.chat",
+        "web.chat"
+      ],
+      "risk_weight": 0.5,
+      "canonical_service_id": "zai_glm_chat",
+      "surface_group_id": "zai",
+      "entity_role": "web_ai_surface",
+      "authority_boundary": "local_browser_profile",
+      "related_domains": [
+        "api.z.ai",
+        "open.bigmodel.cn"
+      ],
+      "not_alias_domains": [],
+      "exclusive_match": true,
+      "parent_precedence": [
+        "browser_profile"
+      ],
+      "observe_scope": "browser_metadata_network_and_prompt_guard_extension",
+      "enforce_scope": "browser_extension_or_agent_settings",
+      "ui_class": "web_chat",
+      "alias_domains": [
+        "chatglm.cn"
+      ]
+    },
+    {
+      "id": "notebooklm_web",
+      "domain": "notebooklm.google.com",
+      "name": "NotebookLM (Web)",
+      "vendor": "Google",
+      "title_patterns": [
+        "NotebookLM"
+      ],
+      "app_cmdline_patterns": [
+        "--app=*notebooklm.google.com*"
+      ],
+      "capability_tags": [
+        "llm.chat",
+        "rag.workspace",
+        "web.chat"
+      ],
+      "risk_weight": 0.6,
+      "canonical_service_id": "google_notebooklm",
+      "surface_group_id": "google_ai",
+      "entity_role": "web_ai_surface",
+      "authority_boundary": "local_browser_profile",
+      "related_domains": [],
+      "not_alias_domains": [
+        "gemini.google.com"
+      ],
+      "exclusive_match": true,
+      "parent_precedence": [
+        "browser_profile"
+      ],
+      "observe_scope": "browser_metadata_network_and_prompt_guard_extension",
+      "enforce_scope": "browser_extension_or_google_agent_settings",
+      "ui_class": "web_chat",
+      "alias_domains": []
+    },
+    {
+      "id": "genspark_web",
+      "domain": "genspark.ai",
+      "name": "Genspark (Web)",
+      "vendor": "Genspark",
+      "title_patterns": [
+        "Genspark"
+      ],
+      "app_cmdline_patterns": [
+        "--app=*genspark.ai*"
+      ],
+      "capability_tags": [
+        "llm.chat",
+        "web.agentic",
+        "web.chat"
+      ],
+      "risk_weight": 0.7,
+      "canonical_service_id": "genspark_super_agent",
+      "surface_group_id": "genspark",
+      "entity_role": "web_ai_surface",
+      "authority_boundary": "local_browser_profile",
+      "related_domains": [],
+      "not_alias_domains": [],
+      "exclusive_match": true,
+      "parent_precedence": [
+        "browser_profile"
+      ],
+      "observe_scope": "browser_metadata_network_and_prompt_guard_extension",
+      "enforce_scope": "browser_extension_or_agent_settings",
+      "ui_class": "web_chat",
+      "alias_domains": [
+        "www.genspark.ai"
+      ]
+    },
+    {
+      "id": "chatgpt_operator_web",
+      "domain": "operator.chatgpt.com",
+      "name": "ChatGPT Operator / Agent Mode (Web)",
+      "vendor": "OpenAI",
+      "title_patterns": [
+        "Operator"
+      ],
+      "app_cmdline_patterns": [
+        "--app=*operator.chatgpt.com*"
+      ],
+      "capability_tags": [
+        "web.agentic",
+        "browser.control",
+        "tool.use",
+        "web.chat"
+      ],
+      "risk_weight": 0.8,
+      "canonical_service_id": "openai_operator",
+      "surface_group_id": "openai",
+      "entity_role": "web_ai_surface",
+      "authority_boundary": "remote_cloud_sandbox",
+      "related_domains": [
+        "chatgpt.com"
+      ],
+      "not_alias_domains": [
+        "chatgpt.com"
+      ],
+      "exclusive_match": true,
+      "parent_precedence": [
+        "chatgpt_desktop",
+        "browser_profile"
+      ],
+      "observe_scope": "browser_metadata_network_and_prompt_guard_extension",
+      "enforce_scope": "browser_extension_or_agent_settings",
+      "ui_class": "web_chat",
+      "alias_domains": []
     }
   ],
   "signatures": [
@@ -2124,7 +2385,7 @@
       "product": "OpenClaw Personal AI Gateway",
       "meta": {
         "author": "pollek-threat-intel",
-        "description": "Self-hosted Node.js AI assistant gateway; multi-channel, browser/file tools, auto credential provisioning (high Shadow-AI risk)",
+        "description": "Self-hosted Node.js AI assistant gateway (formerly Clawdbot, then Moltbot; legacy installs keep ~/.clawdbot or ~/.moltbot); gateway listens on 127.0.0.1:18789 by default; multi-channel, browser/file tools, auto credential provisioning (high Shadow-AI risk)",
         "references": [
           "https://github.com/openclaw/openclaw",
           "https://docs.openclaw.ai/"
@@ -2140,27 +2401,40 @@
       },
       "process_names": [
         "node",
-        "node.exe"
+        "node.exe",
+        "bun",
+        "bun.exe"
       ],
       "binary_hashes": [],
       "config_paths": {
         "all": [
-          "~/.openclaw/openclaw.json"
+          "~/.openclaw/openclaw.json",
+          "~/.clawdbot/clawdbot.json",
+          "~/.moltbot/moltbot.json"
         ]
       },
       "config_parsers": [
         "openclaw_json"
       ],
-      "ports": [],
+      "ports": [
+        18789
+      ],
       "port_probe": null,
       "detection_logic": "any_of",
       "cmd_patterns": [
-        "(?i)\\bopenclaw\\b",
-        "node_modules[\\\\/]openclaw[\\\\/]"
+        "(?i)\\b(openclaw|clawdbot|moltbot)\\b",
+        "node_modules[\\\\/](openclaw|clawdbot|moltbot)[\\\\/]",
+        "**openclaw**",
+        "**clawdbot**",
+        "**moltbot**"
       ],
       "exe_path_patterns": [
         "**/node_modules/openclaw/**",
-        "**/.openclaw/**"
+        "**/node_modules/clawdbot/**",
+        "**/node_modules/moltbot/**",
+        "**/.openclaw/**",
+        "**/.clawdbot/**",
+        "**/.moltbot/**"
       ],
       "install_markers": [
         {
@@ -2172,21 +2446,45 @@
           "path": "~/.openclaw/agents",
           "os": null,
           "weight": 0.4
+        },
+        {
+          "path": "~/.clawdbot/clawdbot.json",
+          "os": null,
+          "weight": 0.6
+        },
+        {
+          "path": "~/.moltbot/moltbot.json",
+          "os": null,
+          "weight": 0.6
         }
       ],
       "cli_binaries": [
-        "openclaw"
+        "openclaw",
+        "clawdbot",
+        "moltbot"
       ],
       "package_markers": [
         {
           "ecosystem": "npm",
           "name": "openclaw",
           "global": true
+        },
+        {
+          "ecosystem": "npm",
+          "name": "clawdbot",
+          "global": true
+        },
+        {
+          "ecosystem": "npm",
+          "name": "moltbot",
+          "global": true
         }
       ],
       "env_markers": [
         "OPENCLAW_HOME",
-        "OPENCLAW_PROFILE"
+        "OPENCLAW_PROFILE",
+        "CLAWDBOT_HOME",
+        "MOLTBOT_HOME"
       ],
       "egress_hosts": [
         "api.anthropic.com",
@@ -2247,7 +2545,8 @@
       "detection_logic": "any_of",
       "cmd_patterns": [
         "(?i)\\bhiclaw\\b",
-        "(?i)hiclaw-(controller|manager|worker)"
+        "(?i)hiclaw-(controller|manager|worker)",
+        "**hiclaw**"
       ],
       "exe_path_patterns": [
         "**/hiclaw/**"
@@ -2312,7 +2611,9 @@
       "detection_logic": "any_of",
       "cmd_patterns": [
         "(?i)clawo-mcp",
-        "@enderfga[\\\\/]claw-orchestrator"
+        "@enderfga[\\\\/]claw-orchestrator",
+        "**clawo-mcp**",
+        "**claw-orchestrator**"
       ],
       "exe_path_patterns": [
         "**/claw-orchestrator/**",
@@ -2939,12 +3240,22 @@
         "vllm"
       ],
       "binary_hashes": [],
-      "config_paths": {},
+      "config_paths": {
+        "all": [
+          "~/.cache/vllm"
+        ]
+      },
       "config_parsers": [],
       "cmd_patterns": [
-        "(?i)python -m vllm"
+        "(?i)python[0-9.]* -m vllm",
+        "(?i)\\bvllm (serve|api_server)\\b",
+        "**-m vllm**",
+        "**vllm serve**",
+        "**vllm.entrypoints**"
       ],
-      "cli_binaries": [],
+      "cli_binaries": [
+        "vllm"
+      ],
       "package_markers": [
         {
           "ecosystem": "pip",
@@ -3281,6 +3592,584 @@
       ]
     },
     {
+      "id": "sglang",
+      "display_name": "SGLang",
+      "agent_type": "local_model_server",
+      "revision": 1,
+      "vendor": "SGLang",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "SGLang inference engine; OpenAI-compatible server, default port 30000 (python -m sglang.launch_server)",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "model",
+          "server"
+        ]
+      },
+      "process_names": [
+        "sglang"
+      ],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [
+        "(?i)python[0-9.]* -m sglang",
+        "(?i)sglang[._]launch_server",
+        "**-m sglang**",
+        "**sglang.launch_server**"
+      ],
+      "cli_binaries": [],
+      "package_markers": [
+        {
+          "ecosystem": "pip",
+          "name": "sglang",
+          "global": true
+        }
+      ],
+      "ports": [
+        30000
+      ],
+      "port_probe": null,
+      "detection_logic": "process_or_port",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.5,
+      "capability_tags": [
+        "model.server"
+      ]
+    },
+    {
+      "id": "tgi",
+      "display_name": "Text Generation Inference (TGI)",
+      "agent_type": "local_model_server",
+      "revision": 1,
+      "vendor": "Hugging Face",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "Hugging Face TGI; text-generation-launcher/router, OpenAI-compatible Messages API",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "model",
+          "server"
+        ]
+      },
+      "process_names": [
+        "text-generation-launcher",
+        "text-generation-router"
+      ],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [
+        "(?i)text-generation-(launcher|router)",
+        "**text-generation-launcher**",
+        "**text-generation-router**"
+      ],
+      "cli_binaries": [
+        "text-generation-launcher"
+      ],
+      "package_markers": [],
+      "ports": [
+        3000
+      ],
+      "port_probe": null,
+      "detection_logic": "process_or_port",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.5,
+      "capability_tags": [
+        "model.server"
+      ]
+    },
+    {
+      "id": "xinference",
+      "display_name": "Xinference",
+      "agent_type": "local_model_server",
+      "revision": 1,
+      "vendor": "Xorbits",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "Xorbits Inference (xinference-local), OpenAI-compatible, default port 9997",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "model",
+          "server"
+        ]
+      },
+      "process_names": [
+        "xinference",
+        "xinference-local"
+      ],
+      "binary_hashes": [],
+      "config_paths": {
+        "all": [
+          "~/.xinference"
+        ]
+      },
+      "config_parsers": [],
+      "cmd_patterns": [
+        "(?i)\\bxinference\\b",
+        "**xinference**"
+      ],
+      "cli_binaries": [
+        "xinference",
+        "xinference-local"
+      ],
+      "package_markers": [
+        {
+          "ecosystem": "pip",
+          "name": "xinference",
+          "global": true
+        }
+      ],
+      "ports": [
+        9997
+      ],
+      "port_probe": null,
+      "detection_logic": "process_or_port",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.5,
+      "capability_tags": [
+        "model.server"
+      ]
+    },
+    {
+      "id": "llamafile",
+      "display_name": "llamafile",
+      "agent_type": "local_model_server",
+      "revision": 1,
+      "vendor": "Mozilla",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "Mozilla llamafile single-file model server (llama.cpp based), default port 8080",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "model",
+          "server"
+        ]
+      },
+      "process_names": [
+        "llamafile"
+      ],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [
+        "(?i)\\.llamafile\\b",
+        "**.llamafile**"
+      ],
+      "cli_binaries": [
+        "llamafile"
+      ],
+      "package_markers": [],
+      "ports": [
+        8080
+      ],
+      "port_probe": null,
+      "detection_logic": "process_or_port",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.5,
+      "capability_tags": [
+        "model.server"
+      ]
+    },
+    {
+      "id": "mlx_lm",
+      "display_name": "MLX LM Server",
+      "agent_type": "local_model_server",
+      "revision": 1,
+      "vendor": "Apple",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "Apple MLX mlx_lm.server, OpenAI-compatible local server on macOS, default port 8080",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "model",
+          "server"
+        ]
+      },
+      "process_names": [
+        "mlx_lm.server"
+      ],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [
+        "(?i)python[0-9.]* -m mlx_lm",
+        "(?i)mlx_lm\\.server",
+        "**-m mlx_lm**",
+        "**mlx_lm.server**"
+      ],
+      "cli_binaries": [
+        "mlx_lm.server"
+      ],
+      "package_markers": [
+        {
+          "ecosystem": "pip",
+          "name": "mlx-lm",
+          "global": true
+        }
+      ],
+      "ports": [
+        8080
+      ],
+      "port_probe": null,
+      "detection_logic": "process_or_port",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.5,
+      "capability_tags": [
+        "model.server"
+      ]
+    },
+    {
+      "id": "anythingllm",
+      "display_name": "AnythingLLM",
+      "agent_type": "desktop_agent",
+      "revision": 1,
+      "vendor": "Mintplex Labs",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "AnythingLLM desktop/docker AI workspace with agents; server default port 3001",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "rag",
+          "agent",
+          "desktop"
+        ]
+      },
+      "process_names": [
+        "AnythingLLM",
+        "anythingllm",
+        "anything-llm"
+      ],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [
+        "(?i)anything-?llm",
+        "**anythingllm**",
+        "**anything-llm**"
+      ],
+      "cli_binaries": [],
+      "package_markers": [],
+      "ports": [
+        3001
+      ],
+      "port_probe": null,
+      "detection_logic": "any_of",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.6,
+      "capability_tags": [
+        "llm.chat",
+        "rag.workspace",
+        "net.egress.llm"
+      ]
+    },
+    {
+      "id": "msty",
+      "display_name": "Msty",
+      "agent_type": "desktop_agent",
+      "revision": 1,
+      "vendor": "Msty",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "Msty desktop AI app bundling a local model sidecar service",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "desktop",
+          "local-model"
+        ]
+      },
+      "process_names": [
+        "Msty",
+        "msty",
+        "Msty.exe"
+      ],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [],
+      "cli_binaries": [],
+      "package_markers": [],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "any_of",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.5,
+      "capability_tags": [
+        "llm.chat",
+        "net.egress.llm"
+      ]
+    },
+    {
+      "id": "comet_browser",
+      "display_name": "Perplexity Comet Browser",
+      "agent_type": "browser_agent",
+      "revision": 1,
+      "vendor": "Perplexity",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "Perplexity's Chromium-based agentic browser; the built-in assistant can act on pages on the user's behalf",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "browser",
+          "agentic",
+          "shadow-ai"
+        ]
+      },
+      "process_names": [
+        "Comet",
+        "comet.exe"
+      ],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [],
+      "exe_path_patterns": [
+        "**/comet.app/**",
+        "**/comet/application/**"
+      ],
+      "cli_binaries": [],
+      "package_markers": [],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "any_of",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.7,
+      "capability_tags": [
+        "browser.agentic",
+        "llm.chat",
+        "web.chat",
+        "net.egress.llm"
+      ]
+    },
+    {
+      "id": "dia_browser",
+      "display_name": "Dia Browser",
+      "agent_type": "browser_agent",
+      "revision": 1,
+      "vendor": "The Browser Company",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "The Browser Company's AI-first browser with built-in chat/agent features",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "browser",
+          "agentic"
+        ]
+      },
+      "process_names": [
+        "Dia",
+        "dia.exe"
+      ],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [],
+      "exe_path_patterns": [
+        "**/dia.app/**"
+      ],
+      "cli_binaries": [],
+      "package_markers": [],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "any_of",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.6,
+      "capability_tags": [
+        "browser.agentic",
+        "llm.chat",
+        "web.chat"
+      ]
+    },
+    {
+      "id": "chatgpt_atlas_browser",
+      "display_name": "ChatGPT Atlas Browser",
+      "agent_type": "browser_agent",
+      "revision": 1,
+      "vendor": "OpenAI",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "OpenAI's Chromium-based browser with ChatGPT sidebar and agent mode acting on pages",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "browser",
+          "agentic",
+          "shadow-ai"
+        ]
+      },
+      "process_names": [
+        "ChatGPT Atlas",
+        "ChatGPT Atlas.exe"
+      ],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [],
+      "exe_path_patterns": [
+        "**/chatgpt atlas.app/**",
+        "**/chatgpt atlas/**"
+      ],
+      "cli_binaries": [],
+      "package_markers": [],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "any_of",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.7,
+      "capability_tags": [
+        "browser.agentic",
+        "llm.chat",
+        "web.chat",
+        "net.egress.llm"
+      ]
+    },
+    {
+      "id": "headless_browser_automation",
+      "display_name": "Headless/CDP Browser Automation",
+      "agent_type": "browser_agent",
+      "revision": 1,
+      "vendor": null,
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "Black-box browser automation: a Chromium/Firefox instance driven headlessly or over the DevTools protocol (Playwright, Puppeteer, Selenium, browser-use). Detected only from automation-specific command-line flags/driver paths so normal interactive browsers never match",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "browser",
+          "automation",
+          "black-box",
+          "shadow-ai"
+        ]
+      },
+      "process_names": [
+        "headless_shell",
+        "chrome-headless-shell",
+        "chromedriver",
+        "geckodriver",
+        "msedgedriver"
+      ],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [
+        "--remote-debugging-port=",
+        "--headless",
+        "**--remote-debugging-port=**",
+        "**--headless**",
+        "**node_modules/playwright**",
+        "**node_modules/puppeteer**",
+        "**-m playwright**"
+      ],
+      "cli_binaries": [
+        "chromedriver",
+        "geckodriver",
+        "playwright"
+      ],
+      "package_markers": [],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "any_of",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.75,
+      "capability_tags": [
+        "browser.automation",
+        "browser.control"
+      ]
+    },
+    {
+      "id": "browser_use_agent",
+      "display_name": "browser-use Agent",
+      "agent_type": "browser_agent",
+      "revision": 1,
+      "vendor": "browser-use",
+      "meta": {
+        "author": "pollek-threat-intel",
+        "description": "Python browser-use library driving a real browser with an LLM (black-box web agent)",
+        "references": [],
+        "added_in": "20260714000",
+        "tags": [
+          "browser",
+          "automation",
+          "black-box",
+          "shadow-ai"
+        ]
+      },
+      "process_names": [],
+      "binary_hashes": [],
+      "config_paths": {},
+      "config_parsers": [],
+      "cmd_patterns": [
+        "(?i)\\bbrowser[-_]use\\b",
+        "**browser_use**",
+        "**browser-use**"
+      ],
+      "cli_binaries": [
+        "browser-use"
+      ],
+      "package_markers": [
+        {
+          "ecosystem": "pip",
+          "name": "browser-use",
+          "global": true
+        }
+      ],
+      "ports": [],
+      "port_probe": null,
+      "detection_logic": "any_of",
+      "control_strategies": [
+        "network_egress_pep",
+        "observe_only"
+      ],
+      "risk_weight": 0.8,
+      "capability_tags": [
+        "browser.automation",
+        "browser.control",
+        "net.egress.llm"
+      ]
+    },
+    {
       "id": "opencode_cli",
       "display_name": "OpenCode",
       "agent_type": "cli_agent",
@@ -3493,8 +4382,8 @@
         "**/OpenClaw/**"
       ],
       "cmd_patterns": [
-        "*openclaw*",
-        "*open-claw*"
+        "**openclaw**",
+        "**open-claw**"
       ],
       "cli_binaries": [
         "openclaw",
@@ -3543,8 +4432,8 @@
         "**/HiClaw/**"
       ],
       "cmd_patterns": [
-        "*hiclaw*",
-        "*hi-claw*"
+        "**hiclaw**",
+        "**hi-claw**"
       ],
       "cli_binaries": [
         "hiclaw",
