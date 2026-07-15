@@ -11,7 +11,7 @@ use dek_agent_discovery::model::{
     DiscoveredAgentCandidateV2, DiscoveryEvidenceV2, EvidenceSource, InferredAgentType,
 };
 use dek_agent_observer::{
-    model::AgentObservationEvent,
+    model::{AgentObservationEvent, EventKind, ResourceAccess},
     usage_model::{
         AgentType, AiUsageEventKind, AiUsageEventV1, CanonicalCostBreakdown, CanonicalTokenUsage,
         UsageSource,
@@ -304,34 +304,29 @@ async fn publish_candidate_observations(
     counts.identity_events += 1;
 
     for resource in resources_for_candidate(candidate) {
-        publish_payload(
-            state,
-            tenant,
-            "resource_access",
-            &stable_event_id(
-                "resource",
-                &[tenant, &agent_id, &resource.target_redacted, &bucket],
-            ),
-            json!({
-                "agent_id": agent_id.clone(),
-                "agent_label": agent_label.clone(),
-                "scope": resource.scope,
-                "kind": resource.kind,
-                "target_redacted": resource.target_redacted,
-                "target_hash": resource.target_hash,
-                "mode": resource.mode,
-                "decision": "observed",
-                "control_method": resource.control_method,
-                "enforced_for_real": false,
-                "bytes": resource.bytes,
-                "count": 1,
-                "classification": resource.classification,
-                "details": resource.details,
-                "observed_at": now,
-            }),
-            true,
-        )
-        .await;
+        let event_id = stable_event_id(
+            "resource",
+            &[tenant, &agent_id, &resource.target_redacted, &bucket],
+        );
+        let payload = json!({
+            "agent_id": agent_id.clone(),
+            "agent_label": agent_label.clone(),
+            "scope": resource.scope,
+            "kind": resource.kind,
+            "target_redacted": resource.target_redacted,
+            "target_hash": resource.target_hash,
+            "mode": resource.mode,
+            "decision": "observed",
+            "control_method": resource.control_method,
+            "enforced_for_real": false,
+            "bytes": resource.bytes,
+            "count": 1,
+            "classification": resource.classification,
+            "details": resource.details,
+            "observed_at": now,
+        });
+        record_resource_observation(state, tenant, &event_id, &payload).await;
+        publish_payload(state, tenant, "resource_access", &event_id, payload, true).await;
         counts.resource_events += 1;
     }
 
@@ -819,6 +814,7 @@ async fn bridge_detailed_resource_traces_from_local_logs(
             if !seen.insert(event_id.clone()) {
                 continue;
             }
+            record_resource_observation(state, tenant, &event_id, &payload).await;
             publish_payload(state, tenant, "resource_access", &event_id, payload, true).await;
             counts.resource_events += 1;
             counts
@@ -1168,6 +1164,13 @@ fn collect_resource_traces_from_value(
     if let Some(event) = resource_trace_event_from_value(tenant, source_path, value) {
         out.push(event);
     }
+    // Codex rollout tool calls carry their arguments as a JSON *string*
+    // (`{"type":"function_call","name":"shell","arguments":"{…}"}`), so plain
+    // recursion never sees inside them. Unwrap once and recurse into the
+    // parsed arguments with the tool name attached for context.
+    if let Some(unwrapped) = unwrap_function_call_arguments(value) {
+        collect_resource_traces_from_value(tenant, source_path, &unwrapped, out);
+    }
     match value {
         Value::Object(map) => {
             for value in map.values() {
@@ -1187,6 +1190,24 @@ fn collect_resource_traces_from_value(
         }
         _ => {}
     }
+}
+
+/// Parses the stringified `arguments` of an agent tool call (Codex
+/// `function_call`, OpenAI-style tool call records) into a real object so the
+/// resource extractors can see the file paths / commands / URLs inside.
+fn unwrap_function_call_arguments(value: &Value) -> Option<Value> {
+    let name = value.get("name").and_then(Value::as_str)?;
+    let arguments = value.get("arguments").and_then(Value::as_str)?;
+    let parsed: Value = serde_json::from_str(arguments).ok()?;
+    let mut object = match parsed {
+        Value::Object(map) => map,
+        _ => return None,
+    };
+    object.insert("tool_name".to_string(), json!(name));
+    // Mark as an executed tool call so command extraction can distinguish
+    // this from static launcher configs that also have a `command` key.
+    object.insert("observed_tool_call".to_string(), json!(true));
+    Some(Value::Object(object))
 }
 
 fn resource_trace_event_from_value(
@@ -1260,7 +1281,230 @@ fn resource_trace_event_from_value(
         ));
     }
 
+    if let Some((target, mut details, mode, kind)) = web_or_email_trace(value) {
+        add_local_log_provenance(&mut details, source_path);
+        let agent_id = agent_id_from_value(value);
+        let event_id = stable_event_id(
+            "resource_web_log",
+            &[
+                tenant,
+                &agent_id,
+                &target,
+                mode,
+                &hash_hex(&details.to_string()),
+            ],
+        );
+        return Some((
+            event_id,
+            json!({
+                "agent_id": agent_id,
+                "agent_label": agent_label_from_value(value),
+                "scope": "local",
+                "kind": kind,
+                "target_redacted": target,
+                "target_hash": hash_hex(&target),
+                "mode": mode,
+                "decision": "observed",
+                "enforced_for_real": false,
+                "count": 1,
+                "classification": string_any(value, &["classification", "sensitivity"]),
+                "details": details,
+                "observed_at": timestamp_from_value(value).unwrap_or_else(Utc::now),
+            }),
+        ));
+    }
+
+    if let Some((target, mut details)) = command_trace(value) {
+        add_local_log_provenance(&mut details, source_path);
+        let agent_id = agent_id_from_value(value);
+        let event_id = stable_event_id(
+            "resource_cmd_log",
+            &[tenant, &agent_id, &target, &hash_hex(&details.to_string())],
+        );
+        return Some((
+            event_id,
+            json!({
+                "agent_id": agent_id,
+                "agent_label": agent_label_from_value(value),
+                "scope": "local",
+                "kind": "command",
+                "target_redacted": target,
+                "target_hash": hash_hex(&target),
+                "mode": "execute",
+                "decision": "observed",
+                "enforced_for_real": false,
+                "count": 1,
+                "classification": Value::Null,
+                "details": details,
+                "observed_at": timestamp_from_value(value).unwrap_or_else(Utc::now),
+            }),
+        ));
+    }
+
     None
+}
+
+/// Extracts a web (or email-service) access from an agent tool call: only the
+/// scheme + host are kept — never the full URL path, query, or content.
+fn web_or_email_trace(value: &Value) -> Option<(String, Value, &'static str, &'static str)> {
+    let url = string_any(
+        value,
+        &["url", "uri", "request_url", "href", "link", "web_url"],
+    )?;
+    let trimmed = url.trim();
+    let (scheme, rest) = trimmed.split_once("://")?;
+    let scheme_lower = scheme.to_ascii_lowercase();
+    if !matches!(
+        scheme_lower.as_str(),
+        "http" | "https" | "smtp" | "smtps" | "imap" | "imaps" | "pop3" | "pop3s" | "mailto"
+    ) {
+        return None;
+    }
+    let host = rest
+        .split(['/', '?', '#'])
+        .next()
+        .unwrap_or(rest)
+        .split('@')
+        .next_back()
+        .unwrap_or(rest)
+        .split(':')
+        .next()
+        .unwrap_or(rest)
+        .trim()
+        .to_ascii_lowercase();
+    if host.is_empty() || host == "localhost" || host.starts_with("127.") || host.starts_with("[") {
+        // Local endpoints are model/MCP servers, not web activity.
+        return None;
+    }
+
+    let is_email = matches!(
+        scheme_lower.as_str(),
+        "smtp" | "smtps" | "imap" | "imaps" | "pop3" | "pop3s" | "mailto"
+    ) || is_email_service_host(&host);
+    let kind = if is_email { "email" } else { "web_domain" };
+    let mode = if is_email && scheme_lower.starts_with("smtp") {
+        "send"
+    } else {
+        "connect"
+    };
+
+    let mut details = Map::new();
+    details.insert(
+        "trace_source".to_string(),
+        json!("known_agent_log_or_session_file"),
+    );
+    details.insert(
+        "capture_quality".to_string(),
+        json!("exact_local_log_metadata"),
+    );
+    details.insert("scheme".to_string(), json!(scheme_lower));
+    details.insert("host".to_string(), json!(host));
+    details.insert("full_url_stored".to_string(), json!(false));
+    if let Some(tool) = string_any(value, &["tool_name", "name", "tool"]) {
+        details.insert("tool_name".to_string(), json!(tool));
+    }
+    Some((host, Value::Object(details), mode, kind))
+}
+
+/// Hosts that indicate email/calendar service access rather than plain web.
+fn is_email_service_host(host: &str) -> bool {
+    const EMAIL_HOSTS: &[&str] = &[
+        "graph.microsoft.com",
+        "outlook.office365.com",
+        "outlook.office.com",
+        "smtp.office365.com",
+        "gmail.googleapis.com",
+        "mail.google.com",
+        "imap.gmail.com",
+        "smtp.gmail.com",
+        "api.mailgun.net",
+        "api.sendgrid.com",
+        "api.postmarkapp.com",
+        "api.resend.com",
+    ];
+    if EMAIL_HOSTS.contains(&host) {
+        return true;
+    }
+    host.starts_with("smtp.")
+        || host.starts_with("imap.")
+        || host.starts_with("pop.")
+        || host.starts_with("pop3.")
+        || host.starts_with("mail.")
+        || host.starts_with("webmail.")
+}
+
+/// Extracts a command execution from an agent tool call. Only the program
+/// name and argument count are kept — never the full command line. To avoid
+/// misreading static launcher configs (MCP server entries also have a
+/// `command` key), a trace is only emitted when the record shows evidence of
+/// actual execution: an argv array (Codex shell calls), an unwrapped tool
+/// call, or execution artifacts like an exit code / output next to it.
+fn command_trace(value: &Value) -> Option<(String, Value)> {
+    let object = value.as_object()?;
+    let command_value = object.get("command").or_else(|| object.get("cmd"))?;
+
+    let executed = command_value.is_array()
+        || object
+            .get("observed_tool_call")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        || [
+            "exit_code",
+            "exitCode",
+            "status",
+            "stdout",
+            "output",
+            "duration_ms",
+        ]
+        .iter()
+        .any(|key| object.contains_key(*key))
+        || string_any(value, &["tool_name", "name"])
+            .map(|tool| {
+                matches!(
+                    tool.to_ascii_lowercase().as_str(),
+                    "bash" | "shell" | "exec" | "exec_command" | "run_command" | "terminal"
+                )
+            })
+            .unwrap_or(false);
+    if !executed {
+        return None;
+    }
+
+    let argv: Vec<String> = match command_value {
+        Value::Array(items) => items
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::to_string)
+            .collect(),
+        Value::String(line) => line.split_whitespace().map(str::to_string).collect(),
+        _ => return None,
+    };
+    let program = argv.first()?;
+    let program_name = std::path::Path::new(program)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(program)
+        .to_string();
+    if program_name.is_empty() {
+        return None;
+    }
+
+    let mut details = Map::new();
+    details.insert(
+        "trace_source".to_string(),
+        json!("known_agent_log_or_session_file"),
+    );
+    details.insert(
+        "capture_quality".to_string(),
+        json!("exact_local_log_metadata"),
+    );
+    details.insert("program".to_string(), json!(program_name));
+    details.insert("arg_count".to_string(), json!(argv.len().saturating_sub(1)));
+    details.insert("full_command_stored".to_string(), json!(false));
+    if let Some(tool) = string_any(value, &["tool_name", "name"]) {
+        details.insert("tool_name".to_string(), json!(tool));
+    }
+    Some((program_name, Value::Object(details)))
 }
 
 fn file_or_folder_trace(value: &Value) -> Option<(String, Value, &'static str, &'static str)> {
@@ -1661,6 +1905,60 @@ async fn persist_estimated_presence_usage(
     crate::usage_api::persist_usage_event(state, tenant, event.clone())
         .await
         .ok()
+}
+
+/// Records a resource-access trace as a real `AgentObservationEvent` so it
+/// reaches the activity read model behind the AI Activity page (Files / Web /
+/// Email / Commands tiles). Telemetry envelopes alone never get there — they
+/// only feed the inventory and cloud-sync paths. Event ids are stable, so a
+/// re-scan of the same log line is a no-op (primary-key insert).
+async fn record_resource_observation(
+    state: &AppState,
+    tenant: &str,
+    event_id: &str,
+    payload: &Value,
+) {
+    let string_field = |key: &str| payload.get(key).and_then(Value::as_str).map(str::to_string);
+    let target = string_field("target_redacted").unwrap_or_else(|| "unknown".to_string());
+    let kind = string_field("kind").unwrap_or_else(|| "resource".to_string());
+    let mode = string_field("mode").unwrap_or_else(|| "read".to_string());
+    let event = AgentObservationEvent {
+        event_id: format!("obs_{event_id}"),
+        tenant_id: tenant.to_string(),
+        trace_id: event_id.to_string(),
+        agent_id: string_field("agent_id"),
+        shadow_candidate_id: None,
+        tool_id: None,
+        resource_id: Some(target.clone()),
+        surface: "local_observe".to_string(),
+        action: format!("{kind}.{mode}"),
+        pep_type: Some("local_log_reader".to_string()),
+        risk_level: None,
+        timestamp: string_field("observed_at").unwrap_or_else(|| Utc::now().to_rfc3339()),
+        payload_json: payload.to_string(),
+        token_usage: None,
+        browser_scope: None,
+        event_kind: EventKind::ResourceAccess,
+        decision: None,
+        tool_call: None,
+        resource_access: Some(ResourceAccess {
+            resource_type: kind,
+            target_redacted: target,
+            bytes: payload.get("bytes").and_then(Value::as_i64),
+            verb: mode,
+        }),
+        latency_ms: None,
+        provider: None,
+    };
+    if let Err(err) = state
+        .observability_store
+        .insert_observation_event(&event)
+        .await
+    {
+        // A duplicate stable id from a re-scan is expected; anything else is
+        // worth a debug note but must not break the observe refresh.
+        tracing::debug!(error = %err, "resource observation insert skipped");
+    }
 }
 
 async fn publish_payload(
@@ -2205,6 +2503,119 @@ mod tests {
         assert_eq!(
             event.metadata["capture_source"],
             "codex_rollout_token_count"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn codex_shell_function_call_yields_command_trace_without_full_cmdline() -> anyhow::Result<()> {
+        let dir = tempfile::tempdir()?;
+        let path = dir.path().join("rollout.jsonl");
+        let mut file = std::fs::File::create(&path)?;
+        // Real Codex shape: arguments is a JSON *string*.
+        writeln!(
+            file,
+            "{}",
+            json!({
+                "timestamp": "2026-07-14T10:00:00.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "function_call",
+                    "name": "shell",
+                    "arguments": "{\"command\":[\"bash\",\"-lc\",\"cargo build --release\"]}"
+                }
+            })
+        )?;
+
+        let events = extract_resource_trace_events_from_path("local", &path)?;
+        let command_events: Vec<_> = events
+            .iter()
+            .filter(|(_, payload)| payload["kind"] == "command")
+            .collect();
+        assert_eq!(command_events.len(), 1, "one command trace expected");
+        let payload = &command_events[0].1;
+        assert_eq!(payload["target_redacted"], "bash");
+        assert_eq!(payload["mode"], "execute");
+        assert_eq!(payload["details"]["full_command_stored"], false);
+        assert!(
+            payload["details"].get("command_line").is_none(),
+            "raw command line must not be persisted"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn web_and_email_access_extracted_host_only() -> anyhow::Result<()> {
+        let dir = tempfile::tempdir()?;
+        let path = dir.path().join("session.jsonl");
+        let mut file = std::fs::File::create(&path)?;
+        // Claude Code-style WebFetch tool call.
+        writeln!(
+            file,
+            "{}",
+            json!({
+                "type": "tool_use",
+                "name": "WebFetch",
+                "input": { "url": "https://docs.example.com/private/page?token=secret" }
+            })
+        )?;
+        // Email service access.
+        writeln!(
+            file,
+            "{}",
+            json!({
+                "tool_name": "send_email",
+                "url": "smtp://smtp.office365.com:587"
+            })
+        )?;
+        // Local model endpoint must NOT count as web activity.
+        writeln!(
+            file,
+            "{}",
+            json!({ "url": "http://127.0.0.1:11434/v1/chat/completions" })
+        )?;
+
+        let events = extract_resource_trace_events_from_path("local", &path)?;
+        let web: Vec<_> = events
+            .iter()
+            .filter(|(_, p)| p["kind"] == "web_domain")
+            .collect();
+        let email: Vec<_> = events
+            .iter()
+            .filter(|(_, p)| p["kind"] == "email")
+            .collect();
+
+        assert_eq!(web.len(), 1, "one web access");
+        assert_eq!(web[0].1["target_redacted"], "docs.example.com");
+        assert!(
+            !web[0].1.to_string().contains("token=secret"),
+            "URL path/query must never be persisted"
+        );
+
+        assert_eq!(email.len(), 1, "one email access");
+        assert_eq!(email[0].1["target_redacted"], "smtp.office365.com");
+        assert_eq!(email[0].1["mode"], "send");
+        Ok(())
+    }
+
+    #[test]
+    fn static_mcp_launcher_config_is_not_a_command_trace() -> anyhow::Result<()> {
+        let dir = tempfile::tempdir()?;
+        let path = dir.path().join("claude.json");
+        std::fs::write(
+            &path,
+            json!({
+                "mcpServers": {
+                    "files": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem"] }
+                }
+            })
+            .to_string(),
+        )?;
+
+        let events = extract_resource_trace_events_from_path("local", &path)?;
+        assert!(
+            events.iter().all(|(_, p)| p["kind"] != "command"),
+            "launcher config must not be reported as executed command, got {events:?}"
         );
         Ok(())
     }
