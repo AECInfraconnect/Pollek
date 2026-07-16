@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
 import { useConfirm } from "../components/ui/ConfirmDialog";
+import { PageHeader } from "../components/layout/PageHeader";
 import {
   DetectionApi,
   type DetectionCoverageResponse,
@@ -51,7 +52,8 @@ function sensorStatus(sensor: ObserveSensor): UiStatus {
 
 function hasCurrentObserve(sensor: ObserveSensor) {
   return (
-    sensor.achieved_level === "observe_only" || sensor.achieved_level === "enforce"
+    sensor.achieved_level === "observe_only" ||
+    sensor.achieved_level === "enforce"
   );
 }
 
@@ -76,9 +78,10 @@ function mappedControls(rule: DetectionRuleSummary) {
 }
 
 function relevantSensors(rule: DetectionRuleSummary, sensors: ObserveSensor[]) {
-  const text = `${rule.name} ${rule.user_message} ${rule.setup_requirements.join(
-    " ",
-  )}`.toLowerCase();
+  const text =
+    `${rule.name} ${rule.user_message} ${rule.setup_requirements.join(
+      " ",
+    )}`.toLowerCase();
   return sensors.filter((sensor) => {
     if (text.includes("file") && sensor.domains.includes("files")) return true;
     if (text.includes("web") && sensor.domains.includes("web")) return true;
@@ -362,8 +365,7 @@ function RuleDetail({
   const setup = async (sensor: ObserveSensor) => {
     const ok = await confirm({
       title: `Allow ${sensor.title}?`,
-      description:
-        `${sensor.setup_action} Pollek will store local setup metadata only; raw prompts, responses, email bodies, and file contents are not stored by this setup flow.`,
+      description: `${sensor.setup_action} Pollek will store local setup metadata only; raw prompts, responses, email bodies, and file contents are not stored by this setup flow.`,
       confirmText: "Allow setup",
       cancelText: "Not now",
     });
@@ -546,34 +548,36 @@ export function DetectionCoveragePage() {
     <div className="space-y-5">
       {!selectedId && (
         <>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-                <ShieldAlert className="h-6 w-6 text-primary" />
-                Observe Coverage
-              </h2>
-              <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                Detection rules, OS/browser sensors, and setup status for
-                AI-agent activity. Pollek shows what it can observe, what it can
-                stop, and what still needs user or OS approval.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void load()}
-              disabled={loading}
-              className="inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-muted disabled:opacity-60"
-            >
-              <RefreshCw
-                className={cn("h-4 w-4", loading && "animate-spin")}
-              />
-              Refresh
-            </button>
-          </div>
+          <PageHeader
+            title="Observe Coverage"
+            subtitle="What Pollek can watch, what it can stop, and what still needs your approval — across detection rules and device sensors."
+            icon={ShieldAlert}
+            actions={
+              <button
+                type="button"
+                onClick={() => void load()}
+                disabled={loading}
+                className="inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-muted disabled:opacity-60"
+              >
+                <RefreshCw
+                  className={cn("h-4 w-4", loading && "animate-spin")}
+                />
+                Refresh
+              </button>
+            }
+          />
 
           <section className="grid gap-3 md:grid-cols-4">
-            <SummaryTile icon={ShieldCheck} label="Rules" value={counts.rules} />
-            <SummaryTile icon={Cpu} label="Ready sensors" value={counts.ready} />
+            <SummaryTile
+              icon={ShieldCheck}
+              label="Rules"
+              value={counts.rules}
+            />
+            <SummaryTile
+              icon={Cpu}
+              label="Ready sensors"
+              value={counts.ready}
+            />
             <SummaryTile
               icon={Eye}
               label="Observe active"

@@ -27,6 +27,7 @@ import {
   resolveActivityAgentNames,
 } from "../lib/agentNameResolver";
 import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
+import { PageHeader } from "../components/layout/PageHeader";
 import { DetailPane } from "../components/master-detail/DetailPane";
 import type { UiStatus } from "../lib/status";
 import { useMode } from "../context/ModeContext";
@@ -217,7 +218,8 @@ function DataCard({ row, selected }: { row: DataAppRow; selected: boolean }) {
     <article
       className={cn(
         "rounded-lg border bg-card/60 p-4 transition-all hover:border-primary/40 hover:bg-card",
-        selected && "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
+        selected &&
+          "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
       )}
     >
       <div className="flex items-start gap-3">
@@ -347,9 +349,7 @@ function DataDetail({
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Kind</div>
-                <div className="mt-0.5 font-medium">
-                  {labelize(row.kind)}
-                </div>
+                <div className="mt-0.5 font-medium">{labelize(row.kind)}</div>
               </div>
             </div>
           </section>
@@ -362,102 +362,109 @@ function DataDetail({
             status={status}
             statusLabel={statusLabel}
             actions={
-              (row.kind === "tool" || row.kind === "resource")
+              row.kind === "tool" || row.kind === "resource"
                 ? [{ label: "Delete", danger: true, onClick: handleDelete }]
                 : undefined
             }
             tabs={[
-        {
-          id: "overview",
-          label: "Overview",
-          content: (
-            <div className="space-y-4">
-              <div className="rounded-lg border bg-background/60 p-4">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <Icon className="h-4 w-4" />
-                  What this record means
-                </div>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  This is a data, app, tool, or service surface that Pollek can
-                  show in one place so you can check whether an AI app touched
-                  it, then decide whether to keep watching, ask first, or block
-                  similar activity where supported.
-                </p>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-lg border bg-background/60 p-4">
-                  <div className="text-xs text-muted-foreground">Category</div>
-                  <div className="mt-1 text-sm font-semibold">
-                    {categoryLabel(row.category)}
-                  </div>
-                </div>
-                <div className="rounded-lg border bg-background/60 p-4">
-                  <div className="text-xs text-muted-foreground">Source</div>
-                  <div className="mt-1 text-sm font-semibold">
-                    {row.source}
-                  </div>
-                </div>
-                <div className="rounded-lg border bg-background/60 p-4">
-                  <div className="text-xs text-muted-foreground">Kind</div>
-                  <div className="mt-1 text-sm font-semibold">
-                    {labelize(row.kind)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ),
-        },
-        {
-          id: "activity",
-          label: "Activity & Rules",
-          content: (
-            <div className="space-y-3">
-              <div className="rounded-lg border bg-background/60 p-4">
-                <h4 className="text-sm font-semibold">
-                  Review this surface in the timeline
-                </h4>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Open Activity to see which AI app used this file, website,
-                  app, command, model, or tool. Open Rules to review allowed and
-                  blocked behavior related to this surface.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  to={`/activity?q=${encodeURIComponent(row.title)}`}
-                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Activity
-                </Link>
-                <Link
-                  to={`/allowed-blocked?q=${encodeURIComponent(row.title)}`}
-                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Rules
-                </Link>
-              </div>
-            </div>
-          ),
-        },
-        ...(showTechnicalDetails
-          ? [
               {
-                id: "technical",
-                label: "Technical Details",
+                id: "overview",
+                label: "Overview",
                 content: (
-                  <Collapsible title="Raw Data">
-                    <pre className="overflow-auto rounded-none border-0 bg-transparent p-0 text-[11px]">
-                      {JSON.stringify(row.raw ?? row, null, 2)}
-                    </pre>
-                  </Collapsible>
+                  <div className="space-y-4">
+                    <div className="rounded-lg border bg-background/60 p-4">
+                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <Icon className="h-4 w-4" />
+                        What this record means
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        This is a data, app, tool, or service surface that
+                        Pollek can show in one place so you can check whether an
+                        AI app touched it, then decide whether to keep watching,
+                        ask first, or block similar activity where supported.
+                      </p>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="rounded-lg border bg-background/60 p-4">
+                        <div className="text-xs text-muted-foreground">
+                          Category
+                        </div>
+                        <div className="mt-1 text-sm font-semibold">
+                          {categoryLabel(row.category)}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border bg-background/60 p-4">
+                        <div className="text-xs text-muted-foreground">
+                          Source
+                        </div>
+                        <div className="mt-1 text-sm font-semibold">
+                          {row.source}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border bg-background/60 p-4">
+                        <div className="text-xs text-muted-foreground">
+                          Kind
+                        </div>
+                        <div className="mt-1 text-sm font-semibold">
+                          {labelize(row.kind)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ),
               },
-            ]
-          : []),
-      ]}
+              {
+                id: "activity",
+                label: "Activity & Rules",
+                content: (
+                  <div className="space-y-3">
+                    <div className="rounded-lg border bg-background/60 p-4">
+                      <h4 className="text-sm font-semibold">
+                        Review this surface in the timeline
+                      </h4>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        Open Activity to see which AI app used this file,
+                        website, app, command, model, or tool. Open Rules to
+                        review allowed and blocked behavior related to this
+                        surface.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        to={`/activity?q=${encodeURIComponent(row.title)}`}
+                        className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Activity
+                      </Link>
+                      <Link
+                        to={`/allowed-blocked?q=${encodeURIComponent(row.title)}`}
+                        className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                        Rules
+                      </Link>
+                    </div>
+                  </div>
+                ),
+              },
+              ...(showTechnicalDetails
+                ? [
+                    {
+                      id: "technical",
+                      label: "Technical Details",
+                      content: (
+                        <Collapsible title="Raw Data">
+                          <pre className="overflow-auto rounded-none border-0 bg-transparent p-0 text-[11px]">
+                            {JSON.stringify(row.raw ?? row, null, 2)}
+                          </pre>
+                        </Collapsible>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
           />
         </section>
 
@@ -606,11 +613,11 @@ export function DataAndAppsPage() {
                   text.includes("llm") ||
                   text.includes("token")
                 ? "ai_models"
-          : text.includes("command")
-            ? "commands"
-            : text.includes("app")
-              ? "apps"
-              : "files";
+                : text.includes("command")
+                  ? "commands"
+                  : text.includes("app")
+                    ? "apps"
+                    : "files";
       return {
         id: `observed-resource:${title}:${index}`,
         tab: category,
@@ -698,16 +705,11 @@ export function DataAndAppsPage() {
     <div className="space-y-5">
       {!selectedId && (
         <>
-          <div>
-            <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-              <Database className="h-6 w-6 text-primary" />
-              Data & Apps
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Files, folders, websites, email, apps, commands, AI APIs, safety
-              guards, and tools touched by AI apps.
-            </p>
-          </div>
+          <PageHeader
+            title="Data & Apps"
+            subtitle="The files, websites, email, apps, and tools your AI apps have touched — grouped so you can see what matters."
+            icon={Database}
+          />
 
           <section className="rounded-lg border bg-card/60 p-4">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
