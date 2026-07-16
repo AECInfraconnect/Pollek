@@ -33,9 +33,11 @@ export function DashboardLayout() {
           toggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         />
-        <main className="relative z-10 flex-1 overflow-y-auto p-4 md:p-5 [&>div:first-of-type]:pt-0">
-          <Breadcrumbs />
-          <Outlet />
+        <main className="relative z-10 flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="mx-auto w-full max-w-[1600px] [&>div:first-of-type]:pt-0">
+            <Breadcrumbs />
+            <Outlet />
+          </div>
         </main>
         <CommandPalette
           open={commandPaletteOpen}

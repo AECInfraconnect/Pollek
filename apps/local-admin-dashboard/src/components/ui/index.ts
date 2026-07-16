@@ -6,3 +6,4 @@ export * from "./ConfirmDialog";
 export * from "./Badge";
 export * from "./Skeleton";
 export * from "./Collapsible";
+export * from "./TechnicalDetails";
