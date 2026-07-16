@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import { Activity, CheckCircle2, Cloud, Cpu, ShieldAlert } from "lucide-react";
 import { CapabilityApi, defaultClient } from "../services/api";
-import type { ContractDiscoveryResponse, LocalCapabilitySnapshotV2 } from "../services/api";
+import type {
+  ContractDiscoveryResponse,
+  LocalCapabilitySnapshotV2,
+} from "../services/api";
 import { statusToken, type UiStatus } from "../lib/status";
 import { cn } from "@/lib/utils";
 import { useMode } from "../context/ModeContext";
@@ -78,14 +82,14 @@ export function Health() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight">Health</h2>
-        <p className="text-sm text-muted-foreground">
-          {snapshot
-            ? `${snapshot.device_id} / contract ${snapshot.contract.local_contract_version}`
-            : "Local service"}
-        </p>
-      </div>
+      <PageHeader
+        title="Health"
+        subtitle={
+          snapshot
+            ? `Device ${snapshot.device_id} · contract ${snapshot.contract.local_contract_version}`
+            : "Local service status for this device."
+        }
+      />
 
       {error && (
         <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-500">
@@ -97,7 +101,9 @@ export function Health() {
         <HealthTile
           icon={Activity}
           title="Local API"
-          detail={contract ? "Contract discovery responded" : "Waiting for discovery"}
+          detail={
+            contract ? "Contract discovery responded" : "Waiting for discovery"
+          }
           status={statusFor(Boolean(contract))}
         />
         <HealthTile
