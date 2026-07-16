@@ -21,6 +21,7 @@ import type { RelatedListItem } from "../components/entity-360/RelatedList";
 import { DetailPane } from "../components/master-detail/DetailPane";
 import { EntityCard } from "../components/master-detail/EntityCard";
 import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
+import { PageHeader } from "../components/layout/PageHeader";
 import { useMode } from "../context/ModeContext";
 import { entityIcon } from "../features/entity-graph/graphUtils";
 import type {
@@ -624,13 +625,11 @@ export default function PoliciesV2() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Policies</h1>
-        <p className="text-sm text-muted-foreground">
-          Governance policies with impact, deployment, decision, and evidence
-          history.
-        </p>
-      </div>
+      <PageHeader
+        title="Policies"
+        subtitle="Governance policies and their impact — open one to see deployment, decisions, and evidence."
+        icon={FileKey}
+      />
 
       <MasterDetailLayout
         items={policies}
