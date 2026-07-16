@@ -21,6 +21,7 @@ import {
 } from "../features/user-activity/userActivityModel";
 import type { SimpleRulePreset } from "../features/user-activity/types";
 import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
+import { PageHeader } from "../components/layout/PageHeader";
 import { DetailPane } from "../components/master-detail/DetailPane";
 import type { UiStatus } from "../lib/status";
 import { useMode } from "../context/ModeContext";
@@ -70,7 +71,8 @@ function PolicyCard({
     <article
       className={cn(
         "rounded-lg border bg-card/60 p-4 transition-all hover:border-primary/40 hover:bg-card",
-        selected && "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
+        selected &&
+          "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
       )}
     >
       <div className="flex items-start gap-3">
@@ -134,7 +136,8 @@ function PresetCard({
     <article
       className={cn(
         "rounded-lg border bg-card/60 p-4 transition-all hover:border-primary/40 hover:bg-card",
-        selected && "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
+        selected &&
+          "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
       )}
     >
       <div className="flex items-start gap-3">
@@ -188,7 +191,10 @@ function PresetCard({
   );
 }
 
-function policyStatus(policy: PolicyDraft): { label: string; status: UiStatus } {
+function policyStatus(policy: PolicyDraft): {
+  label: string;
+  status: UiStatus;
+} {
   const status = policy.meta?.status ?? "draft";
   if (["published", "active", "approved", "validated"].includes(status)) {
     return { label: "Active", status: "ok" };
@@ -349,9 +355,7 @@ function RuleRecordFrame({
               </div>
               <div className="border-b border-border/40 pb-2">
                 <div className="text-xs text-muted-foreground">Behavior</div>
-                <div className="mt-0.5 break-words font-medium">
-                  {behavior}
-                </div>
+                <div className="mt-0.5 break-words font-medium">{behavior}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Targets</div>
@@ -429,95 +433,96 @@ function RuleDetail({
           status={status.status}
           statusLabel={status.label}
           tabs={[
-          {
-            id: "overview",
-            label: "Overview",
-            content: (
-              <div className="space-y-4">
-                <div className="rounded-lg border bg-background/60 p-4">
-                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    What this rule controls
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {row.policy.description ||
-                      "This technical policy can be reviewed in Advanced policies."}
-                  </p>
-                </div>
-                <div className="grid gap-3 md:grid-cols-3">
+            {
+              id: "overview",
+              label: "Overview",
+              content: (
+                <div className="space-y-4">
                   <div className="rounded-lg border bg-background/60 p-4">
-                    <div className="text-xs text-muted-foreground">Type</div>
-                    <div className="mt-1 text-sm font-semibold">
-                      {labelize(row.policy.policy_type)}
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      What this rule controls
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {row.policy.description ||
+                        "This technical policy can be reviewed in Advanced policies."}
+                    </p>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-lg border bg-background/60 p-4">
+                      <div className="text-xs text-muted-foreground">Type</div>
+                      <div className="mt-1 text-sm font-semibold">
+                        {labelize(row.policy.policy_type)}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border bg-background/60 p-4">
+                      <div className="text-xs text-muted-foreground">
+                        AI apps
+                      </div>
+                      <div className="mt-1 text-sm font-semibold">
+                        {row.policy.targets?.agent_ids?.length ?? 0}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border bg-background/60 p-4">
+                      <div className="text-xs text-muted-foreground">
+                        Data targets
+                      </div>
+                      <div className="mt-1 text-sm font-semibold">
+                        {row.policy.targets?.resource_ids?.length ?? 0}
+                      </div>
                     </div>
                   </div>
+                </div>
+              ),
+            },
+            {
+              id: "next",
+              label: "Next Steps",
+              content: (
+                <div className="space-y-3">
                   <div className="rounded-lg border bg-background/60 p-4">
-                    <div className="text-xs text-muted-foreground">
-                      AI apps
-                    </div>
-                    <div className="mt-1 text-sm font-semibold">
-                      {row.policy.targets?.agent_ids?.length ?? 0}
-                    </div>
+                    <h4 className="text-sm font-semibold">
+                      Confirm behavior in Activity
+                    </h4>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      After a rule is active, review AI Activity to confirm
+                      whether the AI app was allowed, blocked, warned, or only
+                      observed.
+                    </p>
                   </div>
-                  <div className="rounded-lg border bg-background/60 p-4">
-                    <div className="text-xs text-muted-foreground">
-                      Data targets
-                    </div>
-                    <div className="mt-1 text-sm font-semibold">
-                      {row.policy.targets?.resource_ids?.length ?? 0}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      to={`/activity?q=${encodeURIComponent(row.policy.name)}`}
+                      className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Activity
+                    </Link>
+                    <Link
+                      to="/policies"
+                      className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                    >
+                      <FileKey className="h-4 w-4" />
+                      Advanced policies
+                    </Link>
                   </div>
                 </div>
-              </div>
-            ),
-          },
-          {
-            id: "next",
-            label: "Next Steps",
-            content: (
-              <div className="space-y-3">
-                <div className="rounded-lg border bg-background/60 p-4">
-                  <h4 className="text-sm font-semibold">
-                    Confirm behavior in Activity
-                  </h4>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    After a rule is active, review AI Activity to confirm whether
-                    the AI app was allowed, blocked, warned, or only observed.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link
-                    to={`/activity?q=${encodeURIComponent(row.policy.name)}`}
-                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-                  >
-                    <Eye className="h-4 w-4" />
-                    Activity
-                  </Link>
-                  <Link
-                    to="/policies"
-                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-                  >
-                    <FileKey className="h-4 w-4" />
-                    Advanced policies
-                  </Link>
-                </div>
-              </div>
-            ),
-          },
-          ...(showTechnicalDetails
-            ? [
-                {
-                  id: "technical",
-                  label: "Technical Details",
-                  content: (
-                    <Collapsible title="Policy JSON">
-                      <pre className="overflow-auto rounded-none border-0 bg-transparent p-0 text-[11px]">
-                        {JSON.stringify(row.policy, null, 2)}
-                      </pre>
-                    </Collapsible>
-                  ),
-                },
-              ]
-            : []),
+              ),
+            },
+            ...(showTechnicalDetails
+              ? [
+                  {
+                    id: "technical",
+                    label: "Technical Details",
+                    content: (
+                      <Collapsible title="Policy JSON">
+                        <pre className="overflow-auto rounded-none border-0 bg-transparent p-0 text-[11px]">
+                          {JSON.stringify(row.policy, null, 2)}
+                        </pre>
+                      </Collapsible>
+                    ),
+                  },
+                ]
+              : []),
           ]}
         />
       </RuleRecordFrame>
@@ -539,77 +544,81 @@ function RuleDetail({
         status={status.status}
         statusLabel={status.label}
         tabs={[
-        {
-          id: "overview",
-          label: "Overview",
-          content: (
-            <div className="space-y-4">
-              <div className="rounded-lg border bg-background/60 p-4">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Plain rule idea
+          {
+            id: "overview",
+            label: "Overview",
+            content: (
+              <div className="space-y-4">
+                <div className="rounded-lg border bg-background/60 p-4">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Plain rule idea
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {row.preset.description}
+                  </p>
                 </div>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {row.preset.description}
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-lg border bg-background/60 p-4">
+                    <div className="text-xs text-muted-foreground">
+                      Activity
+                    </div>
+                    <div className="mt-1 text-sm font-semibold">
+                      {row.preset.category === "unknown"
+                        ? "All activity"
+                        : categoryLabel(row.preset.category)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border bg-background/60 p-4">
+                    <div className="text-xs text-muted-foreground">
+                      Behavior
+                    </div>
+                    <div className="mt-1 text-sm font-semibold">
+                      {labelize(row.preset.behavior)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border bg-background/60 p-4">
+                    <div className="text-xs text-muted-foreground">
+                      Device support
+                    </div>
+                    <div className="mt-1 text-sm font-semibold">
+                      {status.label}
+                    </div>
+                  </div>
+                </div>
+                <p className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-4 text-sm leading-6 text-blue-700">
+                  {status.detail}
                 </p>
               </div>
-              <div className="grid gap-3 md:grid-cols-3">
+            ),
+          },
+          {
+            id: "start",
+            label: "Start Rule",
+            content: (
+              <div className="space-y-3">
                 <div className="rounded-lg border bg-background/60 p-4">
-                  <div className="text-xs text-muted-foreground">Activity</div>
-                  <div className="mt-1 text-sm font-semibold">
-                    {row.preset.category === "unknown"
-                      ? "All activity"
-                      : categoryLabel(row.preset.category)}
-                  </div>
+                  <h4 className="text-sm font-semibold">
+                    Create this rule from a guided flow
+                  </h4>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    This opens the simple rule builder with the right intent
+                    preselected. If Pollek can only observe this category on
+                    your OS, use the Activity evidence to adjust the AI app
+                    settings too.
+                  </p>
                 </div>
-                <div className="rounded-lg border bg-background/60 p-4">
-                  <div className="text-xs text-muted-foreground">Behavior</div>
-                  <div className="mt-1 text-sm font-semibold">
-                    {labelize(row.preset.behavior)}
-                  </div>
-                </div>
-                <div className="rounded-lg border bg-background/60 p-4">
-                  <div className="text-xs text-muted-foreground">
-                    Device support
-                  </div>
-                  <div className="mt-1 text-sm font-semibold">
-                    {status.label}
-                  </div>
-                </div>
+                <Link
+                  to={`/protect?intent=${encodeURIComponent(row.preset.intent)}`}
+                  className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4" />
+                  Start with this rule
+                </Link>
               </div>
-              <p className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-4 text-sm leading-6 text-blue-700">
-                {status.detail}
-              </p>
-            </div>
-          ),
-        },
-        {
-          id: "start",
-          label: "Start Rule",
-          content: (
-            <div className="space-y-3">
-              <div className="rounded-lg border bg-background/60 p-4">
-                <h4 className="text-sm font-semibold">
-                  Create this rule from a guided flow
-                </h4>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  This opens the simple rule builder with the right intent
-                  preselected. If Pollek can only observe this category on your
-                  OS, use the Activity evidence to adjust the AI app settings
-                  too.
-                </p>
-              </div>
-              <Link
-                to={`/protect?intent=${encodeURIComponent(row.preset.intent)}`}
-                className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
-              >
-                <Plus className="h-4 w-4" />
-                Start with this rule
-              </Link>
-            </div>
-          ),
-        },
-        ...(showTechnicalDetails
-          ? [
+            ),
+          },
+          ...(showTechnicalDetails
+            ? [
                 {
                   id: "technical",
                   label: "Technical Details",
@@ -728,51 +737,42 @@ export function AllowedBlockedPage() {
     <div className="space-y-5">
       {!selectedId && (
         <>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-                <ListChecks className="h-6 w-6 text-primary" />
-                Allowed & Blocked
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Choose what each AI app can do, and see when Pollek can only
-                watch.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                to="/protect"
-                className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
-              >
-                <Plus className="h-4 w-4" />
-                Create rule
-              </Link>
-              <Link
-                to="/policies"
-                className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-              >
-                <FileKey className="h-4 w-4" />
-                Advanced policies
-              </Link>
-            </div>
-          </div>
+          <PageHeader
+            title="Allowed & Blocked"
+            subtitle="Choose what each AI app is allowed to do, and see where Pollek can only watch for now."
+            icon={ListChecks}
+            actions={
+              <>
+                <Link
+                  to="/protect"
+                  className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create rule
+                </Link>
+                <Link
+                  to="/policies"
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                >
+                  <FileKey className="h-4 w-4" />
+                  Advanced policies
+                </Link>
+              </>
+            }
+          />
 
           <section className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-lg border bg-card/60 p-4">
               <div className="text-2xl font-semibold">
                 {activePolicies.length}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Active rules
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground">Active rules</p>
             </div>
             <div className="rounded-lg border bg-card/60 p-4">
               <div className="text-2xl font-semibold">
                 {draftPolicies.length}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Draft rules
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground">Draft rules</p>
             </div>
             <div className="rounded-lg border bg-card/60 p-4">
               <div className="text-2xl font-semibold">
