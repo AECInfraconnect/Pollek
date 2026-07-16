@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import { Package, RefreshCw, CheckCircle, Clock, XCircle } from "lucide-react";
 import { BundleApi } from "../services/api";
 
@@ -46,26 +47,21 @@ export function Bundles() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-            <Package className="h-6 w-6 text-primary" /> Bundles &amp;
-            Deployments
-          </h2>
-          <p className="text-muted-foreground">
-            Manage deployed policy bundles and synchronize with the control
-            plane.
-          </p>
-        </div>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-lg shadow-primary/20"
-        >
-          <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Syncing..." : "Sync Now"}
-        </button>
-      </div>
+      <PageHeader
+        icon={Package}
+        title="Bundles & Deployments"
+        subtitle="Deployed policy bundles on this device and their sync with the control plane."
+        actions={
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-lg shadow-primary/20"
+          >
+            <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing..." : "Sync Now"}
+          </button>
+        }
+      />
 
       {error && (
         <div className="rounded-md bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">

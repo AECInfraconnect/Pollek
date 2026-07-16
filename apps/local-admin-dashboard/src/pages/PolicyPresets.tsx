@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import { FileKey, Plus, ShieldAlert, Tags } from "lucide-react";
 import { PolicyApi } from "../services/api";
 import { PresetWizard } from "../components/presets/PresetWizard";
@@ -31,17 +32,12 @@ export function PolicyPresets() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b pb-4">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-            <FileKey className="h-6 w-6 text-primary" /> Policy Presets V2
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Deploy advanced guardrails using industry best practices mapping to
-            OWASP and NIST frameworks.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        className="border-b pb-4"
+        icon={FileKey}
+        title="Policy Presets"
+        subtitle="Ready-made guardrails built on industry best practices, mapped to OWASP and NIST."
+      />
 
       <div className="flex gap-2 pb-2 overflow-x-auto">
         <button

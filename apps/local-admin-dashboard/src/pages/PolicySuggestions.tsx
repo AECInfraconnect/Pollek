@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import { Lightbulb, RefreshCw, AlertTriangle } from "lucide-react";
 import { PolicyFirstApi } from "../services/api";
-import { ContextualHelp } from "../components/help/ContextualHelp";
 
 export function PolicySuggestions() {
   const [loading, setLoading] = useState(false);
@@ -35,32 +35,24 @@ export function PolicySuggestions() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">
-            <span className="inline-flex items-center gap-2">
-              Policy Suggestions
-              <ContextualHelp topicId="policy.suggestions" />
-            </span>
-          </h2>
-          <p className="text-muted-foreground">
-            Policies automatically suggested based on Shadow AI and Auto
-            Discovery findings.
-          </p>
-        </div>
-        <button
-          onClick={generateSuggestions}
-          disabled={loading}
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4"
-        >
-          {loading ? (
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Lightbulb className="mr-2 h-4 w-4" />
-          )}
-          Generate Suggestions
-        </button>
-      </div>
+      <PageHeader
+        title="Policy Suggestions"
+        subtitle="Rules Pollek recommends based on what Shadow AI and Auto Discovery found."
+        actions={
+          <button
+            onClick={generateSuggestions}
+            disabled={loading}
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4"
+          >
+            {loading ? (
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Lightbulb className="mr-2 h-4 w-4" />
+            )}
+            Generate Suggestions
+          </button>
+        }
+      />
 
       <div className="glass rounded-lg p-4">
         <h3 className="font-semibold mb-4">Suggested Policies</h3>

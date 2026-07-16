@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { PageHeader } from "../components/layout/PageHeader";
 import { useState, useEffect } from "react";
 import { Plus, Users, Cpu } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -101,23 +102,19 @@ export function Agents({ hideHeader = false }: { hideHeader?: boolean }) {
   return (
     <div className={hideHeader ? "space-y-6" : "p-6 md:p-8 space-y-6"}>
       {!hideHeader && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">
-              Authorized Agents
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Manage local AI instances connected to the PEP.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate("/discovery")}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Add Agent
-          </button>
-        </div>
+        <PageHeader
+          title="Authorized Agents"
+          subtitle="Local AI instances connected to Pollek's enforcement point on this device."
+          actions={
+            <button
+              onClick={() => navigate("/discovery")}
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              Add Agent
+            </button>
+          }
+        />
       )}
 
       <MasterDetailLayout
