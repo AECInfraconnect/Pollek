@@ -310,7 +310,10 @@ function buildAgentAttribution(
   return Array.from(rows.values())
     .map((row) => {
       const pools = Array.from(row.pools.values()).sort(
-        (a, b) => b.cost - a.cost || b.tokens - a.tokens || a.model.localeCompare(b.model),
+        (a, b) =>
+          b.cost - a.cost ||
+          b.tokens - a.tokens ||
+          a.model.localeCompare(b.model),
       );
       return {
         ...row,
@@ -319,7 +322,12 @@ function buildAgentAttribution(
         sharedPoolCount: pools.filter((pool) => pool.sharedAgents > 1).length,
       };
     })
-    .sort((a, b) => b.cost - a.cost || b.tokens - a.tokens || a.agentName.localeCompare(b.agentName));
+    .sort(
+      (a, b) =>
+        b.cost - a.cost ||
+        b.tokens - a.tokens ||
+        a.agentName.localeCompare(b.agentName),
+    );
 }
 
 function usageAgentKey(event: AiUsageEvent) {
@@ -428,7 +436,8 @@ function providerBillingHint(provider: string) {
 }
 
 function poolDisplayName(pool: ModelPoolStats) {
-  const suffix = pool.sharedAgents > 1 ? ` / shared by ${pool.sharedAgents} apps` : "";
+  const suffix =
+    pool.sharedAgents > 1 ? ` / shared by ${pool.sharedAgents} apps` : "";
   return `${pool.provider} / ${pool.model}${suffix}`;
 }
 
@@ -536,7 +545,10 @@ export function CostLedger() {
       setSummary(usage);
       setUsageEvents(events.items ?? []);
       setSelectedEventId((current) => {
-        if (current && events.items?.some((event) => event.event_id === current)) {
+        if (
+          current &&
+          events.items?.some((event) => event.event_id === current)
+        ) {
           return current;
         }
         return events.items?.[0]?.event_id ?? null;
@@ -598,7 +610,9 @@ export function CostLedger() {
         if (eventFilter === "exact") return !eventIsEstimated(event);
         if (eventFilter === "estimated") return eventIsEstimated(event);
         if (eventFilter === "pending") {
-          return !event.cloud_sync_status || event.cloud_sync_status === "pending";
+          return (
+            !event.cloud_sync_status || event.cloud_sync_status === "pending"
+          );
         }
         return true;
       }),
@@ -635,7 +649,7 @@ export function CostLedger() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
             AI Usage & Cost
           </h2>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -647,7 +661,9 @@ export function CostLedger() {
               <Wifi className="h-3.5 w-3.5" />
               {live ? "Live" : "Polling"}
             </span>
-            <span>{summary?.from ? new Date(summary.from).toLocaleString() : ""}</span>
+            <span>
+              {summary?.from ? new Date(summary.from).toLocaleString() : ""}
+            </span>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -693,16 +709,24 @@ export function CostLedger() {
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border/60 bg-card/30 px-4 py-2.5">
         <span className="inline-flex items-center gap-1.5 text-sm">
           <CircleDollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="font-semibold tabular-nums">{money(totals?.total_cost ?? 0, currency)}</span>
+          <span className="font-semibold tabular-nums">
+            {money(totals?.total_cost ?? 0, currency)}
+          </span>
           <span className="text-xs text-muted-foreground">spend</span>
-          <span className="text-[10px] text-muted-foreground/70">({number(totals?.request_count ?? 0)} calls)</span>
+          <span className="text-[10px] text-muted-foreground/70">
+            ({number(totals?.request_count ?? 0)} calls)
+          </span>
         </span>
         <span className="h-4 w-px bg-border/60" />
         <span className="inline-flex items-center gap-1.5 text-sm">
           <Zap className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="font-semibold tabular-nums">{number(totals?.total_tokens ?? 0)}</span>
+          <span className="font-semibold tabular-nums">
+            {number(totals?.total_tokens ?? 0)}
+          </span>
           <span className="text-xs text-muted-foreground">tokens</span>
-          <span className="text-[10px] text-muted-foreground/70">({number(totals?.cached_input_tokens ?? 0)} cached)</span>
+          <span className="text-[10px] text-muted-foreground/70">
+            ({number(totals?.cached_input_tokens ?? 0)} cached)
+          </span>
         </span>
         <span className="h-4 w-px bg-border/60" />
         <span className="inline-flex items-center gap-1.5 text-sm">
@@ -715,8 +739,11 @@ export function CostLedger() {
         <span className="h-4 w-px bg-border/60" />
         <span className="inline-flex items-center gap-1.5 text-sm">
           <Server className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className={`font-semibold ${statusClass(syncCounts.failed ? "hard_exceeded" : syncCounts.pending ? "soft_exceeded" : "ok")}`}>
-            {syncCounts.acked}/{Object.values(syncCounts).reduce((a, b) => a + b, 0)}
+          <span
+            className={`font-semibold ${statusClass(syncCounts.failed ? "hard_exceeded" : syncCounts.pending ? "soft_exceeded" : "ok")}`}
+          >
+            {syncCounts.acked}/
+            {Object.values(syncCounts).reduce((a, b) => a + b, 0)}
           </span>
           <span className="text-xs text-muted-foreground">synced</span>
         </span>
@@ -839,10 +866,9 @@ function UsageProvenancePanel({
 }) {
   const exact = observeResult?.exact_usage_events ?? evidence.exact;
   const estimated = observeResult?.estimated_usage_events ?? evidence.estimated;
-  const qualities =
-    observeResult?.capture_quality?.length
-      ? observeResult.capture_quality
-      : evidence.captureQuality;
+  const qualities = observeResult?.capture_quality?.length
+    ? observeResult.capture_quality
+    : evidence.captureQuality;
   const limitations = observeResult?.limitations ?? [];
   const nextSteps = observeResult?.next_steps ?? [];
 
@@ -877,9 +903,7 @@ function UsageProvenancePanel({
           </div>
         </div>
         <div className="rounded-lg border p-3">
-          <div className="text-xs text-muted-foreground">
-            Estimated events
-          </div>
+          <div className="text-xs text-muted-foreground">Estimated events</div>
           <div className="mt-1 text-xl font-semibold tabular-nums">
             {number(estimated)}
           </div>
@@ -917,10 +941,11 @@ function UsageProvenancePanel({
           )}
           {nextSteps.length > 0 && (
             <div className="rounded-lg border p-3 text-sm text-muted-foreground">
-              <div className="mb-1 font-medium text-foreground">
-                Next setup
-              </div>
-              {nextSteps.slice(0, 2).map((step) => step.title).join(", ")}
+              <div className="mb-1 font-medium text-foreground">Next setup</div>
+              {nextSteps
+                .slice(0, 2)
+                .map((step) => step.title)
+                .join(", ")}
             </div>
           )}
         </div>
@@ -1040,7 +1065,9 @@ function UsageEventLedger({
                     </span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <span>{number(event.tokens?.total_tokens ?? 0)} tokens</span>
+                    <span>
+                      {number(event.tokens?.total_tokens ?? 0)} tokens
+                    </span>
                     <span>{money(event.cost?.total_cost ?? 0, currency)}</span>
                     <span>{syncLabel(event.cloud_sync_status)}</span>
                   </div>
@@ -1070,7 +1097,9 @@ function UsageEventLedger({
                 What to look for
               </h4>
               <ul className="mt-3 space-y-2 text-xs leading-5 text-muted-foreground">
-                <li>Exact means provider, wrapper, or proxy usage was attached.</li>
+                <li>
+                  Exact means provider, wrapper, or proxy usage was attached.
+                </li>
                 <li>
                   Estimated means Pollek had metadata but not exact provider
                   usage. Treat it as directional.
@@ -1145,12 +1174,18 @@ function UsageEventDetail({
       </div>
 
       <div className="grid gap-3 p-5 md:grid-cols-2">
-        <UsageField label="AI app" value={agentName(event.agent_id, agentLabels)} />
+        <UsageField
+          label="AI app"
+          value={agentName(event.agent_id, agentLabels)}
+        />
         <UsageField label="Provider" value={event.provider || "Not recorded"} />
         <UsageField label="Model" value={event.model || "Not recorded"} />
         <UsageField label="Surface" value={event.surface || "Local"} />
         <UsageField label="Result" value={event.status || "Recorded"} />
-        <UsageField label="Cloud sync" value={syncLabel(event.cloud_sync_status)} />
+        <UsageField
+          label="Cloud sync"
+          value={syncLabel(event.cloud_sync_status)}
+        />
       </div>
 
       <div className="grid gap-3 p-5 md:grid-cols-3">
@@ -1166,7 +1201,10 @@ function UsageEventDetail({
         />
         <UsageMetric
           label="Cost"
-          value={money(event.cost?.total_cost ?? 0, event.cost?.currency || currency)}
+          value={money(
+            event.cost?.total_cost ?? 0,
+            event.cost?.currency || currency,
+          )}
         />
       </div>
 
@@ -1186,10 +1224,26 @@ function UsageEventDetail({
       </div>
 
       <div className="grid gap-3 p-5 md:grid-cols-2">
-        <UsageField label="Token source" value={String(event.tokens?.source ?? "unknown").replace(/_/g, " ")} />
-        <UsageField label="Cost source" value={String(event.cost?.cost_source ?? "unknown").replace(/_/g, " ")} />
-        <UsageField label="Provider request" value={event.provider_request_id || "Not recorded"} />
-        <UsageField label="Idempotency key" value={event.idempotency_key} mono />
+        <UsageField
+          label="Token source"
+          value={String(event.tokens?.source ?? "unknown").replace(/_/g, " ")}
+        />
+        <UsageField
+          label="Cost source"
+          value={String(event.cost?.cost_source ?? "unknown").replace(
+            /_/g,
+            " ",
+          )}
+        />
+        <UsageField
+          label="Provider request"
+          value={event.provider_request_id || "Not recorded"}
+        />
+        <UsageField
+          label="Idempotency key"
+          value={event.idempotency_key}
+          mono
+        />
         <UsageField label="Trace" value={event.trace_id} mono />
         <UsageField
           label="Capture quality"
@@ -1278,8 +1332,8 @@ function AgentFirstAttributionSection({
           </div>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
             Pollek separates usage by AI app, runtime, or agent first. Provider,
-            model, and shared-credit totals are secondary rollups so ChatGPT in a
-            browser, Codex in a terminal, Claude Code, Antigravity, and other
+            model, and shared-credit totals are secondary rollups so ChatGPT in
+            a browser, Codex in a terminal, Claude Code, Antigravity, and other
             tools do not collapse into one model bill too early.
           </p>
         </div>
@@ -1292,7 +1346,10 @@ function AgentFirstAttributionSection({
       {rows.length ? (
         <div className="mt-4 grid gap-3 xl:grid-cols-2">
           {rows.map((row) => (
-            <article key={row.agentKey} className="rounded-lg border bg-card/60 p-4">
+            <article
+              key={row.agentKey}
+              className="rounded-lg border bg-card/60 p-4"
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -1499,7 +1556,10 @@ function EmptyState({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function agentName(agentId: string | undefined, labels: Map<string, AgentLabel>) {
+function agentName(
+  agentId: string | undefined,
+  labels: Map<string, AgentLabel>,
+) {
   if (!agentId) return "-";
   return labels.get(agentId)?.name || agentId;
 }

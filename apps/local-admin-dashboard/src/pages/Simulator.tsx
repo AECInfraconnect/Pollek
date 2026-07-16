@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import { PlayCircle, CheckCircle2, XCircle } from "lucide-react";
 import { PolicyApi } from "../services/api";
 import type { PolicyDraft } from "../services/types";
@@ -132,16 +133,11 @@ export function Simulator() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-            <PlayCircle className="h-6 w-6 text-primary" /> Policy Simulator
-          </h2>
-          <p className="text-muted-foreground">
-            Evaluate requests against a policy draft using dry-run mode.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={PlayCircle}
+        title="Policy Simulator"
+        subtitle="Try a request against a policy draft in dry-run mode to see what would happen."
+      />
 
       <div className="grid grid-cols-2 gap-6">
         <div className="glass p-6 rounded-xl space-y-4 border">

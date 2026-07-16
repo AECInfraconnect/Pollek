@@ -1,4 +1,5 @@
 import { useConfirm } from "../components/ui/ConfirmDialog";
+import { PageHeader } from "../components/layout/PageHeader";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -154,45 +155,42 @@ export function DecisionLogs() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" /> Audit & Decision
-            Activity
-          </h2>
-          <p className="text-muted-foreground">
-            Every authorization decision the Local Enforcement Kit enforced
-            (local workspace).
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={clearHistory}
-            className="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg text-sm transition-colors border border-red-500/20"
-          >
-            Clear History
-          </button>
-          <button
-            onClick={exportJSON}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-sm transition-colors border border-slate-700"
-          >
-            <Download className="w-4 h-4" /> JSON
-          </button>
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-sm transition-colors border border-slate-700"
-          >
-            <Download className="w-4 h-4" /> CSV
-          </button>
-          <button
-            onClick={load}
-            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
-            title="Refresh"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Activity}
+        title="Audit & Decision Activity"
+        subtitle="Every authorization decision Pollek enforced on this device."
+        actions={
+          <>
+            <button
+              onClick={clearHistory}
+              className="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg text-sm transition-colors border border-red-500/20"
+            >
+              Clear History
+            </button>
+            <button
+              onClick={exportJSON}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-sm transition-colors border border-slate-700"
+            >
+              <Download className="w-4 h-4" /> JSON
+            </button>
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-sm transition-colors border border-slate-700"
+            >
+              <Download className="w-4 h-4" /> CSV
+            </button>
+            <button
+              onClick={load}
+              className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
+              title="Refresh"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
+            </button>
+          </>
+        }
+      />
 
       {/* Compact inline decision summary */}
       <div className="flex items-center gap-3 text-sm">
@@ -201,11 +199,15 @@ export function DecisionLogs() {
           <span className="text-xs text-muted-foreground">total</span>
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1">
-          <span className="font-semibold tabular-nums text-emerald-400">{allowCount}</span>
+          <span className="font-semibold tabular-nums text-emerald-400">
+            {allowCount}
+          </span>
           <span className="text-xs text-emerald-400/80">allowed</span>
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-1">
-          <span className="font-semibold tabular-nums text-red-400">{denyCount}</span>
+          <span className="font-semibold tabular-nums text-red-400">
+            {denyCount}
+          </span>
           <span className="text-xs text-red-400/80">denied</span>
         </span>
       </div>
