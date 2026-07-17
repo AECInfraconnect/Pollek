@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import { Network, MoreVertical, Plus } from "lucide-react";
 import { RegistryApi } from "../services/api";
 import type { Relationship } from "../services/types";
@@ -21,19 +22,16 @@ export function Relationships({
   return (
     <div className="space-y-6">
       {!hideHeader && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Relationships</h2>
-            <p className="text-muted-foreground">
-              Manage relationships and graph edges between entities, resources,
-              and agents.
-            </p>
-          </div>
-          <button className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-            <Plus className="h-4 w-4" />
-            Create Edge
-          </button>
-        </div>
+        <PageHeader
+          title="Relationships"
+          subtitle="How entities, resources, and AI agents are connected on this device."
+          actions={
+            <button className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+              <Plus className="h-4 w-4" />
+              Create Edge
+            </button>
+          }
+        />
       )}
 
       <div className="glass rounded-xl overflow-hidden border">

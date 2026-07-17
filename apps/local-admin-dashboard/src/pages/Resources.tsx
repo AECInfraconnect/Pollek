@@ -1,4 +1,5 @@
 import { useConfirm } from "../components/ui/ConfirmDialog";
+import { PageHeader } from "../components/layout/PageHeader";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import {
@@ -33,7 +34,10 @@ export interface UnifiedResource {
   observed_details?: ObservedResource;
   registered_details?: Resource;
 }
-type ResourceTraceDetails = Record<string, string | number | boolean | string[] | undefined>;
+type ResourceTraceDetails = Record<
+  string,
+  string | number | boolean | string[] | undefined
+>;
 import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
 import { EntityCard } from "../components/master-detail/EntityCard";
 import { DetailPane } from "../components/master-detail/DetailPane";
@@ -76,7 +80,9 @@ function resourceStatus(resource: UnifiedResource): {
   return { status: "ok", label: "Protected" };
 }
 
-function observedTraceDetails(observed?: ObservedResource): ResourceTraceDetails {
+function observedTraceDetails(
+  observed?: ObservedResource,
+): ResourceTraceDetails {
   return ((observed as any)?.details ?? {}) as ResourceTraceDetails;
 }
 
@@ -337,31 +343,29 @@ export function Resources() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">
-            Data Resources
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Manage data boundaries and classifications for registered resources.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={runLocalObserve}
-            disabled={observing}
-            className="flex items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm font-medium hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${observing ? "animate-spin" : ""}`} />
-            Observe
-          </button>
-          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm">
-            <Plus className="h-4 w-4" />
-            Add Resource
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Data Resources"
+        subtitle="Files, folders, and data sources AI can reach — set their boundaries and sensitivity."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={runLocalObserve}
+              disabled={observing}
+              className="flex items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm font-medium hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${observing ? "animate-spin" : ""}`}
+              />
+              Observe
+            </button>
+            <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm">
+              <Plus className="h-4 w-4" />
+              Add Resource
+            </button>
+          </>
+        }
+      />
 
       <MasterDetailLayout
         idSelector={(x: UnifiedResource) => x.id}
@@ -590,7 +594,8 @@ function ResourcePolicyPrompt({
     <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center text-muted-foreground">
       <FileKey className="mb-4 h-8 w-8 opacity-50" />
       <p className="mb-4 text-sm">
-        Protect {resource.name} by assigning an access policy to specific agents.
+        Protect {resource.name} by assigning an access policy to specific
+        agents.
       </p>
       <button
         type="button"
@@ -676,7 +681,9 @@ function Resource360Detail({
         {
           id: "access",
           label: "Access Policies",
-          content: <ResourcePolicyPrompt resource={resource} onProtect={onProtect} />,
+          content: (
+            <ResourcePolicyPrompt resource={resource} onProtect={onProtect} />
+          ),
         },
         {
           id: "activity",
@@ -734,26 +741,26 @@ function ResourceActivityTimeline({ resource }: { resource: UnifiedResource }) {
           payload.target_redacted ||
           resource.name;
         return (
-        <div key={i} className="flex gap-4 p-4 border rounded-lg bg-card">
-          <div className="mt-1">
-            <Activity className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-medium">
-              {object} by {payload.agent_id || "Unknown agent"}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Mode: {payload.mode || "read"} -{" "}
-              {new Date(payload.observed_at || ev.timestamp).toLocaleString()}
-            </p>
-            {(details.capture_quality || details.trace_granularity) && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {details.capture_quality || "observed"} /{" "}
-                {details.trace_granularity || "resource"}
+          <div key={i} className="flex gap-4 p-4 border rounded-lg bg-card">
+            <div className="mt-1">
+              <Activity className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">
+                {object} by {payload.agent_id || "Unknown agent"}
               </p>
-            )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Mode: {payload.mode || "read"} -{" "}
+                {new Date(payload.observed_at || ev.timestamp).toLocaleString()}
+              </p>
+              {(details.capture_quality || details.trace_granularity) && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {details.capture_quality || "observed"} /{" "}
+                  {details.trace_granularity || "resource"}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
         );
       })}
     </div>

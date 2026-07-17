@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import { AlertCircle, ShieldAlert } from "lucide-react";
 
 import { TelemetryApi } from "../services/api";
@@ -39,12 +40,10 @@ export function Alerts({ hideHeader = false }: { hideHeader?: boolean }) {
   return (
     <div className="space-y-6">
       {!hideHeader && (
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">Alerts</h1>
-          <p className="text-muted-foreground mt-2">
-            Local edge alerts and recent policy violations.
-          </p>
-        </div>
+        <PageHeader
+          title="Alerts"
+          subtitle="Recent warnings and policy violations Pollek noticed on this device."
+        />
       )}
 
       <div className="grid gap-6">
@@ -64,7 +63,9 @@ export function Alerts({ hideHeader = false }: { hideHeader?: boolean }) {
           <div className="flex items-center gap-3 rounded-lg border border-dashed px-4 py-4 text-center text-muted-foreground bg-card/30">
             <div className="flex flex-col items-center justify-center w-full">
               <AlertCircle className="h-5 w-5 mb-2 opacity-50" />
-              <p className="text-sm">No active alerts. System operating normally.</p>
+              <p className="text-sm">
+                No active alerts. System operating normally.
+              </p>
               <p className="text-[10px] opacity-75 mt-0.5">
                 Alert triggers when Deny decisions exceed 5/min.
               </p>

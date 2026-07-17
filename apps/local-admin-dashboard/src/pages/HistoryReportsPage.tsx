@@ -22,6 +22,7 @@ import {
 } from "../features/user-activity/userActivityModel";
 import type { UserFriendlyActivityEvent } from "../features/user-activity/types";
 import { useConfirm } from "../components/ui/ConfirmDialog";
+import { PageHeader } from "../components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 
 type Range = "7d" | "30d" | "all";
@@ -236,66 +237,62 @@ export function HistoryReportsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-            <History className="h-6 w-6 text-primary" />
-            History
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Review what each AI app did, what was allowed, and what was blocked.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <div className="inline-flex h-9 overflow-hidden rounded-md border bg-background">
-            {(["7d", "30d", "all"] as Range[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setRange(option)}
-                className={cn(
-                  "px-3 text-sm hover:bg-muted",
-                  range === option && "bg-muted text-foreground",
-                )}
-              >
-                {option === "all" ? "All" : option.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => void exportWithDisclosure("csv")}
-            className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-          >
-            <FileText className="h-4 w-4" />
-            CSV
-          </button>
-          <button
-            type="button"
-            onClick={() => void exportWithDisclosure("json")}
-            className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-          >
-            <Download className="h-4 w-4" />
-            JSON
-          </button>
-          <button
-            type="button"
-            onClick={load}
-            className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-          >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-            Refresh
-          </button>
-          <button
-            type="button"
-            onClick={() => void clearLocalHistory()}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 text-sm font-medium text-red-700 hover:bg-red-500/15"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete local history
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="History"
+        subtitle="Review what each AI app did, what was allowed, and what was blocked."
+        icon={History}
+        actions={
+          <>
+            <div className="inline-flex h-9 overflow-hidden rounded-md border bg-background">
+              {(["7d", "30d", "all"] as Range[]).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setRange(option)}
+                  className={cn(
+                    "px-3 text-sm hover:bg-muted",
+                    range === option && "bg-muted text-foreground",
+                  )}
+                >
+                  {option === "all" ? "All" : option.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => void exportWithDisclosure("csv")}
+              className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+            >
+              <FileText className="h-4 w-4" />
+              CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => void exportWithDisclosure("json")}
+              className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+            >
+              <Download className="h-4 w-4" />
+              JSON
+            </button>
+            <button
+              type="button"
+              onClick={load}
+              className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+            >
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={() => void clearLocalHistory()}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 text-sm font-medium text-red-700 hover:bg-red-500/15"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete local history
+            </button>
+          </>
+        }
+      />
 
       <section className="rounded-lg border bg-card/60 p-4">
         <div className="flex items-start gap-3">

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { EntityCard } from "../components/master-detail/EntityCard";
 import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
+import { PageHeader } from "../components/layout/PageHeader";
 import { DetailPane } from "../components/master-detail/DetailPane";
 import type { UiStatus } from "../lib/status";
 
@@ -120,7 +121,10 @@ function DeploymentDetail({ record }: { record: DeploymentRecord }) {
                   }
                 />
                 <SummaryMetric label="Target" value={record.target} />
-                <SummaryMetric label="Last updated" value={formatDate(record.date)} />
+                <SummaryMetric
+                  label="Last updated"
+                  value={formatDate(record.date)}
+                />
               </div>
             ),
           },
@@ -163,9 +167,17 @@ function DeploymentDetail({ record }: { record: DeploymentRecord }) {
 
       <aside className="space-y-3 rounded-lg border bg-card/50 p-4">
         <h3 className="text-sm font-semibold">Related Records</h3>
-        <RelatedRecord icon={ShieldCheck} title="Policy" detail={record.policy} />
+        <RelatedRecord
+          icon={ShieldCheck}
+          title="Policy"
+          detail={record.policy}
+        />
         <RelatedRecord icon={ServerCog} title="Device" detail={record.device} />
-        <RelatedRecord icon={Clock3} title="Last update" detail={formatDate(record.date)} />
+        <RelatedRecord
+          icon={Clock3}
+          title="Last update"
+          detail={formatDate(record.date)}
+        />
       </aside>
     </div>
   );
@@ -242,13 +254,11 @@ export function Deployments() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Deployments</h1>
-        <p className="text-sm text-muted-foreground">
-          Track active and pending policy deployments across local devices and AI
-          apps.
-        </p>
-      </div>
+      <PageHeader
+        title="Deployments"
+        subtitle="Active and pending policy deployments across your devices and AI apps."
+        icon={ServerCog}
+      />
 
       <MasterDetailLayout
         items={deployments}

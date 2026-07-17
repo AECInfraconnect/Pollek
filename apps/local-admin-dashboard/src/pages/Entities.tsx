@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import { Plus, UserCircle, Activity, FileKey, Info } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { RegistryApi } from "../services/api";
@@ -126,17 +127,15 @@ export function Entities() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Entities</h2>
-          <p className="text-sm text-muted-foreground">
-            People, service accounts, and workloads POLLEK governs.
-          </p>
-        </div>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          <Plus className="h-4 w-4" /> Register entity
-        </button>
-      </div>
+      <PageHeader
+        title="Entities"
+        subtitle="The people, service accounts, and workloads Pollek governs."
+        actions={
+          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            <Plus className="h-4 w-4" /> Register entity
+          </button>
+        }
+      />
 
       <MasterDetailLayout
         idSelector={(x: any) => x.entity_id || x.id}
@@ -244,7 +243,9 @@ export function Entities() {
                         <SummaryMetric
                           label="Provider"
                           value={e.external_ids?.[0]?.provider ?? "registry"}
-                          helper={e.external_ids?.[0]?.id ?? "No external ID linked."}
+                          helper={
+                            e.external_ids?.[0]?.id ?? "No external ID linked."
+                          }
                         />
                         <SummaryMetric
                           label="Stable ID"
@@ -258,7 +259,11 @@ export function Entities() {
                               ? new Date(e.meta.created_at).toLocaleString()
                               : "N/A"
                           }
-                          helper={e.meta?.source ? `Source: ${e.meta.source}` : undefined}
+                          helper={
+                            e.meta?.source
+                              ? `Source: ${e.meta.source}`
+                              : undefined
+                          }
                         />
                         {isDiscoverySurface && (
                           <>

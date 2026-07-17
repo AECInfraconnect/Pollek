@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { PageHeader } from "../components/layout/PageHeader";
 import { useState, useEffect } from "react";
 import { Wrench, Info, FileKey, Activity } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -193,14 +194,10 @@ export function Tools({ hideHeader = false }: { hideHeader?: boolean }) {
   return (
     <div className={hideHeader ? "space-y-6" : "p-6 md:p-8 space-y-6"}>
       {!hideHeader && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Tools</h2>
-            <p className="text-sm text-muted-foreground">
-              Manage function-calling definitions available to AI Agents.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="Tools"
+          subtitle="Function-calling tools that AI agents on this device can use."
+        />
       )}
 
       <MasterDetailLayout

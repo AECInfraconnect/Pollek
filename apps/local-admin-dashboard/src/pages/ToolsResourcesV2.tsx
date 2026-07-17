@@ -22,6 +22,7 @@ import type { RelatedListItem } from "../components/entity-360/RelatedList";
 import { EntityCard } from "../components/master-detail/EntityCard";
 import { DetailPane } from "../components/master-detail/DetailPane";
 import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
+import { PageHeader } from "../components/layout/PageHeader";
 import { entityIcon } from "../features/entity-graph/graphUtils";
 import type {
   Entity360Response,
@@ -962,9 +963,15 @@ function ResourceMasterDetailPane({
                         label="Resource ID"
                         value={resource.resource_id}
                       />
-                      <PropertyRow label="Sensitivity" value={resource.sensitivity ?? "standard"} />
+                      <PropertyRow
+                        label="Sensitivity"
+                        value={resource.sensitivity ?? "standard"}
+                      />
                       <PropertyRow label="Status" value={resource.status} />
-                      <PropertyRow label="Source" value={resource.source ?? "-"} />
+                      <PropertyRow
+                        label="Source"
+                        value={resource.source ?? "-"}
+                      />
                     </div>
                     <Collapsible title="Raw resource data">
                       <pre className="overflow-auto rounded-none border-0 bg-transparent p-0 text-[11px]">
@@ -1059,14 +1066,11 @@ export default function ToolsResourcesV2() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Tools & Resources</h1>
-        <p className="text-sm text-muted-foreground">
-          Local tools, cloud APIs, files, folders, databases, and data sources
-          visible to AI agents. Open a record to inspect evidence, policies, and
-          reference intel.
-        </p>
-      </div>
+      <PageHeader
+        title="Tools & Resources"
+        subtitle="Tools, APIs, files, and data sources your AI agents can reach. Open a record to inspect it in detail."
+        icon={Wrench}
+      />
 
       <div className="flex w-fit gap-1 rounded-lg border bg-muted/30 p-1">
         <button
@@ -1140,7 +1144,13 @@ export default function ToolsResourcesV2() {
               tool={tool}
               onOpenRecord={() => openFullRecord(tool.tool_id)}
               onDelete={async () => {
-                if (await confirm({ title: "Delete Tool", description: "Are you sure you want to delete this tool?", danger: true })) {
+                if (
+                  await confirm({
+                    title: "Delete Tool",
+                    description: "Are you sure you want to delete this tool?",
+                    danger: true,
+                  })
+                ) {
                   try {
                     await defaultClient.deleteTool(tool.tool_id);
                     toast.success("Tool deleted successfully");
@@ -1214,7 +1224,14 @@ export default function ToolsResourcesV2() {
               resource={resource}
               onOpenRecord={() => openFullRecord(resource.resource_id)}
               onDelete={async () => {
-                if (await confirm({ title: "Delete Resource", description: "Are you sure you want to delete this resource?", danger: true })) {
+                if (
+                  await confirm({
+                    title: "Delete Resource",
+                    description:
+                      "Are you sure you want to delete this resource?",
+                    danger: true,
+                  })
+                ) {
                   try {
                     await defaultClient.deleteResource(resource.resource_id);
                     toast.success("Resource deleted successfully");

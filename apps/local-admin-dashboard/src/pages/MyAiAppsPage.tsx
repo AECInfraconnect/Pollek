@@ -25,6 +25,7 @@ import {
 import type { UserFriendlyActivityEvent } from "../features/user-activity/types";
 import { findAgentReferenceIntel } from "../lib/entityReferenceIntel";
 import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
+import { PageHeader } from "../components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import { AgentDetailView } from "./AgentsV2";
 import { useConfirm } from "../components/ui/ConfirmDialog";
@@ -129,20 +130,23 @@ function AgentCard({
     ...(agent.capabilities ?? []),
     ...(agent.declared_tools ?? []),
     ...(agent.declared_resources ?? []),
-    ...events.slice(0, 12).flatMap((event) => [
-      event.category,
-      event.action,
-      event.access_mode,
-      event.target_label,
-      event.plain_summary,
-    ]),
+    ...events
+      .slice(0, 12)
+      .flatMap((event) => [
+        event.category,
+        event.action,
+        event.access_mode,
+        event.target_label,
+        event.plain_summary,
+      ]),
   ];
 
   return (
     <article
       className={cn(
         "rounded-lg border bg-card/60 p-4 transition-all hover:border-primary/40 hover:bg-card",
-        selected && "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
+        selected &&
+          "border-primary/50 bg-card shadow-md ring-1 ring-primary/50",
       )}
     >
       <div className="flex items-start gap-3">
@@ -382,25 +386,20 @@ export function MyAiAppsPage() {
     <div className="space-y-5">
       {!selectedId && (
         <>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-                <Bot className="h-6 w-6 text-primary" />
-                My AI Apps
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                AI assistants found on this computer, with what Pollek can
-                currently see.
-              </p>
-            </div>
-            <Link
-              to="/scan"
-              className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-            >
-              <FolderSearch className="h-4 w-4" />
-              Find AI apps
-            </Link>
-          </div>
+          <PageHeader
+            title="My AI Apps"
+            subtitle="AI assistants found on this computer, with what Pollek can currently see."
+            icon={Bot}
+            actions={
+              <Link
+                to="/scan"
+                className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+              >
+                <FolderSearch className="h-4 w-4" />
+                Find AI apps
+              </Link>
+            }
+          />
 
           <section className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-lg border bg-card/60 p-4">

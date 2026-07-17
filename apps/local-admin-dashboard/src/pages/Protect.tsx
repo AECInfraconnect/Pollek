@@ -1,4 +1,5 @@
 import { useMode } from "../context/ModeContext";
+import { PageHeader } from "../components/layout/PageHeader";
 import { SimplePolicyWizard } from "../components/simple/SimplePolicyWizard";
 import { Activity, ShieldCheck } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -20,7 +21,7 @@ export function Protect() {
     RegistryApi.listAgents()
       .then((res) => {
         setAgents(
-          res.map((a) => ({ id: a.agent_id, label: a.name || a.agent_id }))
+          res.map((a) => ({ id: a.agent_id, label: a.name || a.agent_id })),
         );
       })
       .catch(console.error)
@@ -29,21 +30,18 @@ export function Protect() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b pb-4">
-        <div>
-          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-            {mode === "desktop_simple"
-              ? "Create AI Activity Rule"
-              : "Create Rule"}
-          </h2>
-          <p className="mt-1 text-muted-foreground">
-            {mode === "desktop_simple"
-              ? "Choose what an AI app can watch, ask about, or block without learning policy terms."
-              : "Create a user-friendly rule first, then inspect the generated policy and control plan when needed."}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        className="border-b pb-4"
+        icon={ShieldCheck}
+        title={
+          mode === "desktop_simple" ? "Create AI Activity Rule" : "Create Rule"
+        }
+        subtitle={
+          mode === "desktop_simple"
+            ? "Choose what an AI app can watch, ask about, or block — no policy terms to learn."
+            : "Create a user-friendly rule first, then inspect the generated policy and control plan when needed."
+        }
+      />
 
       <div className="mt-8">
         {(sourceEventId || sourceTarget || sourceIntent) && (

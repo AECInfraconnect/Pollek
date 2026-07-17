@@ -28,6 +28,7 @@ import {
   type RelatedSection,
 } from "../components/entity-360";
 import { MasterDetailLayout } from "../components/master-detail/MasterDetailLayout";
+import { PageHeader } from "../components/layout/PageHeader";
 import type { RelatedListItem } from "../components/entity-360/RelatedList";
 import { entityIcon } from "../features/entity-graph/graphUtils";
 import type {
@@ -767,7 +768,9 @@ function AgentObserveCoverage({
   const costEvents = agentEvents.filter(
     (event) => event.category === "cost" || event.category === "ai_models",
   );
-  const safetyEvents = agentEvents.filter((event) => event.category === "safety");
+  const safetyEvents = agentEvents.filter(
+    (event) => event.category === "safety",
+  );
   const guardStatus = promptGuardStatus(agent, safetyEvents);
   const eventsWithRules = agentEvents.filter((event) => event.rule_label);
   const tokenTotal =
@@ -799,8 +802,7 @@ function AgentObserveCoverage({
         fileEvents[0]?.target_label ||
         resourceNodes[0]?.label ||
         "No file or folder path has been linked to this agent yet.",
-      next:
-        "Run Observe while the AI app reads or writes a workspace folder, or connect a filesystem observer/wrapper.",
+      next: "Run Observe while the AI app reads or writes a workspace folder, or connect a filesystem observer/wrapper.",
     },
     {
       id: "web",
@@ -816,8 +818,7 @@ function AgentObserveCoverage({
       detail:
         webEvents[0]?.target_label ||
         "Browser-only AI apps may need a browser extension, proxy, or wrapper for exact website activity.",
-      next:
-        "Install or enable the browser/proxy path if you need exact website and prompt flow visibility.",
+      next: "Install or enable the browser/proxy path if you need exact website and prompt flow visibility.",
     },
     {
       id: "commands",
@@ -833,8 +834,7 @@ function AgentObserveCoverage({
       detail:
         commandEvents[0]?.target_label ||
         "No command execution event has been observed for this agent.",
-      next:
-        "Use a CLI/IDE wrapper or OS process observer if this AI app can run commands.",
+      next: "Use a CLI/IDE wrapper or OS process observer if this AI app can run commands.",
     },
     {
       id: "tools",
@@ -846,14 +846,16 @@ function AgentObserveCoverage({
             ? "observed"
             : "watching"
           : "not_seen",
-      count: toolEvents.length + toolNodes.length + (agent.declared_tools?.length ?? 0),
+      count:
+        toolEvents.length +
+        toolNodes.length +
+        (agent.declared_tools?.length ?? 0),
       detail:
         toolEvents[0]?.target_label ||
         toolNodes[0]?.label ||
         agent.declared_tools?.[0] ||
         "No tool or MCP use has been linked yet.",
-      next:
-        "Route tool calls through a supported wrapper, MCP proxy, or plugin connector for richer evidence.",
+      next: "Route tool calls through a supported wrapper, MCP proxy, or plugin connector for richer evidence.",
     },
     {
       id: "cost",
@@ -865,13 +867,13 @@ function AgentObserveCoverage({
           : hasCapability(agent, ["model", "llm", "chat"])
             ? "watching"
             : "needs_setup",
-      count: costEvents.length + graphActivity.filter((event) => event.cost).length,
+      count:
+        costEvents.length + graphActivity.filter((event) => event.cost).length,
       detail:
         tokenTotal || costTotal
           ? `${tokenTotal.toLocaleString()} tokens, $${costTotal.toFixed(4)}`
           : "Exact usage needs provider telemetry, wrapper/proxy logs, local logs, or a plugin connector.",
-      next:
-        "Open AI Usage & Cost to inspect exact vs estimated usage and improve exact tracking.",
+      next: "Open AI Usage & Cost to inspect exact vs estimated usage and improve exact tracking.",
     },
     {
       id: "safety",
@@ -887,8 +889,7 @@ function AgentObserveCoverage({
       detail:
         safetyEvents[0]?.plain_summary ||
         "No prompt injection, secret, PII, masking, or redaction event is linked to this agent yet.",
-      next:
-        "Use a guarded prompt/output path such as wrapper, SDK adapter, MCP proxy, response filter, or browser extension.",
+      next: "Use a guarded prompt/output path such as wrapper, SDK adapter, MCP proxy, response filter, or browser extension.",
     },
     {
       id: "rules",
@@ -905,8 +906,7 @@ function AgentObserveCoverage({
         eventsWithRules[0]?.rule_label ||
         policyNodes[0]?.label ||
         "No rule is connected to this agent yet.",
-      next:
-        "Create a rule from an activity event, then check setup to see whether Pollek can watch, ask first, or block.",
+      next: "Create a rule from an activity event, then check setup to see whether Pollek can watch, ask first, or block.",
     },
   ].map((item) => ({
     ...item,
@@ -922,7 +922,9 @@ function AgentObserveCoverage({
     next: string;
   }>;
 
-  const observedCount = coverage.filter((item) => item.state === "observed").length;
+  const observedCount = coverage.filter(
+    (item) => item.state === "observed",
+  ).length;
   const needsSetupCount = coverage.filter(
     (item) => item.state === "needs_setup",
   ).length;
@@ -932,7 +934,9 @@ function AgentObserveCoverage({
       <section className="rounded-lg border bg-background/40 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h3 className="text-sm font-semibold">What Pollek can see for this AI app</h3>
+            <h3 className="text-sm font-semibold">
+              What Pollek can see for this AI app
+            </h3>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
               This combines observed activity, registry relationships, declared
               capabilities, and well-known definitions. It is honest about gaps:
@@ -1439,15 +1443,11 @@ export default function AgentsV2() {
   return (
     <div className="space-y-4">
       {!selectedId && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Agents & Models</h1>
-            <p className="text-sm text-muted-foreground">
-              AI apps and agents found on this device, with what Pollek knows,
-              what it has observed, and what to watch next.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="Agents & Models"
+          subtitle="AI apps and agents found on this device — what Pollek knows, what it has seen, and what to watch next."
+          icon={Bot}
+        />
       )}
 
       {loading ? (

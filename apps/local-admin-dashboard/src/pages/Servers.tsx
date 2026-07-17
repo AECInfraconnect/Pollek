@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import { Server, MoreVertical, Plus } from "lucide-react";
 import { RegistryApi } from "../services/api";
 import type { McpServer } from "../services/api";
@@ -17,19 +18,16 @@ export function Servers({ hideHeader = false }: { hideHeader?: boolean }) {
   return (
     <div className="space-y-6">
       {!hideHeader && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">MCP Servers</h2>
-            <p className="text-muted-foreground">
-              Manage Model Context Protocol servers available in the local
-              registry.
-            </p>
-          </div>
-          <button className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-            <Plus className="h-4 w-4" />
-            Add Server
-          </button>
-        </div>
+        <PageHeader
+          title="MCP Servers"
+          subtitle="Model Context Protocol servers registered on this device that AI apps can connect to."
+          actions={
+            <button className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+              <Plus className="h-4 w-4" />
+              Add Server
+            </button>
+          }
+        />
       )}
 
       <div className="glass rounded-xl overflow-hidden border">

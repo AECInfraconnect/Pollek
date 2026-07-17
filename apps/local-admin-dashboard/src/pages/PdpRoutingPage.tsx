@@ -1,16 +1,13 @@
 import { PdpRuntimeRouting } from "../components/pdp/PdpRuntimeRouting";
+import { PageHeader } from "../components/layout/PageHeader";
 
 export function PdpRoutingPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">PDP & Routing</h2>
-          <p className="text-muted-foreground">
-            Configure Policy Decision Point (PDP) engines and routing rules.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="PDP & Routing"
+        subtitle="Choose which policy engines make decisions, and how requests are routed to them."
+      />
       <PdpRuntimeRouting />
     </div>
   );

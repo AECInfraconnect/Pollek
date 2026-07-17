@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import { Plus, Cloud, Activity, Info } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -65,21 +66,16 @@ export function BlackboxAI({ hideHeader = false }: { hideHeader?: boolean }) {
   return (
     <div className={hideHeader ? "space-y-6" : "p-6 md:p-8 space-y-6"}>
       {!hideHeader && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">
-              Blackbox AI
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Manage external AI model providers (OpenAI, Anthropic, Google,
-              etc).
-            </p>
-          </div>
-          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm">
-            <Plus className="h-4 w-4" />
-            Add Provider
-          </button>
-        </div>
+        <PageHeader
+          title="Blackbox AI"
+          subtitle="External AI model providers this device can use, such as OpenAI, Anthropic, and Google."
+          actions={
+            <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm">
+              <Plus className="h-4 w-4" />
+              Add Provider
+            </button>
+          }
+        />
       )}
 
       <MasterDetailLayout

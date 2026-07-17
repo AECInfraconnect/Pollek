@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageHeader } from "../components/layout/PageHeader";
 import {
   LOCAL_CONTROL_PLANE_DEFAULT_ORIGIN,
   MOCK_CLOUD_DEFAULT_ORIGIN,
@@ -7,7 +8,13 @@ import {
 } from "../services/api";
 import type { ContractDiscoveryResponse } from "../services/api";
 import { toast } from "sonner";
-import { Activity, CheckCircle2, CloudOff, FileCode2, ShieldAlert } from "lucide-react";
+import {
+  Activity,
+  CheckCircle2,
+  CloudOff,
+  FileCode2,
+  ShieldAlert,
+} from "lucide-react";
 
 export function Settings() {
   const [profile, setProfile] = useState<"local" | "mock-cloud">("local");
@@ -51,21 +58,20 @@ export function Settings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Settings</h2>
-          <p className="text-muted-foreground">
-            Configure local service settings and synchronization profiles.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Settings"
+        subtitle="Configure this device's local service and how it syncs with Pollek Cloud."
+      />
 
       <div className="glass p-6 rounded-xl space-y-6">
         <h3 className="text-lg font-medium">Local Service Profile</h3>
 
         <div className="space-y-4 max-w-md">
           <div className="grid gap-2">
-            <label htmlFor="settings-active-profile" className="text-sm font-medium">
+            <label
+              htmlFor="settings-active-profile"
+              className="text-sm font-medium"
+            >
               Active Profile
             </label>
             <select
@@ -74,16 +80,17 @@ export function Settings() {
               onChange={(e) => handleProfileChange(e.target.value as any)}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
-              <option value="local">
-                Local service (127.0.0.1:43891)
-              </option>
+              <option value="local">Local service (127.0.0.1:43891)</option>
               <option value="mock-cloud">
                 Mock Pollek Cloud (127.0.0.1:43892)
               </option>
             </select>
           </div>
           <div className="grid gap-2">
-            <label htmlFor="settings-api-endpoint" className="text-sm font-medium">
+            <label
+              htmlFor="settings-api-endpoint"
+              className="text-sm font-medium"
+            >
               API Endpoint
             </label>
             <input
@@ -192,7 +199,8 @@ export function Settings() {
           <div>
             <h3 className="text-lg font-medium">Definition Updates</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              POLLEK agent signatures and definitions are updated automatically via dek-bundle-sync.
+              POLLEK agent signatures and definitions are updated automatically
+              via dek-bundle-sync.
             </p>
           </div>
           <button
@@ -200,7 +208,9 @@ export function Settings() {
             disabled={checkingUpdates}
             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-50"
           >
-            {checkingUpdates ? <Activity className="h-4 w-4 animate-spin" /> : null}
+            {checkingUpdates ? (
+              <Activity className="h-4 w-4 animate-spin" />
+            ) : null}
             Check for updates
           </button>
         </div>
@@ -276,7 +286,9 @@ function ContractHubStatusCard({
             Cloud sync
           </div>
           <div className="mt-1 text-sm font-semibold">
-            {hasCloudInterface ? "Available if enabled" : "Optional / not required"}
+            {hasCloudInterface
+              ? "Available if enabled"
+              : "Optional / not required"}
           </div>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
             Local history and Observe views do not require Pollek Cloud.

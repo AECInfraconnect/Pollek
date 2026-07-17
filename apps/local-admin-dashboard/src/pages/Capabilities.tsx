@@ -94,7 +94,7 @@ function CapabilityCard({
               ? `Can ${method.max_level} these domains on this device.`
               : method.status === "simulator_only"
                 ? "Simulation signal only. Real blocking is not enabled."
-                : actionTitles[0] ?? "Needs setup before real enforcement."}
+                : (actionTitles[0] ?? "Needs setup before real enforcement.")}
           </p>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {method.domains.map((domain) => (
@@ -108,15 +108,21 @@ function CapabilityCard({
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
             <div>
-              <span className="block text-foreground">{labelize(method.max_level)}</span>
+              <span className="block text-foreground">
+                {labelize(method.max_level)}
+              </span>
               Max level
             </div>
             <div>
-              <span className="block text-foreground">{labelize(method.maturity)}</span>
+              <span className="block text-foreground">
+                {labelize(method.maturity)}
+              </span>
               Maturity
             </div>
             <div>
-              <span className="block text-foreground">{labelize(method.install_state)}</span>
+              <span className="block text-foreground">
+                {labelize(method.install_state)}
+              </span>
               Install
             </div>
           </div>
@@ -126,7 +132,11 @@ function CapabilityCard({
   );
 }
 
-function ObservationCard({ source }: { source: ObservationSourceCapabilityV2 }) {
+function ObservationCard({
+  source,
+}: {
+  source: ObservationSourceCapabilityV2;
+}) {
   const status = readinessStatus(source.status);
   const token = statusToken(status);
   return (
@@ -140,7 +150,13 @@ function ObservationCard({ source }: { source: ObservationSourceCapabilityV2 }) 
             <h3 className="truncate text-sm font-semibold">
               {source.display_name_en}
             </h3>
-            <span className={cn("rounded-full px-2 py-0.5 text-[11px]", token.bg, token.text)}>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[11px]",
+                token.bg,
+                token.text,
+              )}
+            >
               {labelize(source.status)}
             </span>
           </div>
@@ -172,12 +188,16 @@ function SetupActionRow({ action }: { action: SetupActionV2 }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="truncate text-sm font-semibold">{action.title_en}</h3>
+            <h3 className="truncate text-sm font-semibold">
+              {action.title_en}
+            </h3>
             <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
               {action.requires_admin ? "Admin" : "User"}
             </span>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{action.detail_en}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {action.detail_en}
+          </p>
         </div>
       </div>
     </div>
@@ -234,7 +254,7 @@ export function Capabilities() {
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
             Capabilities
           </h2>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">

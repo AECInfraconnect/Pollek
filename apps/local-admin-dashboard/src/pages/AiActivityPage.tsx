@@ -61,7 +61,8 @@ import type { LocalCapabilitySnapshotV2 } from "../services/types";
 import type { UiStatus } from "../lib/status";
 import { useMode } from "../context/ModeContext";
 import { isAdvanceMode } from "../lib/modes";
-import { Collapsible } from "../components/ui";
+import { Collapsible, TechnicalDetails } from "../components/ui";
+import { PageHeader } from "../components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 
 type Filters = {
@@ -408,6 +409,74 @@ function SummaryTile({
       <div className="text-2xl font-semibold">{value}</div>
       <p className="mt-1 text-xs font-medium text-muted-foreground">{label}</p>
     </div>
+  );
+}
+
+/** One clean headline stat for the AI Activity hero. */
+function HeadlineStat({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "default" | "alert";
+}) {
+  return (
+    <div className="min-w-0">
+      <div
+        className={cn(
+          "text-[26px] font-semibold leading-none tracking-tight tabular-nums",
+          tone === "alert" &&
+            Number(value) > 0 &&
+            "text-red-600 dark:text-red-400",
+        )}
+      >
+        {value}
+      </div>
+      <p className="mt-1.5 text-xs font-medium text-muted-foreground">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Plain-language hero for the AI Activity page. Leads with one calm sentence
+ * and a handful of friendly headline numbers — no jargon, no wall of tiles.
+ * Everything technical lives one click away in the Technical details panel.
+ */
+function ActivityHeadline({
+  summary,
+  loading,
+}: {
+  summary: ReturnType<typeof summarizeActivities>;
+  loading: boolean;
+}) {
+  const sentence =
+    summary.total === 0
+      ? loading
+        ? "Checking what your AI apps have been doing…"
+        : "No AI activity has been recorded on this computer yet."
+      : summary.blocked > 0
+        ? `Pollek watched your AI apps and recorded ${summary.total} recent ${summary.total === 1 ? "activity" : "activities"} — ${summary.blocked} ${summary.blocked === 1 ? "was" : "were"} blocked.`
+        : `Pollek watched your AI apps and recorded ${summary.total} recent ${summary.total === 1 ? "activity" : "activities"}. Nothing was blocked.`;
+
+  return (
+    <section className="rounded-2xl border bg-card/60 p-5 shadow-[var(--elev-1)]">
+      <p className="max-w-2xl text-[15px] leading-6 text-foreground/90">
+        {sentence}
+      </p>
+      <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <HeadlineStat label="Activities" value={summary.total} />
+        <HeadlineStat label="Blocked" value={summary.blocked} tone="alert" />
+        <HeadlineStat label="Safety checks" value={summary.safety} />
+        <HeadlineStat
+          label="Cost (est.)"
+          value={`$${summary.costUsd.toFixed(2)}`}
+        />
+      </div>
+    </section>
   );
 }
 
@@ -900,14 +969,16 @@ export function AiActivityPage() {
       UsageApi.getEvents({ limit: 300 }).catch(() => ({ items: [] })),
       CapabilityApi.getSnapshotV2("desktop_simple").catch(() => null),
     ])
-      .then(([response, agents, candidates, usageEvents, capabilitySnapshot]) => {
-        const names = buildAgentNameMap(agents, candidates);
-        addUsageEventAgentAliases(names, usageEvents.items ?? []);
-        setItems(resolveActivityAgentNames(response.items ?? [], names));
-        setDataSource(response.source ?? "local-control-plane-read-model");
-        setSnapshot(capabilitySnapshot);
-        setError(null);
-      })
+      .then(
+        ([response, agents, candidates, usageEvents, capabilitySnapshot]) => {
+          const names = buildAgentNameMap(agents, candidates);
+          addUsageEventAgentAliases(names, usageEvents.items ?? []);
+          setItems(resolveActivityAgentNames(response.items ?? [], names));
+          setDataSource(response.source ?? "local-control-plane-read-model");
+          setSnapshot(capabilitySnapshot);
+          setError(null);
+        },
+      )
       .catch((err) =>
         setError(err instanceof Error ? err : new Error(String(err))),
       )
@@ -984,170 +1055,171 @@ export function AiActivityPage() {
     <div className="space-y-5">
       {!selectedEventId && (
         <>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-                <Activity className="h-6 w-6 text-primary" />
-                AI Activity
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Files, websites, tools, commands, model usage, and decisions in
-                plain language.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={observeNow}
-                disabled={observing}
-                className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
-              >
-                <Eye className={cn("h-4 w-4", observing && "animate-pulse")} />
-                {observing ? "Observing" : "Observe now"}
-              </button>
-              <button
-                type="button"
-                onClick={() => exportCsv(filtered)}
-                className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-              >
-                <FileText className="h-4 w-4" />
-                CSV
-              </button>
-              <button
-                type="button"
-                onClick={() => exportJson(filtered)}
-                className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-              >
-                <Download className="h-4 w-4" />
-                JSON
-              </button>
-              <button
-                type="button"
-                onClick={load}
-                className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-              >
-                <RefreshCw
-                  className={cn("h-4 w-4", loading && "animate-spin")}
-                />
-                Refresh
-              </button>
-            </div>
-          </div>
+          <PageHeader
+            title="AI Activity"
+            subtitle="What your AI apps did on this computer — files, websites, tools, commands, and cost — in plain language."
+            icon={Activity}
+            actions={
+              <>
+                <button
+                  type="button"
+                  onClick={observeNow}
+                  disabled={observing}
+                  className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                >
+                  <Eye
+                    className={cn("h-4 w-4", observing && "animate-pulse")}
+                  />
+                  {observing ? "Observing" : "Observe now"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => exportCsv(filtered)}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                >
+                  <FileText className="h-4 w-4" />
+                  CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => exportJson(filtered)}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                >
+                  <Download className="h-4 w-4" />
+                  JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={load}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                >
+                  <RefreshCw
+                    className={cn("h-4 w-4", loading && "animate-spin")}
+                  />
+                  Refresh
+                </button>
+              </>
+            }
+          />
 
-          {observeResult && (
-            <section className="rounded-lg border bg-card/60 p-4">
-              <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold">
-                    Latest local observe refresh
-                  </h3>
-                  <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">
-                    Pollek records activity metadata only here: redacted paths,
-                    domains, tools, model usage fields, decisions, and
-                    timestamps. It does not store file contents, email bodies,
-                    raw prompts, or raw responses in this timeline.
-                  </p>
-                </div>
-                <span className="rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground">
-                  Scan {observeResult.scan_id}
-                </span>
+          <ActivityHeadline summary={summary} loading={loading} />
+
+          <TechnicalDetails
+            label="Technical details"
+            hint="Latest scan breakdown, capture quality, coverage, and data source"
+            defaultOpen={showTechnicalDetails}
+          >
+            <div className="space-y-4">
+              <p className="max-w-3xl text-xs leading-5 text-muted-foreground">
+                Pollek records activity metadata only: redacted paths, domains,
+                tools, model-usage fields, decisions, and timestamps. It never
+                stores file contents, email bodies, raw prompts, or raw
+                responses in this timeline.
+              </p>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <SummaryTile label="File activity" value={summary.files} />
+                <SummaryTile label="Web activity" value={summary.web} />
+                <SummaryTile label="Commands" value={summary.commands} />
+                <SummaryTile label="Plugins" value={summary.plugins} />
               </div>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-                <SummaryTile
-                  label="AI apps observed"
-                  value={observeResult.candidates_found}
-                />
-                <SummaryTile
-                  label="Resources"
-                  value={observeResult.resource_events}
-                />
-                <SummaryTile label="Tools" value={observeResult.tool_events} />
-                <SummaryTile
-                  label="Identities"
-                  value={observeResult.identity_events}
-                />
-                <SummaryTile
-                  label="Exact usage"
-                  value={observeResult.exact_usage_events}
-                />
-                <SummaryTile
-                  label="Estimated usage"
-                  value={observeResult.estimated_usage_events}
-                />
-              </div>
-              {(observeResult.capture_quality.length > 0 ||
-                observeResult.limitations.length > 0) && (
-                <div className="mt-3 grid gap-2 lg:grid-cols-2">
-                  <div className="rounded-md border bg-background/60 p-3">
-                    <div className="text-xs font-medium">Capture quality</div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {observeResult.capture_quality.length > 0
-                        ? observeResult.capture_quality.join(", ")
-                        : "Metadata observed; no exact usage source reported yet."}
-                    </p>
+
+              {observeResult && (
+                <div className="rounded-lg border bg-card/60 p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <h4 className="text-sm font-semibold">
+                      Latest local observe refresh
+                    </h4>
+                    <span className="rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground">
+                      Scan {observeResult.scan_id}
+                    </span>
                   </div>
-                  <div className="rounded-md border bg-background/60 p-3">
-                    <div className="text-xs font-medium">
-                      What may need setup
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+                    <SummaryTile
+                      label="AI apps observed"
+                      value={observeResult.candidates_found}
+                    />
+                    <SummaryTile
+                      label="Resources"
+                      value={observeResult.resource_events}
+                    />
+                    <SummaryTile
+                      label="Tools"
+                      value={observeResult.tool_events}
+                    />
+                    <SummaryTile
+                      label="Identities"
+                      value={observeResult.identity_events}
+                    />
+                    <SummaryTile
+                      label="Exact usage"
+                      value={observeResult.exact_usage_events}
+                    />
+                    <SummaryTile
+                      label="Estimated usage"
+                      value={observeResult.estimated_usage_events}
+                    />
+                  </div>
+                  {(observeResult.capture_quality.length > 0 ||
+                    observeResult.limitations.length > 0) && (
+                    <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                      <div className="rounded-md border bg-background/60 p-3">
+                        <div className="text-xs font-medium">
+                          Capture quality
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {observeResult.capture_quality.length > 0
+                            ? observeResult.capture_quality.join(", ")
+                            : "Metadata observed; no exact usage source reported yet."}
+                        </p>
+                      </div>
+                      <div className="rounded-md border bg-background/60 p-3">
+                        <div className="text-xs font-medium">
+                          What may need setup
+                        </div>
+                        <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                          {observeResult.limitations.slice(0, 3).map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                          {observeResult.limitations.length === 0 && (
+                            <li>
+                              No limitations were reported by this refresh.
+                            </li>
+                          )}
+                        </ul>
+                      </div>
                     </div>
-                    <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-                      {observeResult.limitations.slice(0, 3).map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                      {observeResult.limitations.length === 0 && (
-                        <li>No limitations were reported by this refresh.</li>
-                      )}
-                    </ul>
-                  </div>
+                  )}
                 </div>
               )}
-            </section>
-          )}
 
-          <section className="rounded-lg border bg-card/60 p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h3 className="text-sm font-semibold">Activity data source</h3>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card/60 p-3">
+                <span className="text-xs text-muted-foreground">
                   {dataSource === "dashboard-timeline-fallback"
-                    ? "The user-friendly activity endpoint did not respond, so Pollek is showing the raw activity timeline with dashboard-side friendly labels."
-                    : "Pollek is reading from local activity history and observe data stored on this device."}
-                </p>
+                    ? "Reading the raw activity timeline with dashboard-side friendly labels (user-friendly endpoint did not respond)."
+                    : "Reading from local activity history stored on this device."}
+                </span>
+                <span
+                  className={cn(
+                    "inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-medium",
+                    dataSource === "dashboard-timeline-fallback"
+                      ? "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+                      : "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+                  )}
+                >
+                  {dataSource === "dashboard-timeline-fallback"
+                    ? "Timeline fallback"
+                    : "Local history"}
+                </span>
               </div>
-              <span
-                className={cn(
-                  "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium",
-                  dataSource === "dashboard-timeline-fallback"
-                    ? "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-200"
-                    : "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
-                )}
-              >
-                {dataSource === "dashboard-timeline-fallback"
-                  ? "Timeline fallback"
-                  : "Local history"}
-              </span>
+
+              <ObservePostureMatrix
+                items={matrix}
+                title="Observe coverage"
+                subtitle="What this computer can currently see, control, or still needs setup for before events appear here."
+              />
             </div>
-          </section>
-
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-8">
-            <SummaryTile label="Events" value={summary.total} />
-            <SummaryTile label="File activity" value={summary.files} />
-            <SummaryTile label="Web activity" value={summary.web} />
-            <SummaryTile label="Commands" value={summary.commands} />
-            <SummaryTile label="Plugins" value={summary.plugins} />
-            <SummaryTile label="Safety" value={summary.safety} />
-            <SummaryTile label="Blocked" value={summary.blocked} />
-            <SummaryTile
-              label="Estimated cost"
-              value={`$${summary.costUsd.toFixed(2)}`}
-            />
-          </section>
-
-          <ObservePostureMatrix
-            items={matrix}
-            title="Observe coverage matrix"
-            subtitle="A device-management style view of what this computer can see, control, or still needs setup for before events appear in the ledger."
-          />
+          </TechnicalDetails>
 
           <Collapsible
             defaultExpanded={false}
