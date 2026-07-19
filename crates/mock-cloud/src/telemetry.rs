@@ -42,6 +42,9 @@ pub fn router() -> Router<AppState> {
         .route("/v1/telemetry/ebpf-events", post(ingest_ebpf_events))
         .route("/v1/metrics", post(ingest_metrics))
         .route("/v1/telemetry/batches", post(ingest_batches))
+        // secure-spool fallback replay: dek-telemetry POSTs `{base}/fallback`;
+        // a 2xx here is the ack that lets the DEK drop the replayed records.
+        .route("/fallback", post(ingest_fallback))
         .route("/v1/telemetry/resources", get(list_resources))
         .route("/v1/telemetry/tools", get(list_tools))
         .route("/v1/telemetry/identities", get(list_identities))
@@ -179,6 +182,15 @@ async fn ingest_events_tenant(
     Json(p): Json<TelemetryPayload>,
 ) -> impl IntoResponse {
     handle(s, p, "events").await
+}
+
+/// Secure-spool fallback replay. Same `{ "events": [...] }` shape, redaction
+/// screening and ack contract as the typed ingest endpoints.
+async fn ingest_fallback(
+    State(s): State<AppState>,
+    Json(p): Json<TelemetryPayload>,
+) -> impl IntoResponse {
+    handle(s, p, "fallback").await
 }
 
 #[derive(serde::Deserialize)]
@@ -447,4 +459,74 @@ async fn list_identities(
             "items": items
         })),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Body;
+    use axum::http::Request;
+    use tower::util::ServiceExt;
+
+    fn app() -> Router {
+        router().with_state(crate::state::test_app_state())
+    }
+
+    fn post_json(uri: &str, payload: serde_json::Value) -> Request<Body> {
+        Request::builder()
+            .method("POST")
+            .uri(uri)
+            .header("content-type", "application/json")
+            .body(Body::from(payload.to_string()))
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn fallback_accepts_valid_batch() {
+        // Shape POSTed by dek-telemetry's SecureFallback: replayed secure-spool
+        // audit entries under an `events` array.
+        let payload = serde_json::json!({
+            "events": [
+                {
+                    "seq": 1,
+                    "timestamp": "2026-07-19T00:00:00Z",
+                    "payload_json": "decision:allow",
+                    "prev_hash": "GENESIS",
+                    "entry_hash": "abc123"
+                }
+            ]
+        });
+        let res = app().oneshot(post_json("/fallback", payload)).await.unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v.get("accepted").and_then(|a| a.as_i64()), Some(1));
+        assert_eq!(v.get("rejected").and_then(|a| a.as_i64()), Some(0));
+    }
+
+    #[tokio::test]
+    async fn fallback_rejects_unredacted_secrets() {
+        let payload = serde_json::json!({
+            "events": [
+                { "event_type": "audit", "reason": "denied: bearer token leaked" }
+            ]
+        });
+        let res = app().oneshot(post_json("/fallback", payload)).await.unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn fallback_rejects_malformed_body() {
+        let req = Request::builder()
+            .method("POST")
+            .uri("/fallback")
+            .header("content-type", "application/json")
+            .body(Body::from("not json"))
+            .unwrap();
+        let res = app().oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+    }
 }

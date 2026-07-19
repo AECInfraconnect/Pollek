@@ -135,10 +135,54 @@ pub async fn build_signed_bundle(
     })
 }
 
-pub fn verify_bundle(_manifest: &PollekPolicyBundle, _public_b64: &str) -> bool {
-    // In v1, signature is verified against the outer SignedBundle or HTTP headers.
-    // Stubbing to true for local-control-plane.
-    true
+/// Verify the ed25519 signature carried by a bundle envelope against the
+/// JCS-canonicalized `manifest` member, using the base64 public key.
+///
+/// Mirrors `dek_activation::signature::verify_bundle_signature` (the DEK-side
+/// verifier) so the Local control plane and the DEK enforce the same chain of
+/// trust (invariant I3: bundles are always signed). Reimplemented here instead
+/// of imported to avoid pulling the whole dek-activation crate (and its wasm
+/// stack) into the control plane.
+pub fn verify_bundle_signature(envelope: &Value, public_key_b64: &str) -> Result<(), String> {
+    use base64::Engine;
+    use ed25519_dalek::Verifier;
+
+    let signature_b64 = envelope
+        .get("signatures")
+        .and_then(|v| v.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|sig| sig.get("payload"))
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "bundle envelope is missing signatures[0].payload".to_string())?;
+
+    let manifest = envelope
+        .get("manifest")
+        .ok_or_else(|| "bundle envelope is missing manifest".to_string())?;
+
+    let canonical =
+        serde_jcs::to_vec(manifest).map_err(|e| format!("manifest canonicalization failed: {e}"))?;
+
+    let sig_bytes = base64::prelude::BASE64_STANDARD
+        .decode(signature_b64)
+        .map_err(|_| "signature payload is not valid base64".to_string())?;
+    let sig_arr: [u8; 64] = sig_bytes
+        .as_slice()
+        .try_into()
+        .map_err(|_| "signature has invalid length".to_string())?;
+    let signature = ed25519_dalek::Signature::from_bytes(&sig_arr);
+
+    let pub_bytes = base64::prelude::BASE64_STANDARD
+        .decode(public_key_b64.trim())
+        .map_err(|_| "trusted public key is not valid base64".to_string())?;
+    let pub_arr: [u8; 32] = pub_bytes
+        .as_slice()
+        .try_into()
+        .map_err(|_| "trusted public key has invalid length".to_string())?;
+    let key = ed25519_dalek::VerifyingKey::from_bytes(&pub_arr)
+        .map_err(|_| "trusted public key is invalid".to_string())?;
+
+    key.verify(&canonical, &signature)
+        .map_err(|_| "bundle signature verification failed".to_string())
 }
 
 pub fn router() -> Router<AppState> {
@@ -474,4 +518,90 @@ async fn deploy_to_pep(
         "bundle_path": bundle_path.to_string_lossy().to_string(),
         "timestamp": chrono::Utc::now().to_rfc3339()
     })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::signing::LocalSigner;
+
+    fn test_signer(tag: &str) -> LocalSigner {
+        let dir = std::env::temp_dir().join(format!("lcp-verify-{tag}-{}", std::process::id()));
+        #[allow(clippy::unwrap_used)]
+        LocalSigner::load_or_create(&dir).unwrap()
+    }
+
+    fn sample_manifest() -> Value {
+        serde_json::json!({
+            "apiVersion": "local/v1alpha1",
+            "kind": "Bundle",
+            "metadata": {
+                "bundle_id": "bundle-test-1",
+                "tenant": "local",
+                "version": "v1",
+                "created_at": "2026-07-19T00:00:00Z",
+                "created_by": "local-admin"
+            },
+            "artifacts": []
+        })
+    }
+
+    fn signed_envelope(signer: &LocalSigner, manifest: &Value) -> Value {
+        #[allow(clippy::unwrap_used)]
+        let canonical = serde_jcs::to_vec(manifest).unwrap();
+        let sig = signer.sign_b64(&canonical);
+        serde_json::json!({
+            "schema_version": "bundle-envelope.v1",
+            "manifest": manifest,
+            "signatures": [{
+                "signature_id": "sig-test",
+                "signature_type": "ed25519",
+                "payload": sig,
+                "public_key_fingerprint": signer.key_id,
+            }]
+        })
+    }
+
+    #[test]
+    fn valid_envelope_verifies() {
+        let signer = test_signer("valid");
+        let envelope = signed_envelope(&signer, &sample_manifest());
+        assert!(verify_bundle_signature(&envelope, &signer.public_key_b64()).is_ok());
+    }
+
+    #[test]
+    fn tampered_manifest_fails_verification() {
+        let signer = test_signer("tampered");
+        let mut envelope = signed_envelope(&signer, &sample_manifest());
+        envelope["manifest"]["metadata"]["bundle_id"] =
+            serde_json::json!("bundle-evil-tampered");
+        let err = verify_bundle_signature(&envelope, &signer.public_key_b64());
+        assert!(err.is_err(), "tampered manifest must not verify");
+    }
+
+    #[test]
+    fn missing_signatures_fails_verification() {
+        let signer = test_signer("nosig");
+        let envelope = serde_json::json!({ "manifest": sample_manifest() });
+        let err = verify_bundle_signature(&envelope, &signer.public_key_b64());
+        assert!(err.is_err(), "envelope without signatures must not verify");
+    }
+
+    #[test]
+    fn wrong_public_key_fails_verification() {
+        let signer = test_signer("right");
+        let rogue = test_signer("rogue");
+        let envelope = signed_envelope(&rogue, &sample_manifest());
+        let err = verify_bundle_signature(&envelope, &signer.public_key_b64());
+        assert!(err.is_err(), "signature from untrusted key must not verify");
+    }
+
+    #[test]
+    fn non_base64_signature_fails_verification() {
+        let signer = test_signer("badb64");
+        let mut envelope = signed_envelope(&signer, &sample_manifest());
+        envelope["signatures"][0]["payload"] = serde_json::json!("!!!not-base64!!!");
+        let err = verify_bundle_signature(&envelope, &signer.public_key_b64());
+        assert!(err.is_err(), "non-base64 signature must not verify");
+    }
 }

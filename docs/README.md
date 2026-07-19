@@ -25,6 +25,7 @@ Welcome to the Pollek Local Enforcement Kit documentation.
 
 ## Architecture & Design
 
+- [Gap Analysis — Discovery / Observe / Enforce / Cloud Sync](GAP_ANALYSIS.md)
 - [Architecture](../ARCHITECTURE.md)
 - [Policy-First OS Observe/Enforce and WASM](design/POLICY_FIRST_OS_OBSERVE_ENFORCE_WASM.md)
 - [Auto Discovery Coverage Expansion](design/AUTO_DISCOVERY_COVERAGE_EXPANSION.md)

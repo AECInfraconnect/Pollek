@@ -242,6 +242,40 @@ impl<K: key_manager::OsKeyStore> Spool<K> {
         }
         Ok(results)
     }
+
+    /// Acknowledge successful delivery of every record currently spooled.
+    ///
+    /// Segments are append-only with records chained by `prev_hash`; the
+    /// format offers no per-record delete. The honest ack primitive is
+    /// therefore truncate-after-ack: once the cloud confirms receipt of what
+    /// `replay()` returned, all sealed segments are dropped and the chain
+    /// restarts from `GENESIS`, so the next `replay()` verifies cleanly.
+    /// Tamper-evidence for records still awaiting ack is unaffected — only
+    /// cloud-confirmed history is discarded.
+    ///
+    /// A record enqueued after the corresponding `replay()` snapshot but
+    /// before this call is discarded without delivery; the format cannot ack
+    /// a subset, so that window is inherent to truncate-after-ack.
+    pub async fn ack_all(&self) -> Result<(), SpoolError> {
+        let mut state = self.state.lock().await;
+        // Drop the writer first: its file handle must be closed before the
+        // segment can be deleted (required on Windows).
+        state.writer = None;
+        if self.dir.exists() {
+            let mut entries = tokio::fs::read_dir(&self.dir).await?;
+            while let Some(entry) = entries.next_entry().await? {
+                let path = entry.path();
+                if path.extension().and_then(|s| s.to_str()) == Some("pds") {
+                    tokio::fs::remove_file(path).await?;
+                }
+            }
+        }
+        state.current_segment_id = String::new();
+        state.current_size = 0;
+        state.last_hash = "GENESIS".to_string();
+        state.seq = 0;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -320,6 +354,37 @@ mod tests {
         assert!(err.is_err());
 
         let _ = fs::remove_dir_all(dir);
+    }
+
+    #[tokio::test]
+    async fn test_spool_ack_all_truncates_and_restarts_chain() -> Result<(), SpoolError> {
+        let dir = std::env::temp_dir().join(format!("test_spool_{}", Uuid::new_v4()));
+        let km = key_manager::SpoolKeyManager::new(DummyKeyStore);
+        let spool = Spool::new(
+            dir.clone(),
+            1024 * 1024,
+            Some(km),
+            "test".to_string(),
+            "test".to_string(),
+        );
+
+        spool.enqueue(b"event1".to_vec()).await?;
+        spool.enqueue(b"event2".to_vec()).await?;
+        assert_eq!(spool.replay().await?.len(), 2);
+
+        spool.ack_all().await?;
+        assert!(spool.replay().await?.is_empty());
+        assert_eq!(spool.current_size().await?, 0);
+
+        // The chain restarts cleanly: new records verify from GENESIS again.
+        spool.enqueue(b"event3".to_vec()).await?;
+        let replays = spool.replay().await?;
+        assert_eq!(replays.len(), 1);
+        assert_eq!(replays[0].payload_json, "event3");
+        assert_eq!(replays[0].prev_hash, "GENESIS");
+
+        let _ = fs::remove_dir_all(dir);
+        Ok(())
     }
 
     #[tokio::test]

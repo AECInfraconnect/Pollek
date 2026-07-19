@@ -14,6 +14,8 @@ pub struct LocalControlPlaneHarness {
     pub base_url: String,
     #[allow(dead_code)]
     pub api_token: String,
+    #[allow(dead_code)]
+    pub signer: Arc<LocalSigner>,
     // Keep tempdir alive
     _tempdir: tempfile::TempDir,
 }
@@ -37,7 +39,7 @@ impl LocalControlPlaneHarness {
             telemetry_store: store.clone(),
             observability_store: store.clone(),
             deployment_store: store,
-            signer,
+            signer: signer.clone(),
             build_number: Arc::new(AtomicU64::new(1)),
             api_token: api_token.clone(),
             auth_disabled: true, // For tests, or test token
@@ -76,6 +78,7 @@ impl LocalControlPlaneHarness {
         Self {
             base_url,
             api_token,
+            signer,
             _tempdir: tempdir,
         }
     }
