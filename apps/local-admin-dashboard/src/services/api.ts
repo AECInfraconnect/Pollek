@@ -409,7 +409,7 @@ export class ControlPlaneClient {
   }
 
   async getHostCapabilities(): Promise<LocalCapabilitySnapshot> {
-    return this.fetchApi("/v1/host/capabilities");
+    return this.fetchApi("/capability-snapshot");
   }
   async getHostCapabilitiesV2(
     mode: RuntimeModeV2 = "desktop_advanced",
@@ -445,13 +445,13 @@ export class ControlPlaneClient {
     );
   }
   async scanAgents(): Promise<{ job_id: string }> {
-    return this.fetchApi("/v1/discovery/scan", { method: "POST" });
+    return this.fetchApi("/scan", { method: "POST" });
   }
   async getScanResult(jobId: string) {
-    return this.fetchApi(`/v1/discovery/scan/${jobId}`);
+    return this.fetchApi(`/scans/${jobId}`);
   }
   async getPolicySuggestions(agentIds: string[]): Promise<PolicySuggestion[]> {
-    return this.fetchApi("/v1/policy/suggestions", {
+    return this.fetchApi("/policy-suggestions", {
       method: "POST",
       body: JSON.stringify({ agents: agentIds }),
     });
@@ -460,7 +460,7 @@ export class ControlPlaneClient {
     policy: unknown,
     level: ControlLevel,
   ): Promise<PolicyFeasibilityResult> {
-    return this.fetchApi("/v1/policy/feasibility", {
+    return this.fetchApi("/policies/feasibility", {
       method: "POST",
       body: JSON.stringify({ policy, requested_level: level }),
     });
@@ -470,18 +470,20 @@ export class ControlPlaneClient {
     agents: string[];
     requested_level: ControlLevel;
   }): Promise<DeploySession> {
-    return this.fetchApi("/v1/deploy/session", {
+    return this.fetchApi("/deployment-sessions", {
       method: "POST",
       body: JSON.stringify(input),
     });
   }
   async confirmDeploySession(id: string): Promise<ControlMethodPlan> {
-    return this.fetchApi(`/v1/deploy/session/${id}/confirm`, {
+    return this.fetchApi(`/deployment-sessions/${id}/confirm`, {
       method: "POST",
     });
   }
   async applyDeploySession(id: string) {
-    return this.fetchApi(`/v1/deploy/session/${id}/apply`, { method: "POST" });
+    return this.fetchApi(`/deployment-sessions/${id}/apply`, {
+      method: "POST",
+    });
   }
 
   // Registry
@@ -1108,12 +1110,12 @@ export const DeploymentApi = {
       body: JSON.stringify(payload),
     }),
   autoPlan: (intent: string) =>
-    defaultClient.fetchApi("/enforcement/auto-plan", {
+    defaultClient.fetchRootApi("/v1/enforcement/auto-plan", {
       method: "POST",
       body: JSON.stringify({ intent }),
     }),
   rollback: (deploymentId: string) =>
-    defaultClient.fetchApi(`/policy-deployment/${deploymentId}/rollback`, {
+    defaultClient.fetchApi(`/deployments/${deploymentId}/rollback`, {
       method: "POST",
     }),
 };

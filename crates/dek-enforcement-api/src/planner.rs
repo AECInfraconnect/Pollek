@@ -1,10 +1,15 @@
 use std::cmp::Ord;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ControlLevel {
+    #[serde(alias = "Observe")]
     Observe,
+    #[serde(alias = "Warn")]
     Warn,
+    #[serde(alias = "Ask")]
     Ask,
+    #[serde(alias = "Enforce")]
     Enforce,
 }
 
@@ -15,11 +20,17 @@ impl ControlLevel {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ControlDomain {
+    #[serde(alias = "Network")]
     Network,
+    #[serde(alias = "FileSystem")]
     FileSystem,
+    #[serde(alias = "McpTool")]
     McpTool,
+    #[serde(alias = "Process")]
     Process,
+    #[serde(alias = "Dns")]
     Dns,
 }
 
@@ -36,10 +47,15 @@ impl std::fmt::Display for ControlDomain {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MethodStatus {
+    #[serde(alias = "Available")]
     Available,
+    #[serde(alias = "NeedsInstall")]
     NeedsInstall,
+    #[serde(alias = "NeedsPermission")]
     NeedsPermission,
+    #[serde(alias = "Unsupported")]
     Unsupported,
 }
 
@@ -135,7 +151,11 @@ impl Policy {
             vec![ControlDomain::McpTool]
         } else if id.contains("network") || id.contains("shadow") || id.contains("egress") {
             vec![ControlDomain::Network, ControlDomain::Dns]
-        } else if id.contains("file") || id.contains("folder") || id.contains("secret") {
+        } else if id.contains("file")
+            || id.contains("folder")
+            || id.contains("secret")
+            || id.contains("write")
+        {
             vec![ControlDomain::FileSystem, ControlDomain::McpTool]
         } else if id.contains("prompt")
             || id.contains("pii")

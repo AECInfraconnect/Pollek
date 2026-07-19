@@ -36,6 +36,10 @@ pub fn router() -> Router<AppState> {
             "/v1/tenants/:tenant/pdp/runtimes/:id/load-bundle",
             post(load_bundle),
         )
+        .route(
+            "/v1/tenants/:tenant/pdp/runtimes/:id/cache/clear",
+            post(clear_runtime_cache),
+        )
         .route("/v1/tenants/:tenant/pdp/evaluate", post(evaluate))
 }
 
@@ -221,6 +225,56 @@ async fn delete_runtime(
         Ok(Json(serde_json::json!({ "status": "deleted" })))
     } else {
         Err(ApiError::NotFound("pdp runtime not found".to_string()))
+    }
+}
+
+/// Drop cached bundle/probe state persisted on a runtime config so the next
+/// probe/load starts fresh. Seeded built-in runtimes hold no persisted cache.
+async fn clear_runtime_cache(
+    Path((tenant, id)): Path<(String, String)>,
+    State(st): State<AppState>,
+) -> Json<serde_json::Value> {
+    const CACHED_KEYS: [&str; 5] = [
+        "loaded_bundle",
+        "bundle",
+        "last_probe",
+        "last_validation",
+        "decision_cache",
+    ];
+    match st.pdp_store.get_runtime(&tenant, &id).await {
+        Ok(Some(mut config)) => {
+            let mut cleared: Vec<String> = Vec::new();
+            if let Some(map) = config.as_object_mut() {
+                for key in CACHED_KEYS {
+                    if map.remove(key).is_some() {
+                        cleared.push(key.to_string());
+                    }
+                }
+            }
+            if !cleared.is_empty() {
+                if let Err(err) = st.pdp_store.upsert_runtime(&tenant, &id, &config).await {
+                    return Json(serde_json::json!({
+                        "ok": false,
+                        "error": format!("failed to persist cleared config: {err}"),
+                    }));
+                }
+            }
+            Json(serde_json::json!({
+                "ok": true,
+                "runtime_id": id,
+                "cleared_keys": cleared,
+            }))
+        }
+        Ok(None) => Json(serde_json::json!({
+            "ok": true,
+            "runtime_id": id,
+            "cleared_keys": [],
+            "note": "runtime has no persisted config; nothing cached",
+        })),
+        Err(err) => Json(serde_json::json!({
+            "ok": false,
+            "error": format!("{err}"),
+        })),
     }
 }
 

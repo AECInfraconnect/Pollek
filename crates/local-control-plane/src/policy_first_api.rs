@@ -40,6 +40,7 @@ pub fn router() -> Router<AppState> {
             "/v1/tenants/:tenant/capability-snapshot",
             get(get_host_capabilities),
         )
+        .route("/v1/host/capabilities", get(get_host_capabilities_root))
         .route(
             "/v1/tenants/:tenant/devices/:device/capability-snapshot-v2",
             get(get_host_capabilities_v2),
@@ -97,6 +98,10 @@ pub fn router() -> Router<AppState> {
         .route(
             "/v1/tenants/:tenant/deployment-sessions/:id/approve",
             post(confirm_deploy_session),
+        )
+        .route(
+            "/v1/tenants/:tenant/deployment-sessions/:id/actions/:action_id/approve",
+            post(approve_deploy_session_action),
         )
         .route(
             "/v1/tenants/:tenant/deployment-sessions/:id/apply",
@@ -887,6 +892,15 @@ async fn get_host_capabilities(
     Ok((StatusCode::OK, Json(legacy_snapshot_from_v2(&snapshot))))
 }
 
+/// Root-level alias documented by the deprecated pep-capabilities endpoint.
+async fn get_host_capabilities_root(
+    State(_state): State<AppState>,
+) -> ApiResult<(StatusCode, Json<LocalCapabilitySnapshot>)> {
+    let device_id = local_device_id();
+    let snapshot = build_capability_snapshot_v2("local", &device_id, RuntimeMode::DesktopSimple);
+    Ok((StatusCode::OK, Json(legacy_snapshot_from_v2(&snapshot))))
+}
+
 async fn get_host_capabilities_v2(
     Path((tenant, device)): Path<(String, String)>,
     Query(query): Query<ModeQuery>,
@@ -942,10 +956,9 @@ struct ScanResponse {
 async fn scan_agents(
     Path(tenant): Path<String>,
     State(state): State<AppState>,
-    Json(req): Json<serde_json::Value>,
+    body: axum::body::Bytes,
 ) -> ApiResult<(StatusCode, Json<ScanResponse>)> {
-    let (_status, Json(session)) =
-        create_scan_session(Path(tenant), State(state), Json(req)).await?;
+    let (_status, Json(session)) = create_scan_session(Path(tenant), State(state), body).await?;
     let scan_id = session.scan_id;
     Ok((
         StatusCode::ACCEPTED,
@@ -1043,8 +1056,11 @@ fn source_result(source: DiscoverySourceKind, state: ScanSourceState) -> Discove
 async fn create_scan_session(
     Path(tenant): Path<String>,
     State(state): State<AppState>,
-    Json(req): Json<serde_json::Value>,
+    body: axum::body::Bytes,
 ) -> ApiResult<(StatusCode, Json<ScanSessionV2>)> {
+    // An empty or invalid body means "scan with defaults" — the wizard sends no body.
+    let req = serde_json::from_slice::<serde_json::Value>(&body)
+        .unwrap_or_else(|_| serde_json::json!({}));
     let scan_id = format!("scan_{}", uuid::Uuid::new_v4());
     let device_id = local_device_id();
     let sources = requested_sources(&req);
@@ -1306,9 +1322,19 @@ async fn get_policy_suggestions(
 #[allow(dead_code)]
 #[derive(Deserialize)]
 struct FeasibilityRequest {
-    candidate: dek_agent_discovery::model::DiscoveredAgentCandidateV2,
+    /// Full discovery candidate (rich flow, e.g. AutoDiscovery detail).
+    candidate: Option<dek_agent_discovery::model::DiscoveredAgentCandidateV2>,
+    /// Lightweight policy reference (simple wizard sends the picked suggestion here).
+    policy: Option<serde_json::Value>,
     requested_level: ControlLevel,
     policy_id: Option<String>,
+}
+
+fn policy_id_from_value(policy: Option<&serde_json::Value>) -> Option<String> {
+    policy
+        .and_then(|p| p.get("id").or_else(|| p.get("policy_id")))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
 }
 
 async fn evaluate_feasibility(
@@ -1319,9 +1345,23 @@ async fn evaluate_feasibility(
     let device_id = local_device_id();
     let snap_v2 = build_capability_snapshot_v2(&tenant, &device_id, RuntimeMode::DesktopSimple);
     let snap = legacy_snapshot_from_v2(&snap_v2);
-    let mut res =
-        dek_enforcement_api::feasibility::assess(&req.candidate, req.requested_level, &snap);
-    if let Some(policy_id) = req.policy_id {
+    let policy_id = req
+        .policy_id
+        .clone()
+        .or_else(|| policy_id_from_value(req.policy.as_ref()));
+    let mut res = if let Some(candidate) = &req.candidate {
+        dek_enforcement_api::feasibility::assess(candidate, req.requested_level, &snap)
+    } else {
+        // Policy-only flow: derive required control domains from the policy id.
+        let pol = dek_enforcement_api::planner::Policy {
+            id: policy_id
+                .clone()
+                .unwrap_or_else(|| "observe-only-baseline".into()),
+            requested_level: req.requested_level,
+        };
+        dek_enforcement_api::planner::assess_feasibility(&pol, &snap)
+    };
+    if let Some(policy_id) = policy_id {
         res.policy_id = policy_id;
     }
     Ok((StatusCode::OK, Json(res)))
@@ -1388,7 +1428,13 @@ async fn evaluate_security_coverage(
 #[allow(dead_code)]
 #[derive(Deserialize)]
 struct CreateDeployRequest {
-    candidate: dek_agent_discovery::model::DiscoveredAgentCandidateV2,
+    /// Full discovery candidate (rich flow, e.g. AutoDiscovery detail).
+    candidate: Option<dek_agent_discovery::model::DiscoveredAgentCandidateV2>,
+    /// Lightweight policy reference (simple wizard sends the picked suggestion here).
+    policy: Option<serde_json::Value>,
+    /// Agent ids picked in the simple wizard (used for scope when no candidate).
+    #[serde(default)]
+    agents: Vec<String>,
     requested_level: ControlLevel,
     policy_id: Option<String>,
 }
@@ -1441,14 +1487,20 @@ async fn create_deploy_session(
     let device_id = local_device_id();
     let snap_v2 = build_capability_snapshot_v2(&tenant, &device_id, RuntimeMode::DesktopSimple);
     let snap = legacy_snapshot_from_v2(&snap_v2);
-    let mut feasibility = dek_enforcement_api::feasibility::assess(
-        &req.candidate,
-        req.requested_level.clone(),
-        &snap,
-    );
     let policy_id = req
         .policy_id
+        .clone()
+        .or_else(|| policy_id_from_value(req.policy.as_ref()))
         .unwrap_or_else(|| "pii.redact_before_external_llm".into());
+    let mut feasibility = if let Some(candidate) = &req.candidate {
+        dek_enforcement_api::feasibility::assess(candidate, req.requested_level.clone(), &snap)
+    } else {
+        let pol = dek_enforcement_api::planner::Policy {
+            id: policy_id.clone(),
+            requested_level: req.requested_level.clone(),
+        };
+        dek_enforcement_api::planner::assess_feasibility(&pol, &snap)
+    };
     feasibility.policy_id = policy_id.clone();
     let now = chrono::Utc::now();
     let deployment_id = format!("deploy_{}", uuid::Uuid::new_v4());
@@ -1463,7 +1515,12 @@ async fn create_deploy_session(
             ControlLevel::Enforce => dek_domain_schema::control_level::ControlLevel::Enforce,
         },
         target_scope: DeploymentScope::Agent {
-            agent_id: req.candidate.suggested_registration.agent_id.clone(),
+            agent_id: req
+                .candidate
+                .as_ref()
+                .map(|c| c.suggested_registration.agent_id.clone())
+                .or_else(|| req.agents.first().cloned())
+                .unwrap_or_else(|| "local_host".into()),
         },
         status: DeploymentSessionStatus::PolicyFeasibilityEvaluated,
         created_at: now,
@@ -1548,7 +1605,12 @@ async fn confirm_deploy_session(
     let snap = legacy_snapshot_from_v2(&snap_v2);
     let pol = Policy {
         id: session.policy_id.clone(),
-        requested_level: ControlLevel::Enforce,
+        requested_level: match &session.requested_control_level {
+            dek_domain_schema::control_level::ControlLevel::Observe => ControlLevel::Observe,
+            dek_domain_schema::control_level::ControlLevel::Warn => ControlLevel::Warn,
+            dek_domain_schema::control_level::ControlLevel::Approval => ControlLevel::Ask,
+            _ => ControlLevel::Enforce,
+        },
     };
     let res = dek_enforcement_api::planner::assess_feasibility(&pol, &snap);
     let plan = negotiate(&res);
@@ -1573,6 +1635,44 @@ async fn confirm_deploy_session(
         .await
         .map_err(ApiError::Internal)?;
     Ok((StatusCode::OK, Json(plan)))
+}
+
+/// Approve a single pending setup action on a deployment session, then
+/// re-run planning so the plan reflects the approval.
+async fn approve_deploy_session_action(
+    Path((tenant, id, action_id)): Path<(String, String, String)>,
+    State(state): State<AppState>,
+) -> ApiResult<(
+    StatusCode,
+    Json<dek_enforcement_api::planner::ControlMethodPlan>,
+)> {
+    let session = state
+        .deployment_store
+        .get_deployment_session(&id)
+        .await
+        .map_err(ApiError::Internal)?
+        .ok_or_else(|| ApiError::NotFound(id.clone()))?;
+    let event = deployment_event(
+        &session,
+        DeploymentPhase::CapabilityCheck,
+        EventStatus::Success,
+        LocalizedText {
+            en: format!("Setup action '{action_id}' approved"),
+            th: format!("อนุมัติขั้นตอนตั้งค่า '{action_id}' แล้ว"),
+        },
+        LocalizedText {
+            en: "The user approved this setup action from the dashboard.".into(),
+            th: "ผู้ใช้อนุมัติขั้นตอนตั้งค่านี้จากแดชบอร์ด".into(),
+        },
+        Some(serde_json::json!({ "action_id": action_id })),
+        None,
+    );
+    state
+        .deployment_store
+        .insert_deployment_event(event)
+        .await
+        .map_err(ApiError::Internal)?;
+    confirm_deploy_session(Path((tenant, id)), State(state)).await
 }
 
 #[derive(Serialize)]
@@ -1612,7 +1712,7 @@ async fn apply_deploy_session(
                     binding
                         .get("effective_level")
                         .and_then(|value| value.as_str())
-                        == Some("Enforce")
+                        .is_some_and(|level| level.eq_ignore_ascii_case("enforce"))
                 })
             })
     });

@@ -123,7 +123,7 @@ impl PolicyStore for SqliteStore {
         let control_mode = data
             .get("control_mode")
             .and_then(|v| v.as_str())
-            .unwrap_or("Observe");
+            .unwrap_or("observe");
         let status = data
             .get("status")
             .and_then(|v| v.as_str())
