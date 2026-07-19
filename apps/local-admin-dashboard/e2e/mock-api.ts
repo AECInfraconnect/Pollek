@@ -1674,26 +1674,28 @@ export async function installMockApi(page: Page) {
     json(route, scanStarted ? activitySummary : { activity_sets: [] }),
   );
 
-  await page.route("**/v1/tenants/local/policy-suggestions", (route) =>
-    json(route, { items: suggestionsGenerated ? [policySuggestion] : [] }),
-  );
+  await page.route("**/v1/tenants/local/policy-suggestions", (route) => {
+    // POST is the simple wizard asking for suggestions for picked agents;
+    // GET is the policy-suggestions list view.
+    if (route.request().method() === "POST") {
+      return json(route, [
+        {
+          id: "pol_workspace_file_guard",
+          title_en: "Protect workspace file access",
+          title_th: "Protect workspace file access",
+          domains: ["filesystem"],
+          recommended_level: "enforce",
+        },
+      ]);
+    }
+    return json(route, { items: suggestionsGenerated ? [policySuggestion] : [] });
+  });
   await page.route(
     "**/v1/tenants/local/policy-suggestions/generate",
     (route) => {
       suggestionsGenerated = true;
       return json(route, { items: [policySuggestion] });
     },
-  );
-  await page.route("**/v1/tenants/local/v1/policy/suggestions", (route) =>
-    json(route, [
-      {
-        id: "pol_workspace_file_guard",
-        title_en: "Protect workspace file access",
-        title_th: "Protect workspace file access",
-        domains: ["filesystem"],
-        recommended_level: "enforce",
-      },
-    ]),
   );
   await page.route("**/v1/tenants/local/pdp/cloud**", (route) =>
     json(route, cloudPdpProfile),
@@ -1713,9 +1715,6 @@ export async function installMockApi(page: Page) {
   await page.route("**/v1/tenants/local/policies/feasibility", (route) =>
     json(route, policyFeasibility),
   );
-  await page.route("**/v1/tenants/local/v1/policy/feasibility", (route) =>
-    json(route, policyFeasibility),
-  );
   await page.route("**/v1/tenants/local/deployment-sessions", (route) =>
     json(route, {
       id: "deploy-session-1",
@@ -1732,24 +1731,8 @@ export async function installMockApi(page: Page) {
       },
     }),
   );
-  await page.route("**/v1/tenants/local/v1/deploy/session", (route) =>
-    json(route, {
-      id: "deploy-session-1",
-      status: "ready",
-      feasibility: {
-        policy_id: policy.policy_id,
-        requested_level: "enforce",
-        achievable_level: "enforce",
-        verdict: "fully_enforceable",
-        per_domain: [],
-        gaps: [],
-        friendly_en: "Ready to deploy.",
-        friendly_th: "",
-      },
-    }),
-  );
   await page.route(
-    "**/v1/tenants/local/v1/deploy/session/deploy-session-1/confirm",
+    "**/v1/tenants/local/deployment-sessions/deploy-session-1/confirm",
     (route) =>
       json(route, {
         policy_id: policy.policy_id,
@@ -1766,7 +1749,7 @@ export async function installMockApi(page: Page) {
       }),
   );
   await page.route(
-    "**/v1/tenants/local/v1/deploy/session/deploy-session-1/apply",
+    "**/v1/tenants/local/deployment-sessions/deploy-session-1/apply",
     (route) => json(route, { applied: true, policy_id: policy.policy_id }),
   );
   await page.route(/\/v1\/tenants\/local\/policies\/[^/]+\/publish$/, (route) =>

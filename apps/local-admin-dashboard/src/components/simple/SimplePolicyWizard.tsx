@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { CheckCircle2, ChevronRight, Eye, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 import { useMode } from "../../context/ModeContext";
 import { isAdvanceMode } from "../../lib/modes";
 import { defaultClient as client } from "../../services/api";
@@ -212,6 +213,7 @@ export function SimplePolicyWizard({
 
   async function activateRule() {
     if (!policy) return;
+    setBusy(true);
     try {
       let sid = sessionId;
       if (!sid) {
@@ -228,8 +230,14 @@ export function SimplePolicyWizard({
         onComplete();
         return;
       }
-    } catch {
-      // The activity page still gives the user a useful next step when setup is incomplete.
+    } catch (error) {
+      console.error("Failed to activate rule", error);
+      toast.error(
+        "Could not activate this rule. Check that the local service is running, then try again.",
+      );
+      return;
+    } finally {
+      setBusy(false);
     }
     window.location.assign("/activity");
   }

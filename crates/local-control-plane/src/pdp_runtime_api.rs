@@ -36,19 +36,44 @@ pub fn router() -> Router<AppState> {
             "/v1/tenants/:tenant/pdp/runtimes/:id/load-bundle",
             post(load_bundle),
         )
+        .route(
+            "/v1/tenants/:tenant/pdp/runtimes/:id/cache/clear",
+            post(clear_runtime_cache),
+        )
         .route("/v1/tenants/:tenant/pdp/evaluate", post(evaluate))
 }
 
+fn runtime_bundle_blob_path(id: &str) -> String {
+    format!("pdp-runtimes/{id}/loaded-bundle.json")
+}
+
 async fn load_bundle(
-    Path((_tenant, id)): Path<(String, String)>,
-    State(_state): State<AppState>,
+    Path((tenant, id)): Path<(String, String)>,
+    State(state): State<AppState>,
     Json(payload): Json<serde_json::Value>,
 ) -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "status": "success",
-        "message": format!("Bundle loaded successfully to {}", id),
-        "bundle": payload
-    }))
+    // Persist the loaded bundle as a blob so it survives restarts and can be
+    // inspected by validate and dropped by cache/clear.
+    let record = serde_json::json!({
+        "bundle": payload,
+        "loaded_at": chrono::Utc::now().to_rfc3339(),
+    });
+    let bytes = record.to_string().into_bytes();
+    match state
+        .policy_store
+        .put_blob(&tenant, &runtime_bundle_blob_path(&id), &bytes)
+        .await
+    {
+        Ok(()) => Json(serde_json::json!({
+            "status": "success",
+            "message": format!("Bundle loaded and persisted to runtime {id}"),
+            "bytes": bytes.len(),
+        })),
+        Err(err) => Json(serde_json::json!({
+            "status": "error",
+            "message": format!("failed to persist bundle: {err}"),
+        })),
+    }
 }
 
 async fn evaluate(
@@ -224,17 +249,90 @@ async fn delete_runtime(
     }
 }
 
-async fn validate_runtime(
-    Path((_tenant, _id)): Path<(String, String)>,
-    State(_st): State<AppState>,
+/// Drop the persisted bundle blob for a runtime so the next load starts
+/// fresh. An empty blob marks the cache as cleared.
+async fn clear_runtime_cache(
+    Path((tenant, id)): Path<(String, String)>,
+    State(st): State<AppState>,
 ) -> Json<serde_json::Value> {
-    // Stub implementation for validating local engine configuration/bundle/schemas
+    let path = runtime_bundle_blob_path(&id);
+    let had_bundle = matches!(
+        st.policy_store.get_blob(&tenant, &path).await,
+        Ok(Some(bytes)) if !bytes.is_empty()
+    );
+    if had_bundle {
+        if let Err(err) = st.policy_store.put_blob(&tenant, &path, &[]).await {
+            return Json(serde_json::json!({
+                "ok": false,
+                "error": format!("failed to clear cached bundle: {err}"),
+            }));
+        }
+    }
     Json(serde_json::json!({
         "ok": true,
-        "status": "ready",
-        "details": {},
-        "warnings": []
+        "runtime_id": id,
+        "cleared_keys": if had_bundle { vec!["loaded_bundle"] } else { Vec::new() },
     }))
+}
+
+async fn validate_runtime(
+    Path((tenant, id)): Path<(String, String)>,
+    State(st): State<AppState>,
+) -> Json<serde_json::Value> {
+    // Validate the persisted runtime configuration for real: the config must
+    // exist (or be a seeded built-in) and parse into a PdpRuntime.
+    let seeded = seeded_local_runtimes(&chrono::Utc::now().to_rfc3339());
+    if seeded.iter().any(|r| r.id == id) {
+        return Json(serde_json::json!({
+            "ok": true,
+            "status": "ready",
+            "details": { "source": "built_in" },
+            "warnings": []
+        }));
+    }
+    match st.pdp_store.get_runtime(&tenant, &id).await {
+        Ok(Some(config)) => match serde_json::from_value::<PdpRuntime>(config.clone()) {
+            Ok(runtime) => {
+                let mut warnings: Vec<String> = Vec::new();
+                if runtime.endpoint.is_none() {
+                    warnings.push("runtime has no endpoint configured".into());
+                }
+                let has_bundle = matches!(
+                    st.policy_store
+                        .get_blob(&tenant, &runtime_bundle_blob_path(&id))
+                        .await,
+                    Ok(Some(bytes)) if !bytes.is_empty()
+                );
+                if !has_bundle {
+                    warnings.push("no policy bundle loaded yet".into());
+                }
+                Json(serde_json::json!({
+                    "ok": true,
+                    "status": "ready",
+                    "details": { "kind": format!("{:?}", runtime.kind) },
+                    "warnings": warnings,
+                }))
+            }
+            Err(err) => Json(serde_json::json!({
+                "ok": false,
+                "status": "invalid_config",
+                "details": { "error": format!("{err}") },
+                "warnings": []
+            })),
+        },
+        Ok(None) => Json(serde_json::json!({
+            "ok": false,
+            "status": "not_found",
+            "details": { "error": "runtime has no persisted configuration" },
+            "warnings": []
+        })),
+        Err(err) => Json(serde_json::json!({
+            "ok": false,
+            "status": "error",
+            "details": { "error": format!("{err}") },
+            "warnings": []
+        })),
+    }
 }
 
 async fn probe_health(
