@@ -29,7 +29,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "axe-core": "^4.12.1",
     "eslint": "^10.6.0",
-    "prettier": "^3.8.4",
+    "prettier": "^3.9.5",
     "storybook": "^10.4.6",
     "typescript": "~6.0.2",
     "vite": "^8.1.3",
