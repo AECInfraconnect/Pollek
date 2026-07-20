@@ -13,6 +13,15 @@
 //! When prerequisites are missing they print a clear SKIP reason and pass, so
 //! the harness is safe to invoke anywhere without producing false failures.
 
+// A device harness legitimately panics on a real failure and prints progress;
+// the workspace deny-lints target production code, not this test binary.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::print_stderr
+)]
+
 use dek_ebpfd::map_updater::MapUpdater;
 use dek_ebpfd::probe_available;
 
@@ -81,7 +90,7 @@ fn current_euid() -> u32 {
 
 fn kernel_at_least(major: u32, minor: u32) -> bool {
     let release = std::fs::read_to_string("/proc/sys/kernel/osrelease").unwrap_or_default();
-    let mut parts = release.split(|c: char| c == '.' || c == '-');
+    let mut parts = release.split(['.', '-']);
     let maj = parts
         .next()
         .and_then(|v| v.parse::<u32>().ok())

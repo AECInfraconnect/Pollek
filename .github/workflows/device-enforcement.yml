@@ -43,4 +43,4 @@ jobs:
         if: ${{ inputs.run_real_kernel }}
         run: |
           sudo -E POLLEK_DEVICE_ENFORCE_TEST=1 \
-            $(command -v cargo) test -p dek-ebpfd --test device_enforcement -- --ignored --nocapture
+            "$(rustup which cargo)" test -p dek-ebpfd --test device_enforcement -- --ignored --nocapture

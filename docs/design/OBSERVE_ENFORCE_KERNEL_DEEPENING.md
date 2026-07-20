@@ -106,8 +106,7 @@ fail-closed.
 [AccuKnox: eBPF/BPF-LSM runtime security](https://accuknox.com/blog/runtime-security-ebpf-bpf-lsm) ·
 [eunomia: eBPF ecosystem 2024–2025](https://eunomia.dev/blog/2025/02/12/ebpf-ecosystem-progress-in-20242025-a-technical-deep-dive/) ·
 [aya-rs](https://github.com/aya-rs/aya) ·
-[SecurityWeek: Microsoft user-mode endpoint security platform](https://www.securityweek.com/microsoft-to-preview-new-windows-endpoint-security-platform-after-crowdstrike-outage/) ·
-[SC Media: security capabilities outside the kernel](https://www.scworld.com/news/crowdstrike-outage-leads-microsoft-to-plan-more-security-capabilities-outside-of-kernel) ·
+[SC Media: Microsoft to move security capabilities outside the kernel](https://www.scworld.com/news/crowdstrike-outage-leads-microsoft-to-plan-more-security-capabilities-outside-of-kernel) ·
 [Apple: System Extensions](https://developer.apple.com/system-extensions/) ·
 [Apple: EndpointSecurity](https://developer.apple.com/documentation/endpointsecurity)
 
