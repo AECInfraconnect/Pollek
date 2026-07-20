@@ -12,6 +12,7 @@ export function EntityCard({
   icon: Icon,
   status,
   statusLabel,
+  headerBadges,
   meta = [],
   actions = [],
   visual,
@@ -27,6 +28,7 @@ export function EntityCard({
   icon: any;
   status: UiStatus;
   statusLabel: string;
+  headerBadges?: ReactNode;
   meta?: { label: string; value: ReactNode }[];
   actions?: {
     label: string;
@@ -92,6 +94,7 @@ export function EntityCard({
               {renderDisplayValue(subtitle)}
             </div>
           )}
+          {headerBadges && <div className="mt-2">{headerBadges}</div>}
           <div id={detailsId}>
             {summary && (
               <p

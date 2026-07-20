@@ -40,6 +40,16 @@ import { ContextualHelp } from "../components/help/ContextualHelp";
 import { useMode } from "../context/ModeContext";
 import { isAdvanceMode } from "../lib/modes";
 import { Collapsible } from "../components/ui";
+import {
+  buildLifecycleContext,
+  deriveAgentLifecycle,
+  matchesLifecycleFilter,
+  summarizeLifecycles,
+  type AgentLifecycle,
+  type LifecycleFilter,
+} from "../lib/agentLifecycle";
+import { AgentLifecycleBadges } from "../components/discovery/AgentLifecycleBadge";
+import { LifecycleSummary } from "../components/discovery/LifecycleSummary";
 
 const DEEP_SCAN_SOURCES = [
   "process",
@@ -248,11 +258,19 @@ function scanIdsForCandidate(candidate: DiscoveredAgentCandidateV2) {
         ...(candidate.scan_ids ?? []),
         candidate.last_scan_id,
         ...(candidate.evidence ?? []).map((evidence) => evidence.data?.scan_id),
-      ].filter(
-        (id): id is string => typeof id === "string" && id.length > 0,
-      ),
+      ].filter((id): id is string => typeof id === "string" && id.length > 0),
     ),
   );
+}
+
+function lifecycleToUiStatus(lifecycle: AgentLifecycle): UiStatus {
+  if (lifecycle.presence === "uninstalled") return "failed";
+  if (lifecycle.presence === "dormant") return "idle";
+  if (lifecycle.presence === "running" || lifecycle.governance === "registered")
+    return "ok";
+  if (lifecycle.governance === "pending" || lifecycle.governance === "new")
+    return "degraded";
+  return "info";
 }
 
 function latestScanIdForCandidate(candidate: DiscoveredAgentCandidateV2) {
@@ -290,6 +308,8 @@ export function AutoDiscovery() {
     useState<DiscoveredAgentCandidateV2 | null>(null);
   const [editName, setEditName] = useState("");
   const [filter, setFilter] = useState<"all" | "pending" | "registered">("all");
+  const [lifecycleFilter, setLifecycleFilter] =
+    useState<LifecycleFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [isFinalizingScan, setIsFinalizingScan] = useState(false);
@@ -585,7 +605,10 @@ export function AutoDiscovery() {
     }
   };
 
-  const settleScanResults = async (expectedCount = 0, expectedScanId?: string) => {
+  const settleScanResults = async (
+    expectedCount = 0,
+    expectedScanId?: string,
+  ) => {
     setIsFinalizingScan(true);
     let previousDigest = "";
     let stableReads = 0;
@@ -793,12 +816,24 @@ export function AutoDiscovery() {
     selectedScanId != null
       ? scans.find((scan) => scan.scan_id === selectedScanId) ||
         (scanJob?.scan_id === selectedScanId ? scanJob : undefined)
-      : scans[0] ?? scanJob ?? undefined;
+      : (scans[0] ?? scanJob ?? undefined);
   const scanScopedCandidates = candidates.filter((candidate) => {
     if (scanFilter === "all") return true;
     if (!selectedScanId) return false;
     return candidateHasScanId(candidate, selectedScanId);
   });
+
+  // Human-facing lifecycle: is each agent running now, merely installed, gone,
+  // and where does it sit in the governance workflow. Derived from the scan
+  // list + candidate recency/evidence so every card reads consistently.
+  const lifecycleCtx = buildLifecycleContext(scans, scanJob);
+  const lifecycleForCandidate = (
+    c: DiscoveredAgentCandidateV2,
+  ): AgentLifecycle => deriveAgentLifecycle(c, lifecycleCtx);
+  const lifecycleCounts = summarizeLifecycles(
+    scanScopedCandidates,
+    lifecycleCtx,
+  );
 
   const visibleCandidates = scanScopedCandidates
     .filter((c) => {
@@ -806,6 +841,9 @@ export function AutoDiscovery() {
       if (filter === "pending") return c.status !== "registered";
       return true;
     })
+    .filter((c) =>
+      matchesLifecycleFilter(lifecycleForCandidate(c), lifecycleFilter),
+    )
     .filter((c) => {
       const query = searchQuery.trim().toLowerCase();
       if (!query) return true;
@@ -1213,6 +1251,11 @@ export function AutoDiscovery() {
         detailBackLabel="Back to all discovered AI apps"
         toolbar={
           <div className="flex flex-col gap-3 mb-4">
+            <LifecycleSummary
+              counts={lifecycleCounts}
+              active={lifecycleFilter}
+              onSelect={setLifecycleFilter}
+            />
             <div className="flex flex-col md:flex-row md:items-center gap-2 justify-between">
               <div className="flex items-center gap-2">
                 {(["all", "pending", "registered"] as const).map((f) => (
@@ -1225,7 +1268,9 @@ export function AutoDiscovery() {
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
                     }`}
                   >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                    {f === "all"
+                      ? "All statuses"
+                      : f.charAt(0).toUpperCase() + f.slice(1)}
                   </button>
                 ))}
               </div>
@@ -1283,20 +1328,15 @@ export function AutoDiscovery() {
           );
         }}
         renderCard={(c, selected) => {
-          let status: UiStatus = "idle";
-          if (c.status === "registered") status = "ok";
-          else if (c.status === "pending_approval") status = "degraded";
+          const lifecycle = lifecycleForCandidate(c);
+          const status = lifecycleToUiStatus(lifecycle);
           const caps = capabilityTags(c);
           const isRegistered = c.status === "registered";
           const browserName = browserNameForCandidate(c);
           const primaryReference = referenceForCandidate(c);
-          const candidateStatusLabel = isRegistered
-            ? "Registered"
-            : c.duplicate_policy === "needs_human_confirmation"
-              ? "Needs review"
-              : c.control_parent_id
-                ? "Child surface"
-                : "Pending";
+          const candidateStatusLabel = lifecycle.isLive
+            ? "Live now"
+            : `Seen ${lifecycle.lastSeenLabel}`;
 
           return (
             <EntityCard
@@ -1316,6 +1356,7 @@ export function AutoDiscovery() {
               }
               status={status}
               statusLabel={candidateStatusLabel}
+              headerBadges={<AgentLifecycleBadges lifecycle={lifecycle} />}
               meta={[
                 {
                   label: "Control",
@@ -1397,9 +1438,8 @@ export function AutoDiscovery() {
           );
         }}
         renderDetail={(c) => {
-          let status: UiStatus = "idle";
-          if (c.status === "registered") status = "ok";
-          else if (c.status === "pending_approval") status = "degraded";
+          const lifecycle = lifecycleForCandidate(c);
+          const status = lifecycleToUiStatus(lifecycle);
           const caps = capabilityTags(c);
           const isRegistered = c.status === "registered";
           const browserName = browserNameForCandidate(c);
@@ -1414,13 +1454,9 @@ export function AutoDiscovery() {
           const activityLoading = activityLoadingId === c.candidate_id;
           const enrichmentSession = enrichmentSessions[c.candidate_id];
           const enrichmentBusy = enrichmentBusyId === c.candidate_id;
-          const candidateStatusLabel = isRegistered
-            ? "Registered"
-            : c.duplicate_policy === "needs_human_confirmation"
-              ? "Needs review"
-              : c.control_parent_id
-                ? "Child surface"
-                : "Pending";
+          const candidateStatusLabel = lifecycle.isLive
+            ? "Live now"
+            : `Seen ${lifecycle.lastSeenLabel}`;
 
           const actions = [
             ...(isRegistered
@@ -1590,8 +1626,9 @@ export function AutoDiscovery() {
                           Observability coverage
                         </h4>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          What Pollek can observe for this {c.inferred_agent_type}{" "}
-                          agent, and how each signal is collected.
+                          What Pollek can observe for this{" "}
+                          {c.inferred_agent_type} agent, and how each signal is
+                          collected.
                         </p>
                         <div className="mt-3 grid gap-2 md:grid-cols-2">
                           {c.observation_coverage.map((signal) => (
@@ -1736,9 +1773,7 @@ export function AutoDiscovery() {
 
                         {enrichmentSession.research_result && (
                           <div className="rounded-lg border bg-background/70 p-3 text-sm">
-                            <div className="font-medium">
-                              Enrichment result
-                            </div>
+                            <div className="font-medium">Enrichment result</div>
                             <p className="mt-1 text-muted-foreground">
                               {enrichmentSession.research_result.summary}
                             </p>
@@ -2100,12 +2135,18 @@ export function AutoDiscovery() {
                         Tokens
                       </span>
                       <span className="text-lg font-semibold">
-                        {(activityView?.usage.total_tokens ?? 0).toLocaleString()}
+                        {(
+                          activityView?.usage.total_tokens ?? 0
+                        ).toLocaleString()}
                       </span>
                       <span className="block text-xs text-muted-foreground">
-                        {(activityView?.usage.input_tokens ?? 0).toLocaleString()}{" "}
+                        {(
+                          activityView?.usage.input_tokens ?? 0
+                        ).toLocaleString()}{" "}
                         in /{" "}
-                        {(activityView?.usage.output_tokens ?? 0).toLocaleString()}{" "}
+                        {(
+                          activityView?.usage.output_tokens ?? 0
+                        ).toLocaleString()}{" "}
                         out
                       </span>
                     </div>
@@ -2288,11 +2329,11 @@ export function AutoDiscovery() {
                       {primaryReference?.category ?? c.inferred_agent_type} -
                       detected from {sourceSummary || "local metadata"}
                     </p>
+                    <div className="mt-3">
+                      <AgentLifecycleBadges lifecycle={lifecycle} size="md" />
+                    </div>
                   </div>
-                  <StatusChip
-                    status={status}
-                    label={candidateStatusLabel}
-                  />
+                  <StatusChip status={status} label={candidateStatusLabel} />
                 </div>
               </div>
 
@@ -2342,6 +2383,14 @@ export function AutoDiscovery() {
                         </div>
                         <div className="mt-0.5 font-medium">
                           {c.evidence?.length ?? 0} signal(s)
+                        </div>
+                      </div>
+                      <div className="border-b border-border/40 pb-2">
+                        <div className="text-xs text-muted-foreground">
+                          Last seen
+                        </div>
+                        <div className="mt-0.5 break-words font-medium capitalize">
+                          {lifecycle.lastSeenLabel}
                         </div>
                       </div>
                       <div>
@@ -2482,9 +2531,7 @@ export function AutoDiscovery() {
             onClick={() => setConfirmTarget(null)}
           />
           <div className="relative z-50 w-full max-w-md rounded-xl border bg-card p-6 shadow-lg">
-            <h3 className="text-lg font-semibold mb-4">
-              Register AI app
-            </h3>
+            <h3 className="text-lg font-semibold mb-4">Register AI app</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1 text-muted-foreground">

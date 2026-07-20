@@ -4954,6 +4954,568 @@
         "path_match": 0.9,
         "port_match": 0.8
       }
+    },
+    {
+      "id": "kiro",
+      "name": "Kiro",
+      "vendor": "Amazon",
+      "product": "Kiro",
+      "agent_type": "ide",
+      "capability_tags": [
+        "code.edit",
+        "code.exec",
+        "fs.write",
+        "llm.call",
+        "mcp.client"
+      ],
+      "markers": [
+        {
+          "os": "macos",
+          "paths": [
+            "/Applications/Kiro.app/**"
+          ],
+          "process_names": [
+            "Kiro",
+            "kiro"
+          ]
+        },
+        {
+          "os": "windows",
+          "paths": [
+            "**/Programs/Kiro/**",
+            "**/Kiro/Kiro.exe"
+          ],
+          "process_names": [
+            "Kiro.exe",
+            "kiro.exe"
+          ]
+        },
+        {
+          "os": "linux",
+          "paths": [
+            "**/kiro/**",
+            "/usr/bin/kiro",
+            "/usr/local/bin/kiro"
+          ],
+          "process_names": [
+            "kiro"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "amazon_q_developer",
+      "name": "Amazon Q Developer",
+      "vendor": "Amazon",
+      "product": "Amazon Q Developer",
+      "agent_type": "cli_agent",
+      "capability_tags": [
+        "cli.agent",
+        "code.edit",
+        "code.exec",
+        "fs.write",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": "macos",
+          "paths": [
+            "**/.local/bin/q",
+            "**/.aws/amazonq/**",
+            "/Applications/Amazon Q.app/**"
+          ],
+          "process_names": [
+            "q",
+            "amazon-q",
+            "qchat",
+            "qterm"
+          ]
+        },
+        {
+          "os": "linux",
+          "paths": [
+            "**/.local/bin/q",
+            "/usr/bin/q",
+            "**/.aws/amazonq/**"
+          ],
+          "process_names": [
+            "q",
+            "amazon-q",
+            "qchat",
+            "qterm"
+          ]
+        },
+        {
+          "os": "windows",
+          "paths": [
+            "**/AmazonQ/**",
+            "**/Amazon Q.exe"
+          ],
+          "process_names": [
+            "q.exe",
+            "amazon-q.exe",
+            "AmazonQ.exe"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jetbrains_junie",
+      "name": "JetBrains Junie / AI Assistant",
+      "vendor": "JetBrains",
+      "product": "Junie",
+      "agent_type": "ide_agent",
+      "capability_tags": [
+        "code.edit",
+        "code.exec",
+        "fs.write",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": null,
+          "paths": [
+            "**/JetBrains/*/plugins/junie/**",
+            "**/JetBrains/*/plugins/ai-assistant/**",
+            "**/Library/Application Support/JetBrains/*/plugins/junie/**",
+            "**/.local/share/JetBrains/*/plugins/junie/**"
+          ],
+          "process_names": []
+        }
+      ]
+    },
+    {
+      "id": "sourcegraph_cody",
+      "name": "Sourcegraph Cody",
+      "vendor": "Sourcegraph",
+      "product": "Cody",
+      "agent_type": "ide_agent",
+      "capability_tags": [
+        "code.edit",
+        "code.generation",
+        "fs.read",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": null,
+          "paths": [
+            "**/.vscode/extensions/sourcegraph.cody-ai-*/**",
+            "**/.vscode-server/extensions/sourcegraph.cody-ai-*/**",
+            "**/.vscodium/extensions/sourcegraph.cody-ai-*/**",
+            "**/.cursor/extensions/sourcegraph.cody-ai-*/**",
+            "**/.windsurf/extensions/sourcegraph.cody-ai-*/**",
+            "**/JetBrains/*/plugins/Cody*/**"
+          ],
+          "process_names": [
+            "cody-engine",
+            "Cody"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "continue_dev",
+      "name": "Continue",
+      "vendor": "Continue",
+      "product": "Continue",
+      "agent_type": "ide_agent",
+      "capability_tags": [
+        "code.edit",
+        "code.generation",
+        "fs.write",
+        "llm.call",
+        "mcp.client"
+      ],
+      "markers": [
+        {
+          "os": null,
+          "paths": [
+            "**/.vscode/extensions/continue.continue-*/**",
+            "**/.vscode-server/extensions/continue.continue-*/**",
+            "**/.vscodium/extensions/continue.continue-*/**",
+            "**/.cursor/extensions/continue.continue-*/**",
+            "**/.windsurf/extensions/continue.continue-*/**",
+            "**/.continue/config.json",
+            "**/.continue/config.yaml"
+          ],
+          "process_names": [
+            "continue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tabnine",
+      "name": "Tabnine",
+      "vendor": "Tabnine",
+      "product": "Tabnine",
+      "agent_type": "ide_agent",
+      "capability_tags": [
+        "code.generation",
+        "fs.read",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": null,
+          "paths": [
+            "**/.vscode/extensions/tabnine.tabnine-vscode-*/**",
+            "**/.vscode-server/extensions/tabnine.tabnine-vscode-*/**",
+            "**/.vscodium/extensions/tabnine.tabnine-vscode-*/**",
+            "**/.cursor/extensions/tabnine.tabnine-vscode-*/**",
+            "**/.windsurf/extensions/tabnine.tabnine-vscode-*/**",
+            "**/TabNine/**",
+            ".tabnine/**"
+          ],
+          "process_names": [
+            "TabNine",
+            "tabnine",
+            "TabNine.exe"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "augment_code",
+      "name": "Augment Code",
+      "vendor": "Augment",
+      "product": "Augment",
+      "agent_type": "ide_agent",
+      "capability_tags": [
+        "code.edit",
+        "code.generation",
+        "fs.read",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": null,
+          "paths": [
+            "**/.vscode/extensions/augment.vscode-augment-*/**",
+            "**/.vscode-server/extensions/augment.vscode-augment-*/**",
+            "**/.vscodium/extensions/augment.vscode-augment-*/**",
+            "**/.cursor/extensions/augment.vscode-augment-*/**",
+            "**/.windsurf/extensions/augment.vscode-augment-*/**"
+          ],
+          "process_names": [
+            "augment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kilo_code",
+      "name": "Kilo Code",
+      "vendor": "Kilo",
+      "product": "Kilo Code",
+      "agent_type": "ide_agent",
+      "capability_tags": [
+        "code.edit",
+        "code.exec",
+        "fs.write",
+        "llm.call",
+        "mcp.client"
+      ],
+      "markers": [
+        {
+          "os": null,
+          "paths": [
+            "**/.vscode/extensions/kilocode.kilo-code-*/**",
+            "**/.vscode-server/extensions/kilocode.kilo-code-*/**",
+            "**/.vscodium/extensions/kilocode.kilo-code-*/**",
+            "**/.cursor/extensions/kilocode.kilo-code-*/**",
+            "**/.windsurf/extensions/kilocode.kilo-code-*/**"
+          ],
+          "process_names": []
+        }
+      ]
+    },
+    {
+      "id": "roo_code",
+      "name": "Roo Code",
+      "vendor": "Roo Code",
+      "product": "Roo Code",
+      "agent_type": "ide_agent",
+      "capability_tags": [
+        "code.edit",
+        "code.exec",
+        "fs.write",
+        "llm.call",
+        "mcp.client"
+      ],
+      "markers": [
+        {
+          "os": null,
+          "paths": [
+            "**/.vscode/extensions/rooveterinaryinc.roo-cline-*/**",
+            "**/.vscode-server/extensions/rooveterinaryinc.roo-cline-*/**",
+            "**/.vscodium/extensions/rooveterinaryinc.roo-cline-*/**",
+            "**/.cursor/extensions/rooveterinaryinc.roo-cline-*/**",
+            "**/.windsurf/extensions/rooveterinaryinc.roo-cline-*/**"
+          ],
+          "process_names": []
+        }
+      ]
+    },
+    {
+      "id": "warp_terminal",
+      "name": "Warp",
+      "vendor": "Warp",
+      "product": "Warp",
+      "agent_type": "desktop_agent",
+      "capability_tags": [
+        "code.exec",
+        "system.automation",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": "macos",
+          "paths": [
+            "/Applications/Warp.app/**"
+          ],
+          "process_names": [
+            "Warp"
+          ]
+        },
+        {
+          "os": "linux",
+          "paths": [
+            "**/warp-terminal/**",
+            "/usr/bin/warp-terminal"
+          ],
+          "process_names": [
+            "warp",
+            "warp-terminal"
+          ]
+        },
+        {
+          "os": "windows",
+          "paths": [
+            "**/Programs/Warp/**",
+            "**/Warp.exe"
+          ],
+          "process_names": [
+            "Warp.exe",
+            "warp.exe"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gemini_code_assist",
+      "name": "Gemini Code Assist",
+      "vendor": "Google",
+      "product": "Gemini Code Assist",
+      "agent_type": "ide_agent",
+      "capability_tags": [
+        "code.edit",
+        "code.generation",
+        "fs.read",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": null,
+          "paths": [
+            "**/.vscode/extensions/google.geminicodeassist-*/**",
+            "**/.vscode-server/extensions/google.geminicodeassist-*/**",
+            "**/.vscodium/extensions/google.geminicodeassist-*/**",
+            "**/.cursor/extensions/google.geminicodeassist-*/**",
+            "**/.windsurf/extensions/google.geminicodeassist-*/**",
+            "**/JetBrains/*/plugins/google-cloud-code/**"
+          ],
+          "process_names": []
+        }
+      ]
+    },
+    {
+      "id": "qodo_gen",
+      "name": "Qodo Gen",
+      "vendor": "Qodo",
+      "product": "Qodo Gen",
+      "agent_type": "ide_agent",
+      "capability_tags": [
+        "code.generation",
+        "code.edit",
+        "fs.read",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": null,
+          "paths": [
+            "**/.vscode/extensions/codium.codium-*/**",
+            "**/.vscode-server/extensions/codium.codium-*/**",
+            "**/.vscodium/extensions/codium.codium-*/**",
+            "**/.cursor/extensions/codium.codium-*/**",
+            "**/.windsurf/extensions/codium.codium-*/**",
+            "**/.vscode/extensions/qodo.qodo-gen-*/**",
+            "**/.vscode-server/extensions/qodo.qodo-gen-*/**",
+            "**/.vscodium/extensions/qodo.qodo-gen-*/**",
+            "**/.cursor/extensions/qodo.qodo-gen-*/**",
+            "**/.windsurf/extensions/qodo.qodo-gen-*/**"
+          ],
+          "process_names": []
+        }
+      ]
+    },
+    {
+      "id": "openhands",
+      "name": "OpenHands",
+      "vendor": "All Hands AI",
+      "product": "OpenHands",
+      "agent_type": "automation_agent",
+      "capability_tags": [
+        "code.exec",
+        "fs.write",
+        "system.automation",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": null,
+          "paths": [
+            "**/.openhands/**",
+            "**/openhands/**",
+            "**/site-packages/openhands/**"
+          ],
+          "process_names": [
+            "openhands"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trae_ide",
+      "name": "Trae",
+      "vendor": "ByteDance",
+      "product": "Trae",
+      "agent_type": "ide",
+      "capability_tags": [
+        "code.edit",
+        "code.exec",
+        "fs.write",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": "macos",
+          "paths": [
+            "/Applications/Trae.app/**",
+            "/Applications/Trae CN.app/**"
+          ],
+          "process_names": [
+            "Trae"
+          ]
+        },
+        {
+          "os": "windows",
+          "paths": [
+            "**/Programs/Trae/**",
+            "**/Trae.exe"
+          ],
+          "process_names": [
+            "Trae.exe"
+          ]
+        },
+        {
+          "os": "linux",
+          "paths": [
+            "**/trae/**"
+          ],
+          "process_names": [
+            "trae"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zed_editor",
+      "name": "Zed",
+      "vendor": "Zed Industries",
+      "product": "Zed",
+      "agent_type": "ide",
+      "capability_tags": [
+        "code.edit",
+        "code.generation",
+        "fs.write",
+        "llm.call",
+        "mcp.client"
+      ],
+      "markers": [
+        {
+          "os": "macos",
+          "paths": [
+            "/Applications/Zed.app/**"
+          ],
+          "process_names": [
+            "zed",
+            "Zed"
+          ]
+        },
+        {
+          "os": "linux",
+          "paths": [
+            "**/.local/bin/zed",
+            "/usr/bin/zed",
+            "**/zed.app/**"
+          ],
+          "process_names": [
+            "zed",
+            "zeditor"
+          ]
+        },
+        {
+          "os": "windows",
+          "paths": [
+            "**/Zed/**",
+            "**/Zed.exe"
+          ],
+          "process_names": [
+            "Zed.exe",
+            "zed.exe"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "claude_cowork",
+      "name": "Claude Cowork",
+      "vendor": "Anthropic",
+      "product": "Claude Cowork",
+      "agent_type": "desktop_agent",
+      "capability_tags": [
+        "code.exec",
+        "fs.write",
+        "system.automation",
+        "llm.call"
+      ],
+      "markers": [
+        {
+          "os": "macos",
+          "paths": [
+            "/Applications/Claude Cowork.app/**",
+            "/Applications/Claude.app/**"
+          ],
+          "process_names": [
+            "Claude Cowork",
+            "Cowork"
+          ]
+        },
+        {
+          "os": "windows",
+          "paths": [
+            "**/Programs/Claude Cowork/**",
+            "**/Cowork.exe"
+          ],
+          "process_names": [
+            "Cowork.exe",
+            "ClaudeCowork.exe"
+          ]
+        }
+      ]
     }
   ],
   "model_server_signatures": [
