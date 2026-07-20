@@ -97,12 +97,7 @@ impl MapUpdater {
     pub fn plan_update(&self, update: &EbpfMapUpdate) -> Result<(MapTarget, ParsedVerdict)> {
         let target = match canonical_map_name(&update.map_name) {
             "VERDICT_MAP" => {
-                let cidr = update
-                    .key
-                    .get("cidr")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| anyhow::anyhow!("VERDICT_MAP update requires key.cidr"))?;
-                let (ip_host, prefix_len) = parse_cidr_v4(cidr)?;
+                let (ip_host, prefix_len) = parse_lpm_key_v4(&update.key)?;
                 MapTarget::VerdictLpmV4 {
                     prefix_len,
                     ip_host,
@@ -236,11 +231,32 @@ impl MapUpdater {
 /// (e.g. `egress_lpm_v4` -> `VERDICT_MAP`).
 pub fn canonical_map_name(name: &str) -> &str {
     match name {
-        "egress_lpm_v4" | "VERDICT_MAP" => "VERDICT_MAP",
+        "egress_lpm_v4" | "LPM_MAP" | "VERDICT_MAP" => "VERDICT_MAP",
         "egress_ports" | "PORTS_MAP" => "PORTS_MAP",
         "cgroup_policy" | "CGROUP_POLICY_MAP" => "CGROUP_POLICY_MAP",
         other => other,
     }
+}
+
+/// Parse an LPM (v4) key from either the compiler's `{ "cidr": "10.0.0.0/8" }`
+/// form or the `{ "ip": "192.168.1.1", "prefix": 32 }` form. Returns
+/// (host-order u32 ip, prefix_len), matching how the kernel keys the trie.
+pub fn parse_lpm_key_v4(key: &serde_json::Value) -> Result<(u32, u32)> {
+    if let Some(cidr) = key.get("cidr").and_then(|v| v.as_str()) {
+        return parse_cidr_v4(cidr);
+    }
+    if let Some(ip_str) = key.get("ip").and_then(|v| v.as_str()) {
+        let ip: std::net::Ipv4Addr = ip_str
+            .parse()
+            .map_err(|_| anyhow::anyhow!("invalid IPv4 in key.ip '{ip_str}'"))?;
+        // Default to a host route (/32) when no prefix is supplied.
+        let prefix_len = key.get("prefix").and_then(|v| v.as_u64()).unwrap_or(32);
+        if prefix_len > 32 {
+            bail!("LPM prefix {prefix_len} > 32");
+        }
+        return Ok((u32::from(ip), prefix_len as u32));
+    }
+    bail!("VERDICT_MAP update requires key.cidr or key.ip")
 }
 
 /// Parse `"10.0.0.0/8"` into (host-order u32 ip, prefix_len). The kernel keys
