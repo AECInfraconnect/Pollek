@@ -19,16 +19,21 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
+  CreditApi,
   LocalObserveApi,
   RegistryApi,
   UsageApi,
   type AiUsageEventPage,
   type AiUsageSummary,
+  type CreditLedgerConfig,
+  type CreditLedgerResponse,
   type LocalObserveRefreshResponse,
+  type ProviderCreditConfig,
 } from "../services/api";
 import { RegisterControlBar } from "../components/RegisterControlBar";
 import { ObserveAccuracyPanel } from "../components/observe/ObserveAccuracyPanel";
 import { AgentUsageComparison } from "../components/usage/AgentUsageComparison";
+import { UsageBar } from "../components/ui/UsageBar";
 import { useMode } from "../context/ModeContext";
 import { isAdvanceMode } from "../lib/modes";
 import type { ObserveInputKind } from "../services/api";
@@ -77,6 +82,7 @@ type AgentAttributionRow = {
   outputTokens: number;
   cachedTokens: number;
   cost: number;
+  credit: number;
   exact: number;
   estimated: number;
   pools: ModelPoolStats[];
@@ -92,6 +98,15 @@ const ranges: Array<{ key: RangeKey; label: string; bucket: string }> = [
   { key: "24h", label: "24h", bucket: "1h" },
   { key: "7d", label: "7d", bucket: "1d" },
   { key: "month", label: "Month", bucket: "1d" },
+];
+
+const TOKEN_CLASS_COLORS = [
+  "bg-sky-500",
+  "bg-violet-500",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-cyan-500",
 ];
 
 function fromForRange(range: RangeKey) {
@@ -233,9 +248,21 @@ function buildUsageEvidence(
   };
 }
 
+/** Credits for a cost amount at a provider's configured credit value. */
+function creditsForCost(
+  cost: number,
+  provider: string,
+  creditRates: Map<string, number>,
+) {
+  const rate = creditRates.get(provider.trim().toLowerCase());
+  if (!rate || rate <= 0) return 0;
+  return cost / rate;
+}
+
 function buildAgentAttribution(
   events: AiUsageEvent[],
   agentLabels: Map<string, AgentLabel>,
+  creditRates: Map<string, number>,
 ): AgentAttributionRow[] {
   const poolAgents = new Map<string, Set<string>>();
   for (const event of events) {
@@ -278,6 +305,7 @@ function buildAgentAttribution(
         outputTokens: 0,
         cachedTokens: 0,
         cost: 0,
+        credit: 0,
         exact: 0,
         estimated: 0,
         pools: new Map<string, ModelPoolStats>(),
@@ -328,10 +356,17 @@ function buildAgentAttribution(
           b.tokens - a.tokens ||
           a.model.localeCompare(b.model),
       );
+      // Credits are derived per pool so each provider's own credit value
+      // applies to its own share of the spend.
+      const credit = pools.reduce(
+        (sum, pool) => sum + creditsForCost(pool.cost, pool.provider, creditRates),
+        0,
+      );
       return {
         ...row,
         surfaces: Array.from(row.surfaces).sort(),
         pools,
+        credit,
         sharedPoolCount: pools.filter((pool) => pool.sharedAgents > 1).length,
       };
     })
@@ -484,19 +519,35 @@ export function CostLedger() {
   const [live, setLive] = useState(false);
   const [accuracyDialogKind, setAccuracyDialogKind] =
     useState<ObserveInputKind | null>(null);
+  const [credits, setCredits] = useState<CreditLedgerResponse | null>(null);
 
   const activeRange = ranges.find((item) => item.key === range) ?? ranges[2];
+
+  const creditRates = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const provider of credits?.config.providers ?? []) {
+      if (provider.currency_per_credit > 0) {
+        map.set(
+          provider.provider.trim().toLowerCase(),
+          provider.currency_per_credit,
+        );
+      }
+    }
+    return map;
+  }, [credits]);
 
   const fetchUsage = async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
     try {
       const from = fromForRange(range);
-      const [usage, events, agents, candidates] = await Promise.all([
+      const [usage, events, agents, candidates, creditLedger] = await Promise.all([
         UsageApi.getSummary({ from, bucket: activeRange.bucket }),
         UsageApi.getEvents({ from, limit: 100 }),
         RegistryApi.listAgents().catch(() => []),
         RegistryApi.listDiscoveryCandidates().catch(() => []),
+        CreditApi.get({ from, bucket: activeRange.bucket }),
       ]);
+      setCredits(creditLedger);
 
       const names = new Map<string, AgentLabel>();
       for (const agent of agents) {
@@ -636,8 +687,8 @@ export function CostLedger() {
     visibleUsageEvents[0] ??
     null;
   const agentAttributionRows = useMemo(
-    () => buildAgentAttribution(usageEvents, agentLabels),
-    [agentLabels, usageEvents],
+    () => buildAgentAttribution(usageEvents, agentLabels, creditRates),
+    [agentLabels, usageEvents, creditRates],
   );
 
   const budgetStatus = useMemo(() => {
@@ -796,18 +847,22 @@ export function CostLedger() {
               <h3 className="font-semibold">Token Classes</h3>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {tokenBreakdown.map((item) => (
-                <div key={item.label} className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">
-                    {item.label}
-                  </div>
-                  <div className="mt-1 text-lg font-semibold tabular-nums">
-                    {number(item.value)}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              How this range's tokens split across input, output, and other
+              classes.
+            </p>
+            <UsageBar
+              height="lg"
+              segments={tokenBreakdown
+                .filter((item) => item.value > 0)
+                .map((item, index) => ({
+                  id: item.label,
+                  label: item.label,
+                  value: item.value,
+                  className: TOKEN_CLASS_COLORS[index % TOKEN_CLASS_COLORS.length],
+                }))}
+              ariaLabel="Token class breakdown"
+            />
           </section>
 
           <section className="glass rounded-lg p-5">
@@ -838,6 +893,17 @@ export function CostLedger() {
           </section>
         </div>
       )}
+
+      <CreditLedgerPanel
+        data={credits}
+        providerOptions={(summary?.by_provider ?? [])
+          .map((row) => row.label)
+          .filter(Boolean)}
+        onSaved={(next) => {
+          setCredits(next);
+          void fetchUsage(false);
+        }}
+      />
 
       <AgentFirstAttributionSection
         rows={agentAttributionRows}
@@ -1324,6 +1390,281 @@ function UsageEventEmptyState({ onSetup }: { onSetup: () => void }) {
   );
 }
 
+function CreditLedgerPanel({
+  data,
+  providerOptions,
+  onSaved,
+}: {
+  data: CreditLedgerResponse | null;
+  providerOptions: string[];
+  onSaved: (next: CreditLedgerResponse) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<ProviderCreditConfig[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const config = data?.config;
+  const status = data?.status;
+  const configured = (config?.providers ?? []).filter(
+    (provider) => provider.currency_per_credit > 0,
+  );
+
+  const startEditing = () => {
+    const seed = configured.length
+      ? configured
+      : providerOptions.slice(0, 3).map((provider) => ({
+          provider,
+          currency_per_credit: 0.001,
+          initial_credits: null,
+        }));
+    setDraft(
+      seed.length
+        ? seed
+        : [{ provider: "openai", currency_per_credit: 0.001, initial_credits: null }],
+    );
+    setEditing(true);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const next: CreditLedgerConfig = {
+        currency: config?.currency || "USD",
+        providers: draft
+          .filter((row) => row.provider.trim() && row.currency_per_credit > 0)
+          .map((row) => ({
+            provider: row.provider.trim(),
+            currency_per_credit: Number(row.currency_per_credit),
+            initial_credits:
+              row.initial_credits === null ||
+              row.initial_credits === undefined ||
+              Number.isNaN(Number(row.initial_credits))
+                ? null
+                : Number(row.initial_credits),
+          })),
+      };
+      await CreditApi.put(next);
+      const refreshed = await CreditApi.get();
+      onSaved(refreshed);
+      setEditing(false);
+      toast.success("Credit settings saved");
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not save credit settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="glass rounded-lg p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <CircleDollarSign className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold">Provider credits</h3>
+          </div>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Track prepaid AI credits. Set how much one credit is worth and,
+            optionally, your starting balance — Pollek derives credits used and
+            remaining from the cost it already observes. This is real arithmetic
+            on your spend, not a separate meter.
+          </p>
+        </div>
+        {!editing && (
+          <button
+            type="button"
+            onClick={startEditing}
+            className="inline-flex h-9 shrink-0 items-center rounded-md border bg-background px-3 text-sm font-medium hover:bg-muted"
+          >
+            {configured.length ? "Edit credit settings" : "Set up credits"}
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="mt-4 space-y-3">
+          {draft.map((row, index) => (
+            <div
+              key={index}
+              className="grid gap-2 rounded-lg border bg-background/60 p-3 sm:grid-cols-[1.2fr_1fr_1fr_auto] sm:items-end"
+            >
+              <label className="text-xs text-muted-foreground">
+                Provider
+                <input
+                  list="credit-provider-options"
+                  value={row.provider}
+                  onChange={(event) =>
+                    setDraft((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, provider: event.target.value }
+                          : item,
+                      ),
+                    )
+                  }
+                  className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm text-foreground"
+                  placeholder="openai"
+                />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Currency per credit
+                <input
+                  type="number"
+                  step="0.0001"
+                  min="0"
+                  value={row.currency_per_credit}
+                  onChange={(event) =>
+                    setDraft((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? {
+                              ...item,
+                              currency_per_credit: Number(event.target.value),
+                            }
+                          : item,
+                      ),
+                    )
+                  }
+                  className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm text-foreground"
+                />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Starting balance (credits)
+                <input
+                  type="number"
+                  min="0"
+                  value={row.initial_credits ?? ""}
+                  onChange={(event) =>
+                    setDraft((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? {
+                              ...item,
+                              initial_credits:
+                                event.target.value === ""
+                                  ? null
+                                  : Number(event.target.value),
+                            }
+                          : item,
+                      ),
+                    )
+                  }
+                  className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm text-foreground"
+                  placeholder="optional"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  setDraft((current) =>
+                    current.filter((_, itemIndex) => itemIndex !== index),
+                  )
+                }
+                className="inline-flex h-9 items-center rounded-md border border-red-500/25 bg-red-500/10 px-3 text-sm text-red-600 hover:bg-red-500/20"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <datalist id="credit-provider-options">
+            {providerOptions.map((provider) => (
+              <option key={provider} value={provider} />
+            ))}
+          </datalist>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setDraft((current) => [
+                  ...current,
+                  { provider: "", currency_per_credit: 0.001, initial_credits: null },
+                ])
+              }
+              className="inline-flex h-9 items-center rounded-md border bg-background px-3 text-sm hover:bg-muted"
+            >
+              Add provider
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="inline-flex h-9 items-center rounded-md border bg-background px-3 text-sm hover:bg-muted"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : configured.length && status ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {status.providers.map((provider) => (
+            <div
+              key={provider.provider}
+              className="rounded-lg border bg-background/60 p-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-sm font-semibold">
+                  {provider.label || provider.provider}
+                </span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  1 credit = {money(provider.currency_per_credit, status.currency)}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <div className="text-xs text-muted-foreground">Used</div>
+                  <div className="font-semibold tabular-nums">
+                    {number(provider.consumed_credits)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Remaining</div>
+                  <div className="font-semibold tabular-nums">
+                    {provider.remaining_credits === null ||
+                    provider.remaining_credits === undefined
+                      ? "—"
+                      : number(provider.remaining_credits)}
+                  </div>
+                </div>
+              </div>
+              {provider.initial_credits != null && (
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{
+                      width: `${Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          ((provider.remaining_credits ?? 0) /
+                            provider.initial_credits) *
+                            100,
+                        ),
+                      )}%`,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-4 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+          No credit values set yet. Add a provider credit value to see credits
+          used and remaining, and to enable the Credit view on the usage bars.
+        </div>
+      )}
+    </section>
+  );
+}
+
 function AgentFirstAttributionSection({
   rows,
   summaryRows,
@@ -1368,6 +1709,7 @@ function AgentFirstAttributionSection({
               cachedTokens: row.cachedTokens,
               totalTokens: row.tokens,
               cost: row.cost,
+              credit: row.credit,
               calls: row.calls,
               exact: row.exact,
               estimated: row.estimated,
@@ -1376,7 +1718,7 @@ function AgentFirstAttributionSection({
             }))}
             currency={currency}
             title="Cost & tokens by AI app"
-            description="Each AI app is separated first so ChatGPT in a browser, Codex in a terminal, Claude Code, and other tools do not collapse into one model bill. Switch between tokens and cost — the bars stay proportional."
+            description="Each AI app is separated first so ChatGPT in a browser, Codex in a terminal, Claude Code, and other tools do not collapse into one model bill. Switch between tokens, cost, or credit — the bars stay proportional."
           />
         </div>
       ) : summaryRows.length ? (

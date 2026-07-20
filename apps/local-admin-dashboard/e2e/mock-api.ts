@@ -1180,6 +1180,8 @@ const usageEvents = {
       },
       cost: {
         amount_usd: 0.0012,
+        total_cost: 0.0012,
+        currency: "USD",
         estimated: false,
       },
       cloud_sync_status: "pending",
@@ -1785,6 +1787,45 @@ export async function installMockApi(page: Page) {
   );
   await page.route("**/v1/tenants/local/usage/events**", (route) =>
     json(route, usageEvents),
+  );
+  await page.route(
+    "**/v1/tenants/local/usage/credits**",
+    (route) => {
+      if (route.request().method() === "PUT") {
+        const config = route.request().postDataJSON();
+        return json(route, { config });
+      }
+      return json(route, {
+        config: {
+          schema_version: "pollek.credit_ledger.v1",
+          currency: "USD",
+          providers: [
+            {
+              provider: "local-observer",
+              currency_per_credit: 0.001,
+              initial_credits: 10000,
+              label: "Local observer credits",
+            },
+          ],
+        },
+        status: {
+          currency: "USD",
+          providers: [
+            {
+              provider: "local-observer",
+              label: "Local observer credits",
+              currency_per_credit: 0.001,
+              initial_credits: 10000,
+              consumed_cost: 2.5,
+              consumed_credits: 2500,
+              remaining_credits: 7500,
+            },
+          ],
+          total_consumed_credits: 2500,
+          total_remaining_credits: 7500,
+        },
+      });
+    },
   );
   await page.route("**/v1/tenants/local/marketplace/items", (route) =>
     json(route, {
