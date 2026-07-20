@@ -27,6 +27,12 @@ dek-ebpf-common = { path = "../dek-ebpf-common", features = ["user"] }
 aya-build = "=0.1.2"
 cargo_metadata = "0.19.2"
 
+[features]
+# Opt-in on real Linux deployments: enables the aya pinned-map writer in
+# map_updater so compiled policy is written into the kernel VERDICT/PORTS/
+# CGROUP maps. Off by default (and unused off-Linux) so unprivileged CI builds
+# and non-Linux hosts compile the validated no-op path instead.
+kernel-maps = []
 
 [lints]
 workspace = true

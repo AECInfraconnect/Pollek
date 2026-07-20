@@ -1,7 +1,9 @@
 # Observe & Enforce — Kernel-Grade Deepening Design
 
-Status: **Design / roadmap** (this PR ships the design + a device-verification
-harness; implementation lands in the phased follow-up PRs described below).
+Status: **Design + first implementation slice.** This PR ships the design, a
+device-verification harness, and the first real implementation it calls for —
+the userspace policy→map writer (roadmap phase 2, below). Remaining phases land
+in follow-up PRs.
 
 This document extends [`POLICY_FIRST_OS_OBSERVE_ENFORCE_WASM.md`](./POLICY_FIRST_OS_OBSERVE_ENFORCE_WASM.md)
 and [`policy-enforcement-flows.md`](./policy-enforcement-flows.md). It defines how
@@ -122,7 +124,7 @@ Assessed by reading the crates, not the marketing.
 | eBPF map keys/events | `dek-ebpf-common` | **Real** shared `#[repr(C)]` types (LPM key, ring events) | — |
 | eBPF kernel enforcement | `dek-ebpf-prog` `dek_connect4`/`connect6` | **Real** — reads `RUNTIME_MODE`, `CGROUP_POLICY_MAP`, `VERDICT_MAP` (LPM), `PORTS_MAP` and returns `verdict.allow` (0 = **drops** the connect), with protected-mode fallback + DNS-TTL gating + ring-buffer events | Enforces on whatever the maps contain — but nothing writes bundle policy into them yet (see next row) |
 | eBPF load + attach | `dek-ebpfd/lib.rs` `start_ebpfd_supervisor` | **Real** aya — `Ebpf::load` the BTF object, pin policy maps, load+attach `dek_connect4`, drain the DNS ring buffer | — |
-| userspace policy→map bridge | `dek-ebpfd/map_updater.rs` | **Simulated** — `apply_update` validates + tracks generations but does **not** open the pinned map and write the entry, and nothing sets `RUNTIME_MODE` | **#1 Linux realness gap** — the kernel program is ready; it just reads empty maps |
+| userspace policy→map bridge | `dek-ebpfd/map_updater.rs` | **Real (this PR)** — `apply_update` parses each update into a typed target+verdict and, behind the `kernel-maps` feature on Linux, opens the pinned `VERDICT_MAP`/`PORTS_MAP`/`CGROUP_POLICY_MAP` and writes the real `PolicyVerdict`; validated no-op otherwise | Follow-up: set `RUNTIME_MODE`, real capability probing |
 | Windows enforce | `dek-windows-wfp` | **Real** user-mode WFP (`FwpmEngineOpen0`/`FwpmFilterAdd0`, filter add/delete by id) | Companion service packaging/signing |
 | macOS enforce | `dek-macos-nefilter` | **Real** NE rule-message client | System-extension host packaging/signing |
 | Cross-OS driver | `dek-core/network_loop.rs` | **Real** `NetworkEnforcer` trait + per-OS backends, fail-closed, feature-gated `os-enforcement` | Wire real ebpfd loader into the Linux backend |
@@ -279,12 +281,17 @@ verification into two tiers, and label every claim by tier.
 1. **This PR** — design + device-verification harness + runbook (no behavior
    change; default CI green).
 2. **Linux eBPF enforcement made real** — the kernel program already drops on
-   map contents and the load/attach path already works. Close the one real gap:
-   make `map_updater::apply_update` open the pinned `VERDICT_MAP`/`PORTS_MAP`/
-   `CGROUP_POLICY_MAP` via aya and write real `PolicyVerdict` entries, set
-   `RUNTIME_MODE` for protected-mode, and replace the `*.stub` capability
-   strings with real probing. Tier-1 unit tests (map-key/value translation,
-   capability probe) + Tier-2 harness asserts a real drop.
+   map contents and the load/attach path already works.
+   - **Done in this PR:** `map_updater` now parses each compiled update into a
+     typed `MapTarget` + `ParsedVerdict` and, behind the `kernel-maps` feature
+     on Linux, opens the pinned `VERDICT_MAP`/`PORTS_MAP`/`CGROUP_POLICY_MAP` via
+     aya and writes/deletes the real `PolicyVerdict` entry (host-order LPM key
+     matching the kernel). Off-feature/off-Linux it is a validated no-op
+     (fail-open). Tier-1 unit tests cover CIDR/port/cgroup translation,
+     verdict parsing, name aliasing, and the validate/generation guards.
+   - **Follow-up:** set `RUNTIME_MODE` for protected-mode, real capability
+     probing to replace the `*.stub` strings, and the Tier-2 harness drop
+     assertion driving a real connection.
 3. **Domain generalization** — `DomainEnforcer` trait + orchestrator; add
    Linux file (Landlock/BPF-LSM) and process (exec hook) backends; `ApplyReport`
    downgrade surfacing to the portal.
