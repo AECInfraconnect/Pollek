@@ -53,6 +53,9 @@ import {
 import { ReferenceIntelGuide } from "../components/reference/ReferenceIntelGuide";
 import { UserActivityApi } from "../features/user-activity/api";
 import type { UserFriendlyActivityEvent } from "../features/user-activity/types";
+import { AgentActivityTab } from "../components/agents/AgentActivityTab";
+import { AgentEnforcementTab } from "../components/agents/AgentEnforcementTab";
+import { AgentUsagePanel } from "../components/usage/AgentUsagePanel";
 import { toast } from "sonner";
 
 function useAgents() {
@@ -627,6 +630,30 @@ export function AgentDetailView({
               data={data}
             />
           ),
+        },
+        {
+          id: "activity",
+          label: "Activity",
+          icon: Activity,
+          content: <AgentActivityTab agentId={agent.agent_id} />,
+        },
+        {
+          id: "usage",
+          label: "Usage & Cost",
+          icon: CircleDollarSign,
+          content: (
+            <AgentUsagePanel
+              agentId={agent.agent_id}
+              agentName={agent.name}
+              agentType={agent.agent_type}
+            />
+          ),
+        },
+        {
+          id: "enforcement",
+          label: "Enforcement",
+          icon: Shield,
+          content: <AgentEnforcementTab agentId={agent.agent_id} />,
         },
         {
           id: "capabilities",
