@@ -127,9 +127,18 @@ pub fn match_process(
 
     for a in apps {
         let hit_path = a.markers.iter().any(|m| {
-            m.paths
-                .iter()
-                .any(|path| !exe.is_empty() && glob_match(&path.to_lowercase(), &exe))
+            m.paths.iter().any(|path| {
+                let pat = path.to_lowercase();
+                // Match against the running exe path AND any discovered install
+                // path. Extension/plugin-based agents (VS Code extensions, IDE
+                // plugins) have no dedicated process, so they only surface via
+                // an install-path marker rather than an exe.
+                (!exe.is_empty() && glob_match(&pat, &exe))
+                    || facts
+                        .installed_paths
+                        .iter()
+                        .any(|ip| glob_match(&pat, &ip.replace('\\', "/").to_lowercase()))
+            })
         });
         let hit_name = a.process_names().iter().any(|n| {
             !pname.trim().is_empty() && !n.trim().is_empty() && n.eq_ignore_ascii_case(&pname)
@@ -348,5 +357,56 @@ mod tests {
                 "{proc_name} should match {expected}"
             );
         }
+    }
+
+    #[test]
+    fn major_2026_desktop_and_cli_agents_match_by_process_name() {
+        // The mainstream installed agents users actually run on their machines
+        // (2026 landscape). Each must resolve to its own signature id, not a
+        // generic host process or a neighboring vendor.
+        for (proc_name, expected) in [
+            ("Kiro", "kiro"),
+            ("qchat", "amazon_q_developer"),
+            ("Warp", "warp_terminal"),
+            ("Zed", "zed_editor"),
+            ("Trae", "trae_ide"),
+            ("Cody", "sourcegraph_cody"),
+            ("TabNine", "tabnine"),
+            ("openhands", "openhands"),
+            ("Claude Cowork", "claude_cowork"),
+        ] {
+            let m = baseline_match(proc_name, "", "");
+            assert_eq!(
+                m.map(|m| m.id),
+                Some(expected.to_string()),
+                "{proc_name} should match {expected}"
+            );
+        }
+    }
+
+    #[test]
+    fn ide_plugin_agents_match_by_install_path_not_bare_ide() {
+        // Junie / Gemini Code Assist / Kilo etc. live inside a host IDE; they
+        // must match on their plugin/extension install path, and a bare IDE
+        // process with no such plugin must NOT be mistagged as the agent.
+        let junie = baseline_match("idea", "/opt/idea/bin/idea", "");
+        // No plugin path present -> Junie must not match the bare IDE process.
+        assert_ne!(junie.map(|m| m.id), Some("jetbrains_junie".to_string()));
+
+        let facts = ProcessFacts {
+            process_name: "code",
+            exe_path: "/usr/share/code/code",
+            cmdline: "",
+            installed_paths: &[
+                "/home/u/.vscode/extensions/google.geminicodeassist-2.5.0/package.json".into(),
+            ],
+        };
+        let baseline = dek_fingerprint_defs::embedded_baseline();
+        let m = match_process(
+            &facts,
+            &baseline.signatures,
+            &baseline.installed_app_signatures,
+        );
+        assert_eq!(m.map(|m| m.id), Some("gemini_code_assist".to_string()));
     }
 }

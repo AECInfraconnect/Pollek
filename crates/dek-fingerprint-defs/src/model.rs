@@ -81,8 +81,22 @@ pub struct InstalledAppSignatureDef {
 }
 
 impl InstalledAppSignatureDef {
-    pub fn process_names(&self) -> &[String] {
-        &self.process_names
+    /// All process names this app can surface under: the top-level list plus any
+    /// declared per-marker (per-OS) process names. Extension/plugin agents keep
+    /// their names on the OS marker, so the matcher must see both.
+    pub fn process_names(&self) -> Vec<String> {
+        let mut names: Vec<String> = self.process_names.clone();
+        for m in &self.markers {
+            for n in &m.process_names {
+                if !names
+                    .iter()
+                    .any(|existing| existing.eq_ignore_ascii_case(n))
+                {
+                    names.push(n.clone());
+                }
+            }
+        }
+        names
     }
 }
 
