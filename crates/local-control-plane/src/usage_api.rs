@@ -1171,7 +1171,10 @@ async fn get_credit_ledger(
         Err(_) => Vec::new(),
     };
     let status = compute_credit_status(&config, &cost_by_provider);
-    (StatusCode::OK, Json(json!({ "config": config, "status": status })))
+    (
+        StatusCode::OK,
+        Json(json!({ "config": config, "status": status })),
+    )
 }
 
 async fn put_credit_ledger(
@@ -1367,16 +1370,30 @@ mod tests {
         ];
         let status = compute_credit_status(&config, &cost);
 
-        let providers = status["providers"].as_array().unwrap();
+        let providers = status["providers"].as_array().cloned().unwrap_or_default();
         assert_eq!(providers.len(), 1, "zero-rate providers contribute nothing");
         let openai = &providers[0];
         assert_eq!(openai["provider"], "OpenAI");
         // $2.50 / $0.001 per credit = 2500 credits consumed.
-        assert!((openai["consumed_credits"].as_f64().unwrap() - 2500.0).abs() < 1e-6);
+        assert!((openai["consumed_credits"].as_f64().unwrap_or_default() - 2500.0).abs() < 1e-6);
         // 10,000 - 2,500 = 7,500 remaining.
-        assert!((openai["remaining_credits"].as_f64().unwrap() - 7500.0).abs() < 1e-6);
-        assert!((status["total_consumed_credits"].as_f64().unwrap() - 2500.0).abs() < 1e-6);
-        assert!((status["total_remaining_credits"].as_f64().unwrap() - 7500.0).abs() < 1e-6);
+        assert!((openai["remaining_credits"].as_f64().unwrap_or_default() - 7500.0).abs() < 1e-6);
+        assert!(
+            (status["total_consumed_credits"]
+                .as_f64()
+                .unwrap_or_default()
+                - 2500.0)
+                .abs()
+                < 1e-6
+        );
+        assert!(
+            (status["total_remaining_credits"]
+                .as_f64()
+                .unwrap_or_default()
+                - 7500.0)
+                .abs()
+                < 1e-6
+        );
     }
 
     #[test]
@@ -1392,7 +1409,14 @@ mod tests {
             }],
         };
         let status = compute_credit_status(&config, &[("openrouter".to_string(), 3.0)]);
-        assert!((status["total_consumed_credits"].as_f64().unwrap() - 3.0).abs() < 1e-6);
+        assert!(
+            (status["total_consumed_credits"]
+                .as_f64()
+                .unwrap_or_default()
+                - 3.0)
+                .abs()
+                < 1e-6
+        );
         assert!(status["total_remaining_credits"].is_null());
     }
 }
