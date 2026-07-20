@@ -120,8 +120,9 @@ Assessed by reading the crates, not the marketing.
 |---|---|---|---|
 | Linux eBPF programs | `dek-ebpf-prog` | **Real** aya-ebpf 0.13: `dek_dns_capture` (cgroup/skb DNS ring buffer), `dek_connect4` (cgroup/connect4 egress) | — |
 | eBPF map keys/events | `dek-ebpf-common` | **Real** shared `#[repr(C)]` types (LPM key, ring events) | — |
-| eBPF load + attach | `dek-ebpfd/lib.rs` `start_ebpfd_supervisor` | **Real** aya — `Ebpf::load` the BTF object, pin policy maps, load+attach `dek_connect4`, drain the DNS ring buffer | `dek_connect4` is attached **permissive** (observe) — not yet reading the verdict maps to drop |
-| eBPF out-of-band map write | `dek-ebpfd/map_updater.rs` | **Simulated** — `apply_update` validates + tracks generations but does **not** open the pinned map and write the entry | **#1 Linux realness gap** |
+| eBPF kernel enforcement | `dek-ebpf-prog` `dek_connect4`/`connect6` | **Real** — reads `RUNTIME_MODE`, `CGROUP_POLICY_MAP`, `VERDICT_MAP` (LPM), `PORTS_MAP` and returns `verdict.allow` (0 = **drops** the connect), with protected-mode fallback + DNS-TTL gating + ring-buffer events | Enforces on whatever the maps contain — but nothing writes bundle policy into them yet (see next row) |
+| eBPF load + attach | `dek-ebpfd/lib.rs` `start_ebpfd_supervisor` | **Real** aya — `Ebpf::load` the BTF object, pin policy maps, load+attach `dek_connect4`, drain the DNS ring buffer | — |
+| userspace policy→map bridge | `dek-ebpfd/map_updater.rs` | **Simulated** — `apply_update` validates + tracks generations but does **not** open the pinned map and write the entry, and nothing sets `RUNTIME_MODE` | **#1 Linux realness gap** — the kernel program is ready; it just reads empty maps |
 | Windows enforce | `dek-windows-wfp` | **Real** user-mode WFP (`FwpmEngineOpen0`/`FwpmFilterAdd0`, filter add/delete by id) | Companion service packaging/signing |
 | macOS enforce | `dek-macos-nefilter` | **Real** NE rule-message client | System-extension host packaging/signing |
 | Cross-OS driver | `dek-core/network_loop.rs` | **Real** `NetworkEnforcer` trait + per-OS backends, fail-closed, feature-gated `os-enforcement` | Wire real ebpfd loader into the Linux backend |
@@ -277,12 +278,13 @@ verification into two tiers, and label every claim by tier.
 
 1. **This PR** — design + device-verification harness + runbook (no behavior
    change; default CI green).
-2. **Linux eBPF enforcement made real** — the load/attach path already works
-   (`start_ebpfd_supervisor`). Close the gap: make `map_updater::apply_update`
-   open the pinned verdict/LPM maps and write real entries, flip `dek_connect4`
-   from permissive-observe to reading the verdict maps and **dropping**, and
-   replace the `*.stub` capability strings with real probing. Tier-1 unit tests
-   (map-key translation, capability probe) + Tier-2 harness asserts a real drop.
+2. **Linux eBPF enforcement made real** — the kernel program already drops on
+   map contents and the load/attach path already works. Close the one real gap:
+   make `map_updater::apply_update` open the pinned `VERDICT_MAP`/`PORTS_MAP`/
+   `CGROUP_POLICY_MAP` via aya and write real `PolicyVerdict` entries, set
+   `RUNTIME_MODE` for protected-mode, and replace the `*.stub` capability
+   strings with real probing. Tier-1 unit tests (map-key/value translation,
+   capability probe) + Tier-2 harness asserts a real drop.
 3. **Domain generalization** — `DomainEnforcer` trait + orchestrator; add
    Linux file (Landlock/BPF-LSM) and process (exec hook) backends; `ApplyReport`
    downgrade surfacing to the portal.
