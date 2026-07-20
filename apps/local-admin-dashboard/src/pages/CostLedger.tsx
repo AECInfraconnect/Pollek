@@ -28,6 +28,7 @@ import {
 } from "../services/api";
 import { RegisterControlBar } from "../components/RegisterControlBar";
 import { ObserveAccuracyPanel } from "../components/observe/ObserveAccuracyPanel";
+import { AgentUsageComparison } from "../components/usage/AgentUsageComparison";
 import { useMode } from "../context/ModeContext";
 import { isAdvanceMode } from "../lib/modes";
 import type { ObserveInputKind } from "../services/api";
@@ -72,6 +73,9 @@ type AgentAttributionRow = {
   surfaces: string[];
   calls: number;
   tokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
   cost: number;
   exact: number;
   estimated: number;
@@ -257,6 +261,9 @@ function buildAgentAttribution(
     const model = event.model || "Unknown model";
     const poolKey = usagePoolKey(event);
     const tokens = event.tokens?.total_tokens ?? 0;
+    const inputTokens = event.tokens?.input_tokens ?? 0;
+    const outputTokens = event.tokens?.output_tokens ?? 0;
+    const cachedTokens = event.tokens?.cached_input_tokens ?? 0;
     const cost = event.cost?.total_cost ?? 0;
     const row =
       rows.get(agentKey) ??
@@ -267,6 +274,9 @@ function buildAgentAttribution(
         surfaces: new Set<string>(),
         calls: 0,
         tokens: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        cachedTokens: 0,
         cost: 0,
         exact: 0,
         estimated: 0,
@@ -279,6 +289,9 @@ function buildAgentAttribution(
 
     row.calls += 1;
     row.tokens += tokens;
+    row.inputTokens += inputTokens;
+    row.outputTokens += outputTokens;
+    row.cachedTokens += cachedTokens;
     row.cost += cost;
     if (estimated) row.estimated += 1;
     else row.exact += 1;
@@ -1344,101 +1357,27 @@ function AgentFirstAttributionSection({
       </div>
 
       {rows.length ? (
-        <div className="mt-4 grid gap-3 xl:grid-cols-2">
-          {rows.map((row) => (
-            <article
-              key={row.agentKey}
-              className="rounded-lg border bg-card/60 p-4"
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="break-words text-base font-semibold">
-                      {row.agentName}
-                    </h4>
-                    <span className="rounded-full border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
-                      {row.agentType || "AI app"}
-                    </span>
-                  </div>
-                  <p className="mt-1 break-words text-xs text-muted-foreground">
-                    {row.agentKey}
-                  </p>
-                </div>
-                <RegisterControlBar agentId={row.agentKey} tenantId="local" />
-              </div>
-
-              <div className="mt-4 grid gap-2 sm:grid-cols-4">
-                <UsageMetric label="Calls" value={number(row.calls)} />
-                <UsageMetric label="Tokens" value={number(row.tokens)} />
-                <UsageMetric label="Cost" value={money(row.cost, currency)} />
-                <UsageMetric
-                  label="Exact / estimated"
-                  value={`${number(row.exact)} / ${number(row.estimated)}`}
-                />
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {row.surfaces.length ? (
-                  row.surfaces.map((surface) => (
-                    <span
-                      key={surface}
-                      className="rounded-md border bg-background px-2 py-0.5 text-[11px] text-muted-foreground"
-                    >
-                      {surface.replace(/_/g, " ")}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    No surface metadata yet
-                  </span>
-                )}
-              </div>
-
-              {row.sharedPoolCount > 0 && (
-                <div className="mt-3 flex gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>
-                    {row.sharedPoolCount} provider/model pool(s) are shared by
-                    more than one app. Pollek keeps this app separate here, but
-                    the provider invoice or credit balance may still be pooled.
-                  </span>
-                </div>
-              )}
-
-              <div className="mt-4 space-y-2">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Provider/model pools
-                </div>
-                {row.pools.map((pool) => (
-                  <div
-                    key={pool.poolKey}
-                    className="rounded-lg border bg-background/60 p-3"
-                  >
-                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                      <div className="min-w-0">
-                        <div className="break-words text-sm font-medium">
-                          {poolDisplayName(pool)}
-                        </div>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          {providerBillingHint(pool.provider)}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 flex-wrap gap-2 text-xs text-muted-foreground">
-                        <span>{number(pool.calls)} calls</span>
-                        <span>{number(pool.tokens)} tokens</span>
-                        <span>{money(pool.cost, currency)}</span>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                      <span>{number(pool.exact)} exact</span>
-                      <span>{number(pool.estimated)} estimated</span>
-                      <span>{pool.poolKey.replace(/:/g, " / ")}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </article>
-          ))}
+        <div className="mt-4">
+          <AgentUsageComparison
+            rows={rows.map((row) => ({
+              agentKey: row.agentKey,
+              agentName: row.agentName,
+              agentType: row.agentType,
+              inputTokens: row.inputTokens,
+              outputTokens: row.outputTokens,
+              cachedTokens: row.cachedTokens,
+              totalTokens: row.tokens,
+              cost: row.cost,
+              calls: row.calls,
+              exact: row.exact,
+              estimated: row.estimated,
+              surfaces: row.surfaces,
+              detail: <AgentPoolDetail row={row} currency={currency} />,
+            }))}
+            currency={currency}
+            title="Cost & tokens by AI app"
+            description="Each AI app is separated first so ChatGPT in a browser, Codex in a terminal, Claude Code, and other tools do not collapse into one model bill. Switch between tokens and cost — the bars stay proportional."
+          />
         </div>
       ) : summaryRows.length ? (
         <div className="mt-4 rounded-lg border border-amber-500/25 bg-amber-500/10 p-4">
@@ -1476,6 +1415,69 @@ function AgentFirstAttributionSection({
         <EmptyState />
       )}
     </section>
+  );
+}
+
+function AgentPoolDetail({
+  row,
+  currency,
+}: {
+  row: AgentAttributionRow;
+  currency: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <RegisterControlBar agentId={row.agentKey} tenantId="local" />
+        <span className="break-words text-xs text-muted-foreground">
+          {row.agentKey}
+        </span>
+      </div>
+
+      {row.sharedPoolCount > 0 && (
+        <div className="flex gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            {row.sharedPoolCount} provider/model pool(s) are shared by more than
+            one app. Pollek keeps this app separate here, but the provider
+            invoice or credit balance may still be pooled.
+          </span>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Provider/model pools
+        </div>
+        {row.pools.map((pool) => (
+          <div
+            key={pool.poolKey}
+            className="rounded-lg border bg-background/60 p-3"
+          >
+            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <div className="break-words text-sm font-medium">
+                  {poolDisplayName(pool)}
+                </div>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {providerBillingHint(pool.provider)}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2 text-xs text-muted-foreground">
+                <span>{number(pool.calls)} calls</span>
+                <span>{number(pool.tokens)} tokens</span>
+                <span>{money(pool.cost, currency)}</span>
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+              <span>{number(pool.exact)} exact</span>
+              <span>{number(pool.estimated)} estimated</span>
+              <span>{pool.poolKey.replace(/:/g, " / ")}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
