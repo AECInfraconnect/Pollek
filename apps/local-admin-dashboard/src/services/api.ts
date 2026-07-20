@@ -1228,6 +1228,66 @@ export const UsageApi = {
     `${defaultClient.rootUrl}/v1/tenants/${defaultClient.tenantId}/usage/stream`,
 };
 
+export interface ProviderCreditConfig {
+  provider: string;
+  currency_per_credit: number;
+  initial_credits?: number | null;
+  label?: string | null;
+}
+
+export interface CreditLedgerConfig {
+  schema_version?: string;
+  currency: string;
+  providers: ProviderCreditConfig[];
+}
+
+export interface ProviderCreditStatus {
+  provider: string;
+  label?: string | null;
+  currency_per_credit: number;
+  initial_credits?: number | null;
+  consumed_cost: number;
+  consumed_credits: number;
+  remaining_credits?: number | null;
+}
+
+export interface CreditLedgerStatus {
+  currency: string;
+  providers: ProviderCreditStatus[];
+  total_consumed_credits: number;
+  total_remaining_credits?: number | null;
+}
+
+export interface CreditLedgerResponse {
+  config: CreditLedgerConfig;
+  status: CreditLedgerStatus;
+}
+
+export const CreditApi = {
+  get: (params?: { from?: string; bucket?: string }): Promise<CreditLedgerResponse> => {
+    const query = new URLSearchParams();
+    if (params?.from) query.set("from", params.from);
+    if (params?.bucket) query.set("bucket", params.bucket);
+    const suffix = query.toString() ? `?${query}` : "";
+    return defaultClient
+      .fetchApi<CreditLedgerResponse>(`/usage/credits${suffix}`)
+      .catch(() => ({
+        config: { currency: "USD", providers: [] },
+        status: {
+          currency: "USD",
+          providers: [],
+          total_consumed_credits: 0,
+          total_remaining_credits: null,
+        },
+      }));
+  },
+  put: (config: CreditLedgerConfig): Promise<{ config: CreditLedgerConfig }> =>
+    defaultClient.fetchApi("/usage/credits", {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
+};
+
 export const LocalObserveApi = {
   refresh: (payload?: LocalObserveRefreshRequest) =>
     defaultClient.fetchApi<LocalObserveRefreshResponse>(

@@ -21,7 +21,7 @@ use dek_agent_observer::usage_model::{
 };
 use dek_agent_observer::usage_normalizer::{NormalizationContext, UsageNormalizer};
 use futures_util::{Stream, StreamExt};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::convert::Infallible;
 use tokio_stream::wrappers::BroadcastStream;
@@ -53,6 +53,10 @@ pub fn router() -> Router<AppState> {
             put(upsert_budget),
         )
         .route("/v1/tenants/:tenant/usage/reconcile", post(reconcile_usage))
+        .route(
+            "/v1/tenants/:tenant/usage/credits",
+            get(get_credit_ledger).put(put_credit_ledger),
+        )
 }
 
 #[derive(Debug, Deserialize)]
@@ -1020,6 +1024,178 @@ fn internal_error(err: anyhow::Error) -> (StatusCode, String) {
     (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
 }
 
+// ---------------------------------------------------------------------------
+// Provider credit ledger
+//
+// Many teams pay AI providers in prepaid "credits" rather than watching a raw
+// dollar figure. This is a real, local accounting layer: the user declares how
+// much one credit is worth in the account currency (currency_per_credit) and,
+// optionally, a prepaid balance. Pollek then derives credits consumed from the
+// cost it already observes, so the Usage Bar "Credit" view and a remaining
+// balance are honest arithmetic on real spend — never fabricated numbers.
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ProviderCreditConfigV1 {
+    provider: String,
+    /// Value of one credit in the account currency (e.g. 0.001 => $10 buys
+    /// 10,000 credits). Must be > 0 to contribute credits.
+    currency_per_credit: f64,
+    /// Optional prepaid balance, in credits.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    initial_credits: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    label: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CreditLedgerConfigV1 {
+    #[serde(default = "credit_ledger_schema")]
+    schema_version: String,
+    #[serde(default = "default_currency")]
+    currency: String,
+    #[serde(default)]
+    providers: Vec<ProviderCreditConfigV1>,
+}
+
+fn credit_ledger_schema() -> String {
+    "pollek.credit_ledger.v1".to_string()
+}
+
+fn default_currency() -> String {
+    "USD".to_string()
+}
+
+impl Default for CreditLedgerConfigV1 {
+    fn default() -> Self {
+        Self {
+            schema_version: credit_ledger_schema(),
+            currency: default_currency(),
+            providers: Vec::new(),
+        }
+    }
+}
+
+fn credit_ledger_path() -> std::path::PathBuf {
+    std::path::PathBuf::from("pollek-local-data/provider_credits.v1.json")
+}
+
+fn load_credit_ledger() -> CreditLedgerConfigV1 {
+    std::fs::read_to_string(credit_ledger_path())
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .unwrap_or_default()
+}
+
+fn save_credit_ledger(config: &CreditLedgerConfigV1) -> std::io::Result<()> {
+    let path = credit_ledger_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let body = serde_json::to_string_pretty(config)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))?;
+    std::fs::write(path, body)
+}
+
+/// Normalize provider keys so "OpenAI" configured by the user matches
+/// "openai" observed on events.
+fn credit_provider_key(provider: &str) -> String {
+    provider.trim().to_ascii_lowercase()
+}
+
+/// Compute per-provider credit consumption from observed cost. Only providers
+/// with a positive currency_per_credit contribute credits.
+fn compute_credit_status(
+    config: &CreditLedgerConfigV1,
+    cost_by_provider: &[(String, f64)],
+) -> Value {
+    let cost_lookup: std::collections::HashMap<String, f64> = cost_by_provider
+        .iter()
+        .map(|(provider, cost)| (credit_provider_key(provider), *cost))
+        .collect();
+
+    let mut providers = Vec::new();
+    let mut total_consumed = 0.0_f64;
+    let mut total_remaining = 0.0_f64;
+    let mut has_remaining = false;
+
+    for entry in &config.providers {
+        if entry.currency_per_credit <= 0.0 {
+            continue;
+        }
+        let consumed_cost = cost_lookup
+            .get(&credit_provider_key(&entry.provider))
+            .copied()
+            .unwrap_or(0.0);
+        let consumed_credits = consumed_cost / entry.currency_per_credit;
+        total_consumed += consumed_credits;
+        let remaining_credits = entry
+            .initial_credits
+            .map(|initial| initial - consumed_credits);
+        if let Some(remaining) = remaining_credits {
+            total_remaining += remaining;
+            has_remaining = true;
+        }
+        providers.push(json!({
+            "provider": entry.provider,
+            "label": entry.label,
+            "currency_per_credit": entry.currency_per_credit,
+            "initial_credits": entry.initial_credits,
+            "consumed_cost": consumed_cost,
+            "consumed_credits": consumed_credits,
+            "remaining_credits": remaining_credits,
+        }));
+    }
+
+    json!({
+        "currency": config.currency,
+        "providers": providers,
+        "total_consumed_credits": total_consumed,
+        "total_remaining_credits": if has_remaining { Some(total_remaining) } else { None },
+    })
+}
+
+async fn get_credit_ledger(
+    State(state): State<AppState>,
+    Path(tenant): Path<String>,
+    Query(params): Query<UsageSummaryParams>,
+) -> impl IntoResponse {
+    let config = load_credit_ledger();
+    let query = summary_query(tenant, params);
+    let cost_by_provider = match state.observability_store.ai_usage_summary(query).await {
+        Ok(summary) => summary
+            .by_provider
+            .into_iter()
+            .map(|row| (row.label, row.total_cost))
+            .collect::<Vec<_>>(),
+        Err(_) => Vec::new(),
+    };
+    let status = compute_credit_status(&config, &cost_by_provider);
+    (
+        StatusCode::OK,
+        Json(json!({ "config": config, "status": status })),
+    )
+}
+
+async fn put_credit_ledger(
+    Path(_tenant): Path<String>,
+    Json(mut config): Json<CreditLedgerConfigV1>,
+) -> impl IntoResponse {
+    if config.schema_version.is_empty() {
+        config.schema_version = credit_ledger_schema();
+    }
+    if config.currency.is_empty() {
+        config.currency = default_currency();
+    }
+    match save_credit_ledger(&config) {
+        Ok(()) => (StatusCode::OK, Json(json!({ "config": config }))),
+        Err(err) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": err.to_string() })),
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1164,5 +1340,83 @@ mod tests {
             ),
             "local engine pricing should resolve via catalog, not stay unknown"
         );
+    }
+
+    #[test]
+    fn credit_status_derives_consumed_and_remaining_from_observed_cost() {
+        let config = CreditLedgerConfigV1 {
+            schema_version: credit_ledger_schema(),
+            currency: "USD".to_string(),
+            providers: vec![
+                ProviderCreditConfigV1 {
+                    provider: "OpenAI".to_string(),
+                    currency_per_credit: 0.001, // $10 => 10,000 credits
+                    initial_credits: Some(10_000.0),
+                    label: Some("OpenAI prepaid".to_string()),
+                },
+                ProviderCreditConfigV1 {
+                    // No configured rate elsewhere => provider ignored.
+                    provider: "anthropic".to_string(),
+                    currency_per_credit: 0.0,
+                    initial_credits: None,
+                    label: None,
+                },
+            ],
+        };
+        // Observed cost is case-insensitively matched to configured providers.
+        let cost = vec![
+            ("openai".to_string(), 2.5_f64),
+            ("anthropic".to_string(), 4.0_f64),
+        ];
+        let status = compute_credit_status(&config, &cost);
+
+        let providers = status["providers"].as_array().cloned().unwrap_or_default();
+        assert_eq!(providers.len(), 1, "zero-rate providers contribute nothing");
+        let openai = &providers[0];
+        assert_eq!(openai["provider"], "OpenAI");
+        // $2.50 / $0.001 per credit = 2500 credits consumed.
+        assert!((openai["consumed_credits"].as_f64().unwrap_or_default() - 2500.0).abs() < 1e-6);
+        // 10,000 - 2,500 = 7,500 remaining.
+        assert!((openai["remaining_credits"].as_f64().unwrap_or_default() - 7500.0).abs() < 1e-6);
+        assert!(
+            (status["total_consumed_credits"]
+                .as_f64()
+                .unwrap_or_default()
+                - 2500.0)
+                .abs()
+                < 1e-6
+        );
+        assert!(
+            (status["total_remaining_credits"]
+                .as_f64()
+                .unwrap_or_default()
+                - 7500.0)
+                .abs()
+                < 1e-6
+        );
+    }
+
+    #[test]
+    fn credit_status_without_balance_reports_no_remaining_total() {
+        let config = CreditLedgerConfigV1 {
+            schema_version: credit_ledger_schema(),
+            currency: "USD".to_string(),
+            providers: vec![ProviderCreditConfigV1 {
+                provider: "openrouter".to_string(),
+                currency_per_credit: 1.0, // 1 credit == $1
+                initial_credits: None,
+                label: None,
+            }],
+        };
+        let status = compute_credit_status(&config, &[("openrouter".to_string(), 3.0)]);
+        assert!(
+            (status["total_consumed_credits"]
+                .as_f64()
+                .unwrap_or_default()
+                - 3.0)
+                .abs()
+                < 1e-6
+        );
+        assert!(status["total_remaining_credits"].is_null());
     }
 }

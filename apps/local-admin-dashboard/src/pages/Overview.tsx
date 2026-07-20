@@ -17,8 +17,13 @@ import {
 import {
   ActivityApi,
   CapabilityApi,
+  CreditApi,
   RegistryApi,
+  UsageApi,
 } from "../services/api";
+import { AgentUsageComparison } from "../components/usage/AgentUsageComparison";
+import { aggregateAgentUsageRows } from "../components/usage/aggregate";
+import type { AgentUsageRow } from "../components/usage/AgentUsageComparison";
 import type {
   ControlMethodCapabilityV2,
   LocalCapabilitySnapshotV2,
@@ -337,6 +342,8 @@ export function Overview() {
   );
   const [snapshotLoading, setSnapshotLoading] = useState(true);
   const [activities, setActivities] = useState<any[]>([]);
+  const [usageRows, setUsageRows] = useState<AgentUsageRow[]>([]);
+  const [usageCurrency, setUsageCurrency] = useState("USD");
 
   const loadSnapshot = async (refresh = false) => {
     setSnapshotLoading(true);
@@ -376,6 +383,41 @@ export function Overview() {
     ActivityApi.getActivity()
       .then((res: any) => setActivities(res.activity_sets || []))
       .catch(() => setActivities([]));
+
+    // AI usage this device — friendly per-agent bars from the same usage events
+    // the cost ledger uses, with credits derived from the credit ledger.
+    const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    Promise.all([
+      UsageApi.getEvents({ from, limit: 200 }).catch(() => ({ items: [] })),
+      RegistryApi.listAgents().catch(() => []),
+      CreditApi.get({ from }).catch(() => null),
+    ])
+      .then(([events, agents, credits]) => {
+        const names = new Map<string, { name: string; kind?: string }>();
+        for (const agent of agents) {
+          names.set(agent.agent_id, {
+            name: agent.name || agent.agent_id,
+            kind: agent.agent_type,
+          });
+        }
+        const creditRates = new Map<string, number>();
+        for (const provider of credits?.config.providers ?? []) {
+          if (provider.currency_per_credit > 0) {
+            creditRates.set(
+              provider.provider.trim().toLowerCase(),
+              provider.currency_per_credit,
+            );
+          }
+        }
+        setUsageCurrency(credits?.status.currency || "USD");
+        setUsageRows(
+          aggregateAgentUsageRows(events.items ?? [], {
+            nameFor: (id) => names.get(id),
+            creditRates,
+          }).slice(0, 6),
+        );
+      })
+      .catch(() => setUsageRows([]));
   }, []);
 
   const capabilitySummary = useMemo(() => {
@@ -412,6 +454,15 @@ export function Overview() {
       />
 
       <MetricStrip metrics={metrics} />
+
+      {usageRows.length > 0 && (
+        <AgentUsageComparison
+          rows={usageRows}
+          currency={usageCurrency}
+          title="AI usage this device (last 7 days)"
+          description="The AI apps using the most tokens, cost, or credit on this device. Switch the metric to compare — open AI Usage & Cost for the full ledger."
+        />
+      )}
 
       <section className="grid gap-3 md:grid-cols-3">
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
