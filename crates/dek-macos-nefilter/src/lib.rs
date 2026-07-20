@@ -3,7 +3,7 @@
 // Copyright (c) 2026 AEC Infraconnect
 
 use anyhow::Result;
-use dek_domain_schema::CompiledNetworkRules;
+use dek_domain_schema::{CompiledNetworkRules, NetworkGuardrailEffect};
 #[allow(unused_imports)]
 use dek_enforcement_api::NetworkEnforcer;
 use std::sync::Arc;
@@ -99,7 +99,7 @@ impl dek_enforcement_api::NetworkEnforcer for NeFilterClient {
 }
 
 /// message format ระหว่าง container app <-> NEFilterDataProvider
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct NeRuleMessage {
     pub action: String, // "apply" | "clear"
     pub policy_id: String,
@@ -109,13 +109,50 @@ pub struct NeRuleMessage {
 }
 
 impl NeRuleMessage {
+    /// Map compiled network rules onto the NE wire message.
+    ///
+    /// The message schema only carries block lists, so the mapping is:
+    /// - effect `DENY` populates the lists; `ALLOW`/`ALLOW_OR_DENY` are not
+    ///   expressible in the schema and deliberately produce empty lists
+    /// - destination type "domain" (string value) -> `block_domains`
+    /// - destination type "cidr" (string value) -> `block_cidrs`
+    /// - destination type "port" (JSON number, must fit u16) -> `block_ports`
+    /// - any other destination type, or a value of the wrong shape, is
+    ///   deliberately skipped with a `warn!` (never silently)
+    /// - `targets` (agents/processes/users/devices) has no field in the
+    ///   schema, so it is not mapped: the filter applies the block lists to
+    ///   every flow it sees
     pub fn from_compiled(rules: &CompiledNetworkRules) -> Self {
+        let mut block_domains = Vec::new();
+        let mut block_cidrs = Vec::new();
+        let mut block_ports = Vec::new();
+
+        if rules.effect == NetworkGuardrailEffect::Deny {
+            for dest in &rules.conditions.destinations {
+                match dest.r#type.as_str() {
+                    "domain" => match dest.value.as_str() {
+                        Some(d) => block_domains.push(d.to_string()),
+                        None => warn!(value = ?dest.value, "NE: skip domain destination with non-string value"),
+                    },
+                    "cidr" => match dest.value.as_str() {
+                        Some(c) => block_cidrs.push(c.to_string()),
+                        None => warn!(value = ?dest.value, "NE: skip cidr destination with non-string value"),
+                    },
+                    "port" => match dest.value.as_u64().and_then(|p| u16::try_from(p).ok()) {
+                        Some(p) => block_ports.push(p),
+                        None => warn!(value = ?dest.value, "NE: skip port destination with invalid value"),
+                    },
+                    other => warn!(dest_type = other, "NE: skip unknown destination type"),
+                }
+            }
+        }
+
         Self {
             action: "apply".into(),
             policy_id: rules.policy_id.clone(),
-            block_domains: vec![],
-            block_cidrs: vec![],
-            block_ports: vec![],
+            block_domains,
+            block_cidrs,
+            block_ports,
         }
     }
     pub fn clear() -> Self {
@@ -126,5 +163,122 @@ impl NeRuleMessage {
             block_cidrs: vec![],
             block_ports: vec![],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dek_domain_schema::{
+        NetworkConditions, NetworkDestination, NetworkFallback, NetworkGuardrailEffect,
+        NetworkTargets,
+    };
+
+    fn rules(effect: NetworkGuardrailEffect, destinations: Vec<NetworkDestination>) -> CompiledNetworkRules {
+        CompiledNetworkRules {
+            policy_id: "pol-123".into(),
+            policy_type: "NETWORK_EGRESS_GUARDRAIL".into(),
+            version: 1,
+            risk_tier: "high".into(),
+            targets: NetworkTargets::default(),
+            conditions: NetworkConditions {
+                destinations,
+                protocols: vec![],
+                time_window: None,
+            },
+            effect,
+            obligations: vec![],
+            fallback: NetworkFallback {
+                cloud_unavailable: "deny".into(),
+                policy_stale: "deny".into(),
+            },
+        }
+    }
+
+    fn dest(r#type: &str, value: serde_json::Value) -> NetworkDestination {
+        NetworkDestination {
+            r#type: r#type.into(),
+            value,
+        }
+    }
+
+    #[test]
+    fn from_compiled_maps_deny_destinations_into_block_lists() {
+        let r = rules(
+            NetworkGuardrailEffect::Deny,
+            vec![
+                dest("domain", serde_json::json!("evil.example.com")),
+                dest("cidr", serde_json::json!("10.0.0.0/8")),
+                dest("port", serde_json::json!(4444)),
+            ],
+        );
+        let msg = NeRuleMessage::from_compiled(&r);
+        assert_eq!(msg.action, "apply");
+        assert_eq!(msg.policy_id, "pol-123");
+        assert_eq!(msg.block_domains, vec!["evil.example.com"]);
+        assert_eq!(msg.block_cidrs, vec!["10.0.0.0/8"]);
+        assert_eq!(msg.block_ports, vec![4444]);
+    }
+
+    #[test]
+    fn from_compiled_empty_rules_keeps_empty_lists() {
+        let msg = NeRuleMessage::from_compiled(&rules(NetworkGuardrailEffect::Deny, vec![]));
+        assert_eq!(msg.action, "apply");
+        assert_eq!(msg.policy_id, "pol-123");
+        assert!(msg.block_domains.is_empty());
+        assert!(msg.block_cidrs.is_empty());
+        assert!(msg.block_ports.is_empty());
+    }
+
+    #[test]
+    fn from_compiled_allow_effect_blocks_nothing() {
+        // the wire schema has only block lists; allow-type effects are
+        // deliberately not mapped
+        let r = rules(
+            NetworkGuardrailEffect::Allow,
+            vec![dest("domain", serde_json::json!("ok.example.com"))],
+        );
+        let msg = NeRuleMessage::from_compiled(&r);
+        assert!(msg.block_domains.is_empty());
+        assert!(msg.block_cidrs.is_empty());
+        assert!(msg.block_ports.is_empty());
+    }
+
+    #[test]
+    fn from_compiled_skips_unknown_and_malformed_destinations() {
+        let r = rules(
+            NetworkGuardrailEffect::Deny,
+            vec![
+                dest("geoip", serde_json::json!("XX")),
+                dest("domain", serde_json::json!(42)),
+                dest("port", serde_json::json!("443")),
+                dest("port", serde_json::json!(70000)),
+                dest("domain", serde_json::json!("kept.example.com")),
+            ],
+        );
+        let msg = NeRuleMessage::from_compiled(&r);
+        assert_eq!(msg.block_domains, vec!["kept.example.com"]);
+        assert!(msg.block_cidrs.is_empty());
+        assert!(msg.block_ports.is_empty());
+    }
+
+    #[test]
+    fn wire_format_round_trips_with_length_prefix() {
+        // same framing as apply_rules: u32 BE length + JSON payload
+        let msg = NeRuleMessage::from_compiled(&rules(
+            NetworkGuardrailEffect::Deny,
+            vec![
+                dest("domain", serde_json::json!("bad.example.com")),
+                dest("cidr", serde_json::json!("192.0.2.0/24")),
+                dest("port", serde_json::json!(8080)),
+            ],
+        ));
+        let payload = serde_json::to_vec(&msg).unwrap();
+        let mut framed = (payload.len() as u32).to_be_bytes().to_vec();
+        framed.extend_from_slice(&payload);
+
+        let len = u32::from_be_bytes(framed[..4].try_into().unwrap()) as usize;
+        let decoded: NeRuleMessage = serde_json::from_slice(&framed[4..4 + len]).unwrap();
+        assert_eq!(decoded, msg);
     }
 }
