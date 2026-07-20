@@ -154,8 +154,12 @@ impl MapUpdater {
         Ok(())
     }
 
-    /// Perform the real pinned-map write on Linux; a validated no-op elsewhere.
-    #[cfg(all(target_os = "linux", feature = "kernel-maps"))]
+    /// Write the verdict into the pinned kernel map, adaptively: if the eBPF
+    /// maps are not pinned on this host (no supervisor loaded, or a CI/test
+    /// box), it is a fail-open no-op; when the maps are present it performs the
+    /// real aya write. No compile-time feature needed — the same binary does
+    /// the right thing on a device and in tests.
+    #[cfg(target_os = "linux")]
     fn write_to_kernel(
         &self,
         target: &MapTarget,
@@ -166,6 +170,14 @@ impl MapUpdater {
         use dek_ebpf_common::PolicyVerdict;
 
         let pin_path = format!("{}/{}", crate::BPFFS_PATH, target.pinned_name());
+        // Fail-open: no pinned map means the eBPF plane is not loaded here, so
+        // there is nothing to enforce and nothing to write.
+        if !std::path::Path::new(&pin_path).exists() {
+            tracing::debug!(
+                "pinned map {pin_path} not present; skipping kernel write (fail-open no-op)"
+            );
+            return Ok(());
+        }
         let map_data = MapData::from_pin(&pin_path)
             .map_err(|e| anyhow::anyhow!("open pinned map {pin_path}: {e}"))?;
         let pv = PolicyVerdict {
@@ -209,20 +221,14 @@ impl MapUpdater {
         Ok(())
     }
 
-    /// Off-Linux, or when the `kernel-maps` feature is disabled: validated
-    /// no-op. The kernel program (if any) keeps enforcing on its current map
-    /// contents, and unsupported hosts stay fail-open by design.
-    #[cfg(not(all(target_os = "linux", feature = "kernel-maps")))]
+    /// Non-Linux hosts have no eBPF plane: validated no-op (fail-open).
+    #[cfg(not(target_os = "linux"))]
     fn write_to_kernel(
         &self,
-        target: &MapTarget,
+        _target: &MapTarget,
         _verdict: ParsedVerdict,
         _is_delete: bool,
     ) -> Result<()> {
-        tracing::warn!(
-            "kernel-maps writer unavailable on this build; validated update to {} not applied",
-            target.pinned_name()
-        );
         Ok(())
     }
 }
