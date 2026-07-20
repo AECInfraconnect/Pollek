@@ -27,6 +27,5 @@ dek-ebpf-common = { path = "../dek-ebpf-common", features = ["user"] }
 aya-build = "=0.1.2"
 cargo_metadata = "0.19.2"
 
-
 [lints]
 workspace = true
