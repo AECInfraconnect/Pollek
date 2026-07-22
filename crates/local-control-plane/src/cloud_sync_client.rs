@@ -45,10 +45,69 @@ pub struct SyncConfig {
     pub os_version: String,
     pub arch: String,
     /// OAuth/OIDC bearer token. Empty ⇒ omit (only valid against an
-    /// auth-disabled local dev Cloud).
+    /// auth-disabled local dev Cloud). If empty but the `oidc_*` fields are
+    /// set, [`SyncConfig::ensure_bearer_token`] fetches one via the
+    /// client-credentials grant.
     pub api_key: String,
     /// Subject attributed to ingested inventory (e.g. `DOMAIN\\user`).
     pub user_subject: String,
+    /// OIDC token endpoint (Keycloak: `{issuer}/protocol/openid-connect/token`).
+    /// Derived from `POLLEK_OIDC_TOKEN_URL` or `POLLEK_OIDC_ISSUER`.
+    pub oidc_token_url: Option<String>,
+    pub oidc_client_id: Option<String>,
+    pub oidc_client_secret: Option<String>,
+    pub oidc_scope: Option<String>,
+}
+
+/// Keycloak/OIDC token endpoint path appended to a realm issuer URL.
+const OIDC_TOKEN_PATH: &str = "/protocol/openid-connect/token";
+
+/// Resolve the OIDC token endpoint from an explicit token URL or a realm
+/// issuer (e.g. `https://keycloak/realms/pollek` → `.../protocol/openid-connect/token`).
+fn resolve_oidc_token_url(token_url: Option<String>, issuer: Option<String>) -> Option<String> {
+    if let Some(u) = token_url.filter(|v| !v.is_empty()) {
+        return Some(u);
+    }
+    issuer
+        .filter(|v| !v.is_empty())
+        .map(|iss| format!("{}{}", iss.trim_end_matches('/'), OIDC_TOKEN_PATH))
+}
+
+#[derive(serde::Deserialize)]
+struct TokenResponse {
+    access_token: String,
+}
+
+/// Fetch a bearer token via the OAuth2 client-credentials grant (Keycloak).
+pub async fn client_credentials_token(
+    client: &Client,
+    token_url: &str,
+    client_id: &str,
+    client_secret: &str,
+    scope: Option<&str>,
+) -> Result<String> {
+    let mut form = vec![
+        ("grant_type", "client_credentials"),
+        ("client_id", client_id),
+        ("client_secret", client_secret),
+    ];
+    if let Some(scope) = scope {
+        form.push(("scope", scope));
+    }
+    let resp = client
+        .post(token_url)
+        .form(&form)
+        .send()
+        .await
+        .with_context(|| format!("POST {token_url} (client_credentials)"))?;
+    let status = resp.status();
+    let text = resp.text().await.unwrap_or_default();
+    if !status.is_success() {
+        anyhow::bail!("OIDC token endpoint returned {status}: {text}");
+    }
+    let parsed: TokenResponse =
+        serde_json::from_str(&text).with_context(|| format!("parse token response: {text}"))?;
+    Ok(parsed.access_token)
 }
 
 impl SyncConfig {
@@ -92,6 +151,13 @@ impl SyncConfig {
             user_subject: get("POLLEK_USER_SUBJECT")
                 .filter(|v| !v.is_empty())
                 .unwrap_or_else(|| "local".into()),
+            oidc_token_url: resolve_oidc_token_url(
+                get("POLLEK_OIDC_TOKEN_URL").filter(|v| !v.is_empty()),
+                get("POLLEK_OIDC_ISSUER").filter(|v| !v.is_empty()),
+            ),
+            oidc_client_id: get("POLLEK_OIDC_CLIENT_ID").filter(|v| !v.is_empty()),
+            oidc_client_secret: get("POLLEK_OIDC_CLIENT_SECRET").filter(|v| !v.is_empty()),
+            oidc_scope: get("POLLEK_OIDC_SCOPE").filter(|v| !v.is_empty()),
         })
     }
 
@@ -125,11 +191,48 @@ impl SyncConfig {
             os_version: get("POLLEK_OS_VERSION").unwrap_or_else(|| "unknown".into()),
             arch: get("POLLEK_ARCH").unwrap_or_else(|| std::env::consts::ARCH.to_string()),
             user_subject: get("POLLEK_USER_SUBJECT").unwrap_or_else(|| "local".into()),
+            oidc_token_url: resolve_oidc_token_url(
+                get("POLLEK_OIDC_TOKEN_URL"),
+                get("POLLEK_OIDC_ISSUER"),
+            ),
+            oidc_client_id: get("POLLEK_OIDC_CLIENT_ID"),
+            oidc_client_secret: get("POLLEK_OIDC_CLIENT_SECRET"),
+            oidc_scope: get("POLLEK_OIDC_SCOPE"),
         }
     }
 
     fn url(&self, path: &str) -> String {
         format!("{}{}", self.cloud_url, path)
+    }
+
+    /// Ensure `api_key` holds a bearer token. If one was supplied explicitly
+    /// (`DEK_CLOUD_API_KEY`), it is kept. Otherwise, when OIDC client
+    /// credentials are configured, fetch a token via client-credentials and
+    /// store it. Returns `Ok(true)` if a bearer is now set, `Ok(false)` if no
+    /// auth is configured (valid only against an auth-disabled dev Cloud).
+    pub async fn ensure_bearer_token(&mut self, client: &Client) -> Result<bool> {
+        if !self.api_key.is_empty() {
+            return Ok(true);
+        }
+        match (
+            self.oidc_token_url.clone(),
+            self.oidc_client_id.clone(),
+            self.oidc_client_secret.clone(),
+        ) {
+            (Some(url), Some(id), Some(secret)) => {
+                let token = client_credentials_token(
+                    client,
+                    &url,
+                    &id,
+                    &secret,
+                    self.oidc_scope.as_deref(),
+                )
+                .await?;
+                self.api_key = token;
+                Ok(true)
+            }
+            _ => Ok(false),
+        }
     }
 }
 
@@ -396,5 +499,38 @@ mod tests {
             true,
         );
         assert_eq!(a["event_id"], b["event_id"]);
+    }
+
+    #[test]
+    fn oidc_token_url_derived_from_keycloak_issuer() {
+        let url = resolve_oidc_token_url(
+            None,
+            Some("https://keycloak-production-a39c.up.railway.app/realms/pollek".into()),
+        );
+        assert_eq!(
+            url.as_deref(),
+            Some("https://keycloak-production-a39c.up.railway.app/realms/pollek/protocol/openid-connect/token")
+        );
+    }
+
+    #[test]
+    fn oidc_explicit_token_url_wins_over_issuer() {
+        let url = resolve_oidc_token_url(
+            Some("https://issuer/token".into()),
+            Some("https://keycloak/realms/pollek".into()),
+        );
+        assert_eq!(url.as_deref(), Some("https://issuer/token"));
+        // No OIDC config at all ⇒ None (auth-disabled dev is allowed).
+        assert_eq!(resolve_oidc_token_url(None, None), None);
+    }
+
+    #[test]
+    fn token_response_parses_access_token() {
+        let parsed: Result<TokenResponse, _> =
+            serde_json::from_str(r#"{"access_token":"eyJhbGc","expires_in":300}"#);
+        assert_eq!(
+            parsed.ok().map(|t| t.access_token).as_deref(),
+            Some("eyJhbGc")
+        );
     }
 }

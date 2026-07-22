@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
             .and_then(|i| args.get(i + 1).cloned())
     };
 
-    let cfg = SyncConfig::from_env().context(
+    let mut cfg = SyncConfig::from_env().context(
         "missing config — set DEK_CLOUD_URL (and POLLEK_TENANT_ID/DEVICE_ID/LCP_ID as needed)",
     )?;
     let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
@@ -53,8 +53,23 @@ async fn main() -> Result<()> {
 
     println!("== cloud_sync_once ==");
     println!(
-        "cloud={} tenant={} device={} lcp={}\n",
+        "cloud={} tenant={} device={} lcp={}",
         cfg.cloud_url, cfg.tenant_id, cfg.device_id, cfg.lcp_id
+    );
+
+    // Resolve a production bearer token (explicit DEK_CLOUD_API_KEY, or fetched
+    // from Keycloak via client-credentials when POLLEK_OIDC_* is set).
+    let authed = cfg
+        .ensure_bearer_token(&client)
+        .await
+        .context("OIDC token fetch failed")?;
+    println!(
+        "auth={}\n",
+        if authed {
+            "bearer (production)"
+        } else {
+            "none (auth-disabled dev)"
+        }
     );
 
     let mut had_error = false;
