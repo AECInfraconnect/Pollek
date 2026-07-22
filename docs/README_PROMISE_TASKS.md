@@ -116,4 +116,4 @@ Status values:
 | Active | Identity crates | Keep SPIRE node and enrollment model aligned with Cloud trace identity. |
 | Active | Interop crates | Keep A2A, sandbox, connector, normalizer, stdio wrapper, binding, and fingerprint crates buildable. |
 | Active | SDK crates | Keep PDP/plugin host and policy preset APIs aligned with generated contracts. |
-| Active | Control Plane crates | Keep local-control-plane, control-plane API, and mock-cloud using the same Pollek contracts. |
+| Active | Control Plane crates | Keep local-control-plane and control-plane API using the same Pollek contracts. |

@@ -4,28 +4,27 @@ This guide provides concrete code examples, architectural contracts, and operati
 
 ---
 
-## 1. Mock-Cloud Strict mTLS Sandbox
+## 1. Local Control Plane
 
-Mock-Cloud operates as the primary reference simulator. It listens on:
+For local development, run the local control plane. It listens on:
 
 - `43892`: HTTPS Enrollment
 - `43891`: Strict mTLS APIs (Telemetry, Bundles, SPIFFE)
 
-**Code Example: Starting Mock-Cloud in strict vs insecure mode:**
+**Code Example: Starting the local control plane:**
 
 ```bash
-# Default (Strict mTLS on port 43891)
-cargo run -p mock-cloud
-
-# Insecure mode (Allow missing client certs on port 43891)
-cargo run -p mock-cloud -- --dev-insecure-allow-no-client-cert
+cargo run -p local-control-plane
 ```
+
+The kit talks to the local control plane by default; syncing to Pollek Cloud
+is configured on the local service via `DEK_CLOUD_URL` (see `cloud_sync.rs`).
 
 ---
 
 ## 2. Telemetry Batch Flush Architecture
 
-Local Enforcement Kit Core locally spools telemetry to a SQLite database. A background flusher pulls up to 50 events at a time and POSTs them to the Mock-Cloud.
+Local Enforcement Kit Core locally spools telemetry to a SQLite database. A background flusher pulls up to 50 events at a time and POSTs them to Pollek Cloud.
 
 **Code Example: Emitting Telemetry (Local Enforcement Kit side)**
 
@@ -100,24 +99,15 @@ Before tagging a release:
 
 - `[ ]` Ensure `cargo test --workspace` passes cleanly.
 - `[ ]` Verify mock-hash bypass is disabled in release builds (`cfg!(debug_assertions)`).
-- `[ ]` Ensure `Mock-Cloud` passes standard soak testing.
 
 ---
 
 ## 5. Acceptance Test Skeleton
 
-To run a full e2e acceptance test locally:
+To run the local end-to-end acceptance test:
 
 ```bash
-# 1. Start Mock Cloud
-cargo run -p mock-cloud &
-MOCK_PID=$!
-
-# 2. Start Local Enforcement Kit Core
-sudo -E cargo run -p dek-core
-
-# 3. Terminate
-kill $MOCK_PID
+cargo test -p acceptance-tests --test local_e2e -- --ignored --nocapture
 ```
 
 ---

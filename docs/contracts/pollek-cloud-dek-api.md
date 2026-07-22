@@ -1,6 +1,6 @@
 # Pollek Cloud ↔ Local Enforcement Kit API Contracts
 
-This document is the Single Source of Truth for the APIs and data models used between the Pollek Cloud (and Mock-Cloud) and the Data Execution Kernel (Local Enforcement Kit).
+This document is the Single Source of Truth for the APIs and data models used between the Pollek Cloud and the Data Execution Kernel (Local Enforcement Kit).
 
 ## JSON Schemas
 

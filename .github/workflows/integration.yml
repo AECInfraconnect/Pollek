@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 jobs:
-  acceptance_matrix:
-    name: Acceptance Matrix (A-K)
+  local_e2e:
+    name: Local control-plane e2e
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -30,27 +30,9 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
 
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@cfdc41eb4dcb5a6d098e06c87a1e91076b799307 # nextest
-
       - name: Pre-build workspace binaries
         timeout-minutes: 40
         run: cargo build --workspace --exclude dek-ebpf-prog --exclude dek-ebpfd --exclude pii-redactor-plugin
 
-      - name: Run Acceptance Tests (JUnit & JSON)
-        timeout-minutes: 25
-        env:
-          DEK_SKIP_HARNESS_BUILD: "1"
-        # We use nextest for junit. It ignores #[ignore] by default unless requested, wait!
-        # We want to run the ignored test matrix_a_to_k
-        run: cargo nextest run -p acceptance-tests --test matrix_a_to_k --run-ignored ignored-only --profile ci
-
       - name: Local control-plane e2e
         run: cargo test -p acceptance-tests --test local_e2e -- --ignored --nocapture --test-threads=1
-
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
-        with:
-          name: test-results-${{ matrix.os }}
-          path: target/nextest/ci/junit.xml

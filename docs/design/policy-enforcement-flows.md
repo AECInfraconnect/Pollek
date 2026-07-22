@@ -3,7 +3,13 @@
 **Document version:** 1.0  
 **Target release:** Pollek Local Enforcement Kit v1.0.0-beta / Mock-Cloud test release  
 **Date:** 2026-06-10  
-**Audience:** Pollek Local Enforcement Kit core developers, Local Dashboard developers, Mock-Cloud/Pollek Cloud developers, policy-engine developers, OS enforcement developers
+**Audience:** Pollek Local Enforcement Kit core developers, Local Dashboard developers, Pollek Cloud developers, policy-engine developers, OS enforcement developers
+
+> **Historical note (2026-07):** This document was written during the phase when
+> a local `mock-cloud` crate stood in for Pollek Cloud. That test double has since
+> been removed — **Pollek Cloud is now the only cloud control plane**, reached from
+> the local service via `DEK_CLOUD_URL`. Where the text below says "Mock-Cloud",
+> read it as "Pollek Cloud"; the flows and contracts are unchanged.
 
 ---
 
@@ -20,7 +26,7 @@
 - `dek-ebpfd`, `dek-windows-wfp`, `dek-macos-nefilter` เป็น OS/kernel-layer enforcement modules
 - `dek-mcp-proxy`, `dek-mcp-stdio-wrapper`, `dek-ext-authz`, `dek-agent-connector` เป็น PEP/front-door modules
 - `dek-plugin-host`, `dek-wasm-host`, `dek-plugin-sdk` สำหรับ transform/enrichment plugin
-- `local-control-plane`, `apps/local-admin-dashboard`, `ui/mock-cloud` สำหรับ local/mock control plane
+- `local-control-plane`, `apps/local-admin-dashboard` สำหรับ local control plane (Pollek Cloud เป็น cloud control plane จริง)
 - `dek-domain-schema`, `dek-enforcement-api`, `dek-control-plane-api`, `dek-decision` เป็นจุดที่ควรใช้กำหนด contract กลาง
 
 **ข้อเสนอหลัก:**
@@ -195,7 +201,7 @@ Kernel L4 policy ห้ามขึ้นกับ semantic payload เช่น
 | `dek-wasm-host` / `dek-plugin-host`     | Transform/plugin enforcement obligations                           |
 | `local-control-plane`                   | Local policy CRUD and bundle service                               |
 | `apps/local-admin-dashboard`            | Local UI without AI                                                |
-| `ui/mock-cloud` / `crates/mock-cloud`   | Cloud simulation, AI compiler stub, enterprise flows               |
+| Pollek Cloud (external service)         | Cloud control plane: NL policy authoring, AI compiler, enterprise flows |
 
 ### 4.2 New modules recommended
 
@@ -1264,7 +1270,7 @@ Response:
   "desired_bundle": {
     "bundle_id": "bundle-20260610-001",
     "version": "2026.06.10-001",
-    "url": "https://mock-cloud.local/bundles/bundle-20260610-001.tar.gz",
+    "url": "https://cloud.pollek.local/bundles/bundle-20260610-001.tar.gz",
     "sha256": "...",
     "signature": "..."
   },

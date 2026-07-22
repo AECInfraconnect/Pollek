@@ -9,7 +9,6 @@ Pollek Local Enforcement Kit (Distributed Enforcement Kernel) is an endpoint sec
 - **Pollek Local Enforcement Kit Core (`Pollek-Local Enforcement Kit`)**: The background service that manages identity, downloads policies, and controls enforcement.
 - **Pollek Local Enforcement Kit CLI (`Pollek-dekctl`)**: Command-line tool to enroll, manage, and troubleshoot the Local Enforcement Kit.
 - **Pollek MCP Proxy (`Pollek-mcp-proxy`)**: A local proxy for Model Context Protocol (MCP) tool usage, authorizing requests before they reach the tools.
-- **Mock Cloud (`Pollek-mock-cloud`)**: Local simulation of Pollek Cloud for development and beta testing.
 
 ## Local Admin Dashboard Features
 

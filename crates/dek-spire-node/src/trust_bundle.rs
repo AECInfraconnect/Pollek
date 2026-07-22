@@ -19,7 +19,7 @@ use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
-/// Matches mock-cloud `trust_bundle_handler` / real Cloud trust-bundle endpoint.
+/// Matches the Pollek Cloud trust-bundle endpoint.
 #[derive(Debug, Clone, Deserialize)]
 pub struct TrustBundleResponse {
     pub trust_bundle_pem: String,

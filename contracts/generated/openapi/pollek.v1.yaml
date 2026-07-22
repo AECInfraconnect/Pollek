@@ -6673,7 +6673,7 @@ components:
           format: date-time
 servers:
   - url: http://127.0.0.1:17891
-    description: Local Control Plane / Mock Cloud
+    description: Local Control Plane
     variables: {}
   - url: https://api.pollek.cloud
     description: Pollek Cloud

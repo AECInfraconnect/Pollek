@@ -1,21 +1,15 @@
 # Evidence Export Guide
 
-This guide explains how to extract decision logs and audit events from the Mock Cloud (or production Cloud) for compliance auditors.
+This guide explains how to extract decision logs and audit events from the local control plane (or Pollek Cloud) for compliance auditors.
 
 ## 1. Exporting Decision Logs
 
 Decision logs are the primary evidence for access control enforcement (AC-3, SOC2 CC6.1). They record `allow` and `deny` events along with the user, resource, action, and matched policy.
 
-If you are using the Mock Cloud:
+Read the decision logs from the local control plane (tenant `local`):
 
 ```bash
-curl -X GET http://localhost:43891/mock/admin/decision-logs?format=csv -o decisions.csv
-```
-
-For JSON output:
-
-```bash
-curl -X GET http://localhost:43891/mock/admin/decision-logs?format=json -o decisions.json
+curl -X GET http://localhost:43891/v1/tenants/local/telemetry/decision-logs -o decisions.json
 ```
 
 ## 2. Exporting the Audit Chain

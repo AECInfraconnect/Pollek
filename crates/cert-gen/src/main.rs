@@ -32,7 +32,7 @@ fn main() -> Result<()> {
     fs::write(certs_dir.join("root_ca.key"), root_kp.serialize_pem())?;
     println!("Root CA generated.");
 
-    // 2. Generate Server Certificate (mock-cloud)
+    // 2. Generate Server Certificate (test cloud / TLS server)
     let mut server_params =
         CertificateParams::new(vec!["localhost".to_string(), "127.0.0.1".to_string()])?;
     server_params
@@ -40,7 +40,7 @@ fn main() -> Result<()> {
         .push(DnType::OrganizationName, "Pollek DEK Project");
     server_params
         .distinguished_name
-        .push(DnType::CommonName, "Pollek Mock Cloud Server");
+        .push(DnType::CommonName, "Pollek Cloud Server");
     let server_kp = rcgen::KeyPair::generate()?;
     let server_cert = server_params.signed_by(&server_kp, &root_cert, &root_kp)?;
 

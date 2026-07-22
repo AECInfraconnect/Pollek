@@ -25,5 +25,5 @@ using TypeSpec.OpenAPI;
 })
 @doc("Contract between Pollek Cloud / Local Control Plane and the DEK edge enforcement plane.")
 @server("https://api.pollek.cloud", "Pollek Cloud")
-@server("http://127.0.0.1:17891", "Local Control Plane / Mock Cloud")
+@server("http://127.0.0.1:17891", "Local Control Plane")
 namespace Pollek.Contract;

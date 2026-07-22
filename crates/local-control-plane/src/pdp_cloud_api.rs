@@ -377,9 +377,8 @@ async fn connect_cloud_profile(st: &AppState, tenant: &str) -> CloudPdpProfile {
     let mut profile = load_cloud_profile(st, tenant).await;
 
     if profile.pdp_endpoint.is_none() {
-        profile.pdp_endpoint = env_trimmed("POLLEK_CLOUD_URL")
-            .or_else(|| env_trimmed("POLLEK_MOCK_CLOUD_URL"))
-            .map(|value| normalize_endpoint(&value));
+        profile.pdp_endpoint =
+            env_trimmed("POLLEK_CLOUD_URL").map(|value| normalize_endpoint(&value));
     }
     if profile.tenant_id.is_none() {
         profile.tenant_id = env_trimmed("POLLEK_CLOUD_TENANT_ID");

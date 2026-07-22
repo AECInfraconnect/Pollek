@@ -5,7 +5,6 @@ Welcome to the Pollek Local Enforcement Kit documentation.
 ## Getting Started
 
 - [Quickstart — Local Mode (English)](quickstart_local_en.md) / [(Thai)](quickstart_local_th.md)
-- [Quickstart — Mock Cloud (English)](quickstart_mock_cloud_en.md) / [(Thai)](quickstart_mock_cloud_th.md)
 - [Installation Guide (English)](INSTALL_EN.md) / [(Thai)](INSTALL_TH.md)
 
 ## User Guides
