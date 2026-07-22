@@ -98,7 +98,7 @@ jobs:
           sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu pkg-config libssl-dev:arm64
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@732870f031d2fb36309d0deaf36abcc704a7be65 # main
+        uses: cargo-bins/cargo-binstall@ead08b90bd7b2e6d81963fb9cf0b7239f66d5db4 # main
 
       - name: Install cargo-auditable
         run: cargo binstall -y cargo-auditable
@@ -250,7 +250,7 @@ jobs:
           ref: ${{ env.RELEASE_REF }}
 
       - name: Install cargo-cyclonedx
-        uses: cargo-bins/cargo-binstall@732870f031d2fb36309d0deaf36abcc704a7be65 # main
+        uses: cargo-bins/cargo-binstall@ead08b90bd7b2e6d81963fb9cf0b7239f66d5db4 # main
       - run: cargo binstall -y cargo-cyclonedx
 
       - name: Generate CycloneDX SBOM

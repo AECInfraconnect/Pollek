@@ -39,7 +39,7 @@ jobs:
         run: cargo bench -p dek-cedar
 
       - name: Install Security Tools
-        uses: cargo-bins/cargo-binstall@732870f031d2fb36309d0deaf36abcc704a7be65 # main
+        uses: cargo-bins/cargo-binstall@ead08b90bd7b2e6d81963fb9cf0b7239f66d5db4 # main
       - run: cargo binstall -y cargo-audit cargo-deny
 
       - name: Security Audit (cargo audit)
