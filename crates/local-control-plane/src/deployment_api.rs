@@ -72,23 +72,101 @@ pub fn router() -> Router<AppState> {
         .route("/v1/system/profile", get(get_system_profile))
 }
 
+/// Map a detected PEP capability type onto the routing enforcement layer.
+fn enforcement_layer_for(
+    pep_type: &str,
+) -> dek_domain_schema::deployment_session::EnforcementLayer {
+    use dek_domain_schema::deployment_session::EnforcementLayer;
+    match pep_type {
+        "mcp-stdio" => EnforcementLayer::McpStdioWrapper,
+        "mcp-http" => EnforcementLayer::McpProxy,
+        "linux-ebpf" => EnforcementLayer::EbpfNetwork,
+        "windows-wfp" => EnforcementLayer::WindowsWfp,
+        "macos-nefilter" => EnforcementLayer::MacosNetworkExtension,
+        _ => EnforcementLayer::ObserveOnly,
+    }
+}
+
+/// Build the device capability report from what this host actually has:
+/// real OS facts and the PEP layers the capability registry detects (which
+/// itself probes bpffs/root on Linux, BFE/WFP services on Windows, and the
+/// NetworkExtension on macOS).
+fn local_device_capability_report() -> dek_domain_schema::capabilities::DeviceCapabilityReport {
+    use dek_domain_schema::capabilities::{PdpCapabilityStatus, PepCapabilityStatus};
+    use dek_domain_schema::deployment_session::{LocalizedText, PdpEngine};
+
+    let detected = dek_capability_registry::detect::detect_pep_capabilities();
+    let peps: Vec<PepCapabilityStatus> = detected
+        .into_iter()
+        .map(|cap| {
+            let reason = cap.status_reason.clone().unwrap_or_else(|| LocalizedText {
+                en: format!("{} detected on this host", cap.r#type),
+                th: format!("ตรวจพบ {} บนเครื่องนี้", cap.r#type),
+            });
+            PepCapabilityStatus {
+                layer: enforcement_layer_for(&cap.r#type),
+                status: cap.status,
+                confidence: 1.0,
+                detected_version: None,
+                reason_code: format!("detect.{}", cap.r#type),
+                user_message: reason,
+                next_action: None,
+            }
+        })
+        .collect();
+
+    // The local control plane evaluates Cedar in-process (dek-cedar), so that
+    // engine is genuinely available on every host running this binary.
+    let pdps = vec![PdpCapabilityStatus {
+        engine: PdpEngine::Cedar,
+        status: dek_domain_schema::capabilities::CapabilityStatus::Ready,
+        reason_code: "embedded.cedar".into(),
+        user_message: dek_domain_schema::deployment_session::LocalizedText {
+            en: "Embedded Cedar PDP".into(),
+            th: "Cedar PDP ในตัว".into(),
+        },
+    }];
+
+    let device_id = dek_config::paths::get_bootstrap_path()
+        .to_string_lossy()
+        .into_owned();
+    let device_id = dek_config::BootstrapConfig::load_or_default(&device_id)
+        .map(|cfg| cfg.device_id)
+        .unwrap_or_else(|_| "local".into());
+
+    dek_domain_schema::capabilities::DeviceCapabilityReport {
+        device_id,
+        os: dek_domain_schema::capabilities::OsProfile {
+            r#type: std::env::consts::OS.into(),
+            version: os_release_version(),
+            arch: std::env::consts::ARCH.into(),
+        },
+        peps,
+        pdps,
+        scanned_at: chrono::Utc::now(),
+    }
+}
+
+/// Best-effort OS version from the host (never fabricated).
+fn os_release_version() -> String {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(release) = std::fs::read_to_string("/proc/sys/kernel/osrelease") {
+            return release.trim().to_string();
+        }
+    }
+    // Other platforms: no cheap reliable source without extra deps; report
+    // unknown rather than inventing a version.
+    "unknown".into()
+}
+
 async fn create_deploy_plan(
     Path((_tenant, _policy_id)): Path<(String, String)>,
     State(_st): State<AppState>,
     Json(session): Json<DeploymentSession>,
 ) -> ApiResult<Json<RoutingPlan>> {
-    // Mock device capabilities for now (in a real system we fetch from capability registry)
-    let device_caps = dek_domain_schema::capabilities::DeviceCapabilityReport {
-        device_id: "local".into(),
-        os: dek_domain_schema::capabilities::OsProfile {
-            r#type: "windows".into(),
-            version: "11".into(),
-            arch: "x86_64".into(),
-        },
-        peps: vec![],
-        pdps: vec![],
-        scanned_at: chrono::Utc::now(),
-    };
+    // Plan against the REAL capabilities of this device, not a canned profile.
+    let device_caps = local_device_capability_report();
 
     let plan = RoutePlanner::plan_route(&session, &device_caps)
         .map_err(|e| ApiError::Internal(anyhow::anyhow!(e)))?;

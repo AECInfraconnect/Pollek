@@ -112,7 +112,7 @@ fn synthesize_local_signature(
         },
         process_names: vec![],
         binary_hashes,
-        config_paths: std::collections::HashMap::new(),
+        config_paths: std::collections::BTreeMap::new(),
         config_parsers: vec![],
         ports: vec![],
         port_probe: None,

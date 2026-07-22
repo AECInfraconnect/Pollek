@@ -2281,11 +2281,13 @@ dependencies = [
  "chrono",
  "dek-bundle-sync",
  "ed25519-dalek",
+ "hex",
  "lazy_static",
  "regex",
  "semver",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tracing",
  "uuid",
 ]

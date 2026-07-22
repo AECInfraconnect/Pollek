@@ -789,7 +789,12 @@ export class ControlPlaneClient {
   async listDiscoveryCandidates(): Promise<DiscoveredAgentCandidateV2[]> {
     return this.fetchApi("/discovery/candidates")
       .then((data: any) => data.items ?? data.candidates ?? data)
-      .catch(() => []); // Mock fallback if endpoint not exist
+      .catch((err) => {
+        // Degrade to an empty list but never silently: surface the real error
+        // so a failing control plane is visible in the console, not hidden.
+        console.warn("listDiscoveryCandidates failed:", err);
+        return [];
+      });
   }
 
   async listDiscoveryEntities(): Promise<DiscoveryEntityCandidate[]> {
@@ -1188,7 +1193,11 @@ export const RegistryApi = {
   approveDiscoveryCandidateEnrichment: (
     sessionId: string,
     acceptedSources: string[],
-  ) => defaultClient.approveDiscoveryCandidateEnrichment(sessionId, acceptedSources),
+  ) =>
+    defaultClient.approveDiscoveryCandidateEnrichment(
+      sessionId,
+      acceptedSources,
+    ),
   submitDiscoveryCandidateEnrichment: (sessionId: string) =>
     defaultClient.submitDiscoveryCandidateEnrichment(sessionId),
   confirmCandidate: (candidateId: string, payload: IdentityConfirmation) =>
@@ -1264,7 +1273,10 @@ export interface CreditLedgerResponse {
 }
 
 export const CreditApi = {
-  get: (params?: { from?: string; bucket?: string }): Promise<CreditLedgerResponse> => {
+  get: (params?: {
+    from?: string;
+    bucket?: string;
+  }): Promise<CreditLedgerResponse> => {
     const query = new URLSearchParams();
     if (params?.from) query.set("from", params.from);
     if (params?.bucket) query.set("bucket", params.bucket);

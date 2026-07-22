@@ -24,20 +24,56 @@ pub fn router() -> Router<AppState> {
         )
 }
 
+/// Artifact identifiers of a bundle, used to compute a real preview diff.
+fn artifact_ids(bundle: &dek_bundle_format::PollekPolicyBundle) -> Vec<String> {
+    bundle
+        .artifacts
+        .iter()
+        .map(|a| format!("{}:{}", a.r#type, a.path))
+        .collect()
+}
+
 async fn preview_deploy(
-    Path(_tenant): Path<String>,
-    State(_state): State<AppState>,
+    Path(tenant): Path<String>,
+    State(state): State<AppState>,
     Json(payload): Json<Value>,
-) -> Json<Value> {
-    Json(json!({
+) -> crate::error::ApiResult<Json<Value>> {
+    let incoming: dek_bundle_format::PollekPolicyBundle =
+        serde_json::from_value(payload.clone())
+            .map_err(|e| crate::error::ApiError::BadRequest(format!("Invalid bundle: {}", e)))?;
+
+    // Real diff: compare the incoming bundle's artifacts against the currently
+    // active bundle for this tenant (empty active set when none is deployed).
+    let active_ids: Vec<String> = match state
+        .policy_store
+        .get_policy_raw(&tenant, "bundle:active")
+        .await
+        .map_err(crate::error::ApiError::Internal)?
+        .and_then(|v| serde_json::from_value::<dek_bundle_format::PollekPolicyBundle>(v).ok())
+    {
+        Some(active) => artifact_ids(&active),
+        None => Vec::new(),
+    };
+    let incoming_ids = artifact_ids(&incoming);
+
+    let added: Vec<&String> = incoming_ids
+        .iter()
+        .filter(|id| !active_ids.contains(id))
+        .collect();
+    let removed: Vec<&String> = active_ids
+        .iter()
+        .filter(|id| !incoming_ids.contains(id))
+        .collect();
+
+    Ok(Json(json!({
         "status": "success",
         "message": "Preview generated",
         "diff": {
-            "added": ["new_policy.cedar"],
-            "removed": []
+            "added": added,
+            "removed": removed,
         },
-        "payload": payload
-    }))
+        "incoming_version": incoming.metadata.version,
+    })))
 }
 
 #[derive(Debug, Serialize, serde::Deserialize)]
@@ -66,6 +102,7 @@ async fn commit_deploy(
         .await
         .map_err(|e| crate::error::ApiError::BadRequest(e.to_string()))?;
 
+    let bundle_version = bundle.metadata.version.clone();
     activate_bundle(bundle, &state)
         .await
         .map_err(|e| crate::error::ApiError::Internal(anyhow::anyhow!(e)))?;
@@ -91,7 +128,7 @@ async fn commit_deploy(
     Ok(Json(json!({
         "status": "success",
         "message": "Deployment committed and activated successfully",
-        "bundle_version": "v1.0.1",
+        "bundle_version": bundle_version,
         "report": DeployReport {
             deploy_status: "active".into(),
             targets,
@@ -124,20 +161,29 @@ pub async fn activate_bundle(
     bundle: dek_bundle_format::PollekPolicyBundle,
     state: &AppState,
 ) -> anyhow::Result<()> {
-    // 1. Signature Verification
-    crate::bundle::verify_bundle(&bundle, "");
+    // Structural validation. The cryptographic (ed25519) signature lives on the
+    // outer SignedBundle envelope and is verified by the DEK's activation path
+    // (`dek-activation::signature::verify_bundle_signature`) against the pinned
+    // key before a bundle is ever handed to a device — this function receives
+    // the already-unwrapped manifest, so it validates what it actually can.
+    if bundle.metadata.tenant.trim().is_empty() {
+        anyhow::bail!("bundle metadata.tenant must not be empty");
+    }
+    if bundle.metadata.bundle_id.trim().is_empty() {
+        anyhow::bail!("bundle metadata.bundle_id must not be empty");
+    }
 
-    // 2. Compatibility Validation
-    // (Stubbed: would query PEPs and PDPs and use `dek_capability_registry::is_compatible`)
+    // Compatibility validation against the real local PEP capabilities.
+    assert_pep_supports(&bundle, state).await?;
 
-    // 3. Atomic Promotion
+    // Atomic promotion.
     let val = serde_json::to_value(&bundle)?;
     state
         .policy_store
         .upsert_policy_raw(&bundle.metadata.tenant, "bundle:active", &val)
         .await?;
 
-    // 4. Record Activation
+    // Record activation (history used by rollback).
     state
         .registry_store
         .upsert_raw(
@@ -156,21 +202,77 @@ async fn rollback_deploy(
     State(state): State<AppState>,
     Json(payload): Json<Value>,
 ) -> crate::error::ApiResult<Json<Value>> {
-    let version = payload
-        .get("version")
-        .and_then(|v| v.as_str())
-        .unwrap_or("v1.0.0");
-    // In a real rollback, we would fetch the old bundle by version and activate it.
-    // For now, we just clear the active bundle or mock it.
-    state
+    let requested_version = payload.get("version").and_then(|v| v.as_str());
+
+    // Real rollback: choose the target from recorded bundle activations —
+    // the requested version if given, otherwise the newest activation that is
+    // not the currently active bundle.
+    let activations = state
+        .registry_store
+        .list_raw(&tenant, "bundle_activation")
+        .await
+        .map_err(crate::error::ApiError::Internal)?;
+
+    let current_version = state
         .policy_store
-        .delete_policy(&tenant, "bundle:active")
+        .get_policy_raw(&tenant, "bundle:active")
+        .await
+        .map_err(crate::error::ApiError::Internal)?
+        .and_then(|v| {
+            v.get("metadata")
+                .and_then(|m| m.get("version"))
+                .and_then(|s| s.as_str())
+                .map(String::from)
+        });
+
+    let version_of = |v: &Value| -> Option<String> {
+        v.get("metadata")
+            .and_then(|m| m.get("version"))
+            .and_then(|s| s.as_str())
+            .map(String::from)
+    };
+    let created_of = |v: &Value| -> String {
+        v.get("metadata")
+            .and_then(|m| m.get("created_at"))
+            .and_then(|s| s.as_str())
+            .unwrap_or_default()
+            .to_string()
+    };
+
+    let target = match requested_version {
+        Some(want) => activations
+            .iter()
+            .find(|v| version_of(v).as_deref() == Some(want))
+            .cloned(),
+        None => {
+            let mut prior: Vec<&Value> = activations
+                .iter()
+                .filter(|v| version_of(v) != current_version)
+                .collect();
+            prior.sort_by_key(|v| created_of(v));
+            prior.last().cloned().cloned()
+        }
+    };
+
+    let Some(target) = target else {
+        return Err(crate::error::ApiError::NotFound(
+            "no prior bundle activation to roll back to".into(),
+        ));
+    };
+
+    let target_bundle: dek_bundle_format::PollekPolicyBundle =
+        serde_json::from_value(target.clone()).map_err(|e| {
+            crate::error::ApiError::Internal(anyhow::anyhow!("stored activation invalid: {e}"))
+        })?;
+    let rolled_back_to = target_bundle.metadata.version.clone();
+
+    activate_bundle(target_bundle, &state)
         .await
         .map_err(crate::error::ApiError::Internal)?;
 
     Ok(Json(json!({
         "status": "success",
-        "message": "Deployment rolled back",
-        "rolled_back_to": version
+        "message": "Deployment rolled back to a previously activated bundle",
+        "rolled_back_to": rolled_back_to,
     })))
 }

@@ -42,7 +42,9 @@ import { isAdvanceMode } from "../lib/modes";
 import { Collapsible } from "../components/ui";
 import {
   buildLifecycleContext,
+  candidateHasScanId,
   deriveAgentLifecycle,
+  latestScanIdForCandidate,
   matchesLifecycleFilter,
   summarizeLifecycles,
   type AgentLifecycle,
@@ -251,18 +253,6 @@ function agentRegistrationKeys(agent: AiAgent) {
   );
 }
 
-function scanIdsForCandidate(candidate: DiscoveredAgentCandidateV2) {
-  return Array.from(
-    new Set(
-      [
-        ...(candidate.scan_ids ?? []),
-        candidate.last_scan_id,
-        ...(candidate.evidence ?? []).map((evidence) => evidence.data?.scan_id),
-      ].filter((id): id is string => typeof id === "string" && id.length > 0),
-    ),
-  );
-}
-
 function lifecycleToUiStatus(lifecycle: AgentLifecycle): UiStatus {
   if (lifecycle.presence === "uninstalled") return "failed";
   if (lifecycle.presence === "dormant") return "idle";
@@ -271,23 +261,6 @@ function lifecycleToUiStatus(lifecycle: AgentLifecycle): UiStatus {
   if (lifecycle.governance === "pending" || lifecycle.governance === "new")
     return "degraded";
   return "info";
-}
-
-function latestScanIdForCandidate(candidate: DiscoveredAgentCandidateV2) {
-  return (
-    candidate.last_scan_id ||
-    candidate.scan_ids?.[candidate.scan_ids.length - 1] ||
-    candidate.evidence
-      ?.map((evidence) => evidence.data?.scan_id)
-      .find((id) => typeof id === "string" && id.length > 0)
-  );
-}
-
-function candidateHasScanId(
-  candidate: DiscoveredAgentCandidateV2,
-  scanId: string,
-) {
-  return scanIdsForCandidate(candidate).includes(scanId);
 }
 
 export function AutoDiscovery() {

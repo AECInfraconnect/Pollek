@@ -4,7 +4,6 @@
 use anyhow::Result;
 use dek_domain_schema::CompiledNetworkRules;
 
-pub mod backends;
 pub mod control_method;
 pub mod egress_observer;
 pub mod feasibility;

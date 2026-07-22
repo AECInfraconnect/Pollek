@@ -5,7 +5,9 @@ use std::path::{Path, PathBuf};
 pub fn scan_cli_agents() -> Result<Vec<DiscoveryEvidenceV2>> {
     let mut evidence = Vec::new();
 
-    // Stub logic: If we had a catalog, we'd check ~/.codex/config.toml, ~/.config/claude-code, etc.
+    // Real filesystem probe: each known CLI agent leaves a well-known config
+    // file under the user's home directory; presence of that file is the
+    // installed-agent evidence we report (path is hashed + redacted).
     let home = std::env::var("USERPROFILE")
         .or_else(|_| std::env::var("HOME"))
         .unwrap_or_default();
