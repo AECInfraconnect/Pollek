@@ -211,8 +211,8 @@ pub trait ObservabilityStore: Send + Sync {
         query: ObservationEventQuery,
     ) -> Result<Vec<AgentObservationEvent>>;
     async fn clear_observation_events(&self, tenant_id: &str) -> Result<u64>;
-    async fn insert_cost_ledger(&self, entry: &CostLedgerEntry) -> Result<()>;
-    async fn list_cost_ledger(&self) -> Result<Vec<CostLedgerEntry>>;
+    async fn insert_cost_ledger(&self, tenant_id: &str, entry: &CostLedgerEntry) -> Result<()>;
+    async fn list_cost_ledger(&self, tenant_id: &str) -> Result<Vec<CostLedgerEntry>>;
     async fn insert_ai_usage_event(&self, event: &AiUsageEventV1) -> Result<()>;
     async fn list_ai_usage_events(&self, query: AiUsageQuery) -> Result<Vec<AiUsageEventV1>>;
     async fn ai_usage_summary(&self, query: AiUsageSummaryQuery) -> Result<AiUsageSummary>;
@@ -461,6 +461,7 @@ impl SqliteStore {
             include_str!("../migrations/20260623000000_resource_access_ledger.sql"),
             include_str!("../migrations/20260624000000_deployment_sessions.sql"),
             include_str!("../migrations/20260626000000_ai_usage_cost_v2.sql"),
+            include_str!("../migrations/20260722000000_cost_ledger_tenant.sql"),
         ];
 
         let tx = conn.transaction()?;

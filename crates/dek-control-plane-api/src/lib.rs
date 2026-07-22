@@ -1,4 +1,3 @@
-pub mod agents;
 pub mod bundle;
 pub mod capability;
 pub mod envelope;

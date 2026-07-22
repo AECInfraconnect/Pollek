@@ -171,18 +171,30 @@ async fn main() -> Result<()> {
         }
     };
 
+    // Pool key of the loaded PII redactor, if any, so the redaction task
+    // invokes the exact plugin that was loaded (keyed by its real content hash).
+    let mut redactor_pool_key: Option<String> = None;
     if let Some(host) = &plugin_host {
         for (name, p) in plugin_paths {
             if let Ok(bytes) = std::fs::read(&p) {
+                // Real content hash — this is the plugin's identity and the
+                // pool key the host stores it under.
+                let wasm_sha256 = dek_wasm_host::plugin_key::sha256_hex(&bytes);
                 let key = dek_wasm_host::plugin_key::PluginKey {
                     tenant_id: "system".into(),
                     plugin_id: name.clone(),
                     version: "1.0.0".into(),
                     abi_version: "1".into(),
-                    wasm_sha256: "dummy".into(),
+                    wasm_sha256: wasm_sha256.clone(),
                 };
-                if let Err(e) = host.load_plugin(key, &bytes).await {
-                    warn!("Failed to load plugin {}: {}", p, e);
+                let pool_key = format!("system:{name}:1.0.0:{wasm_sha256}");
+                match host.load_plugin(key, &bytes).await {
+                    Ok(()) => {
+                        if name == "pii-redactor" {
+                            redactor_pool_key = Some(pool_key);
+                        }
+                    }
+                    Err(e) => warn!("Failed to load plugin {}: {}", p, e),
                 }
             }
         }
@@ -192,15 +204,14 @@ async fn main() -> Result<()> {
     let mut child_stdout_reader = BufReader::new(child_stdout).lines();
     let tx_out_clone = tx_out.clone();
     let plugin_host_clone = plugin_host.clone();
+    let redactor_pool_key_out = redactor_pool_key.clone();
     tokio::spawn(async move {
         while let Ok(Some(line)) = child_stdout_reader.next_line().await {
             if let Ok(mut payload) = serde_json::from_str::<Value>(&line) {
-                // Determine if we need to redact. For Phase 4, we assume redaction is an obligation.
-                // In a full impl, we'd check `decision.obligations`. We will just run it if loaded.
-                let pool_key = "system:pii-redactor:1.0.0:dummy";
+                // Run the response through the PII redactor when it is loaded.
                 let input_bytes = serde_json::to_vec(&payload).unwrap_or_default();
 
-                if let Some(host) = &plugin_host_clone {
+                if let (Some(host), Some(pool_key)) = (&plugin_host_clone, &redactor_pool_key_out) {
                     if let Ok(redacted_bytes) = host
                         .invoke(pool_key, "auto".into(), &input_bytes, 100_000_000)
                         .await
@@ -258,13 +269,18 @@ async fn main() -> Result<()> {
                 };
 
                 let mut policy_input = serde_json::to_value(&normalized).unwrap_or(json!({}));
-                // Mock legacy fields
+                // Flat convenience fields some policies read alongside the
+                // normalized event (action/principal/resource).
                 policy_input["action"] = json!(normalized
                     .tool_name
                     .clone()
                     .unwrap_or(normalized.request_type.clone()));
                 policy_input["principal"] = json!(agent_id.clone());
                 policy_input["resource"] = json!(server_id.clone());
+                // Real content hash of the decision input (audit + dedup).
+                let input_hash = dek_wasm_host::plugin_key::sha256_hex(
+                    &serde_json::to_vec(&policy_input).unwrap_or_default(),
+                );
 
                 let decision_req = dek_decision::DecisionRequestV1 {
                     decision_id: Uuid::new_v4().to_string(),
@@ -287,7 +303,7 @@ async fn main() -> Result<()> {
                         uri: None,
                     },
                     context: policy_input.clone(),
-                    input_hash: "mock_hash".into(),
+                    input_hash,
                 };
 
                 let decision_input = serde_json::to_value(&decision_req).unwrap_or(policy_input);

@@ -2599,7 +2599,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "criterion",
- "dek-agent-binding",
  "dek-capability-registry",
  "dek-cedar",
  "dek-domain-schema",
