@@ -48,6 +48,26 @@ pub async fn start_cloud_registry_sync_loop(state: AppState) -> anyhow::Result<(
 
             info!("Cloud Sync Loop: Starting registry sync to {}", cloud_url);
 
+            // Enroll FIRST every cycle (idempotent on the Cloud). An LCP is
+            // unknown until it enrolls, and usage ledgers from an unenrolled
+            // LCP are rejected `400 unknown_lcp:<id>` — this satisfies that gate
+            // and (re)registers the LCP so the fleet/org tree reflects it.
+            let sync_cfg = crate::cloud_sync_client::SyncConfig::for_context(
+                cloud_url.clone(),
+                tenant_id.to_string(),
+                device_id.clone(),
+                api_key.clone(),
+            );
+            match crate::cloud_sync_client::enroll(&client, &sync_cfg).await {
+                Ok((status, _)) if (200..300).contains(&status) => {
+                    info!("Cloud Sync Loop: LCP enrolled (HTTP {})", status);
+                }
+                Ok((status, body)) => {
+                    warn!("Cloud Sync Loop: enroll returned HTTP {}: {}", status, body);
+                }
+                Err(e) => warn!("Cloud Sync Loop: enroll error: {}", e),
+            }
+
             // Fetch explicitly registered objects.
             // Notice: We intentionally DO NOT fetch `discovery_scan`, `discovery_candidate`,
             // or `discovery_evidence` raw objects here.
@@ -263,8 +283,18 @@ pub async fn start_cloud_registry_sync_loop(state: AppState) -> anyhow::Result<(
                     let mut envelopes = Vec::new();
                     let mut ids_to_delete = Vec::new();
                     let mut ai_usage_event_ids = Vec::new();
+                    let mut redaction_dropped = 0usize;
                     for (id, bytes) in records {
                         if let Ok(env) = serde_json::from_slice::<serde_json::Value>(&bytes) {
+                            // Redaction gate: never send an event carrying a
+                            // secret (the Cloud would quarantine it). Drop it
+                            // locally and clear it from the spool so it is not
+                            // retried forever.
+                            if crate::cloud_sync_client::contains_secret(&env) {
+                                redaction_dropped += 1;
+                                ids_to_delete.push(id);
+                                continue;
+                            }
                             if env.get("event_type").and_then(|value| value.as_str())
                                 == Some("ai_usage_event")
                             {
@@ -276,6 +306,23 @@ pub async fn start_cloud_registry_sync_loop(state: AppState) -> anyhow::Result<(
                             }
                             envelopes.push(env);
                             ids_to_delete.push(id);
+                        }
+                    }
+
+                    if redaction_dropped > 0 {
+                        warn!(
+                            "Cloud Sync Loop: redaction guard dropped {} spooled event(s) carrying a secret",
+                            redaction_dropped
+                        );
+                        // Clear the dropped (secret-bearing) events from the
+                        // spool even if there is nothing else to send.
+                        if envelopes.is_empty() {
+                            if let Err(e) = state.secure_spool.delete_batch(&ids_to_delete) {
+                                warn!(
+                                    "Cloud Sync Loop: failed to clear redacted events from spool: {}",
+                                    e
+                                );
+                            }
                         }
                     }
 
