@@ -1,16 +1,14 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "pollek.dek-device.v1",
+  "dek_version": "1.0.0-beta.10",
   "device_id": "device-123",
   "tenant_id": "tenant-456",
-  "enrollment_token": "token-xyz",
+  "user_id": "user-789",
   "hostname": "pollek-macbook",
-  "os_version": "macOS 14.5",
-  "os_platform": "darwin",
-  "hardware_id": "HW-123",
-  "capabilities": {
-    "transparent_proxy": true,
-    "bpf_lsm": false,
-    "network_extension": true,
-    "app_sandbox": true
-  }
+  "os": "macOS 14.5",
+  "spiffe_id": "spiffe://local.pollek.cloud/tenant/tenant-456/device/device-123",
+  "status": "enrolled",
+  "enforcement_ceiling": "observe",
+  "last_seen_at": "2026-07-22T16:00:00Z",
+  "pep_capabilities": ["transparent_proxy", "network_extension", "app_sandbox"]
 }
