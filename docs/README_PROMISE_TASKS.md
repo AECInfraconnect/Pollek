@@ -1,6 +1,6 @@
 # README Promise Task List
 
-<!-- readme-promises-sha256: 1aa7e5bcfcacb1913b308670278f8a2d102a24fb9b4d57e81e15815a58680a83 -->
+<!-- readme-promises-sha256: 88a269a658e498b09595b2deff3f2d2bc689235eecd83b3ac7f4ac0a3704056c -->
 <!-- readme-promises-count: 57 -->
 
 This is the living implementation checklist for the user-facing promises in
