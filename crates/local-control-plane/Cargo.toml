@@ -3,6 +3,10 @@ license = "Apache-2.0"
 name = "local-control-plane"
 version = "0.1.0"
 edition = "2021"
+# The package ships two binaries (the server `local-control-plane` and the
+# on-demand `cloud_sync_once` sync client); pin the default so bare
+# `cargo run -p local-control-plane` still starts the server.
+default-run = "local-control-plane"
 
 [dependencies]
 dek-control-plane-api = { version = "0.1.0", path = "../dek-control-plane-api" }

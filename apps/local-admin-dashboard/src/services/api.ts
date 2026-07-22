@@ -240,7 +240,6 @@ export type DetectionCoverageResponse = {
 };
 
 export const LOCAL_CONTROL_PLANE_DEFAULT_ORIGIN = "http://127.0.0.1:43891";
-export const MOCK_CLOUD_DEFAULT_ORIGIN = "https://127.0.0.1:43892";
 
 const htmlFallbackMessage = (url: string) =>
   `Local Control Plane API returned dashboard HTML instead of JSON for ${url}. ` +
@@ -272,14 +271,6 @@ function configuredLocalOrigin() {
     envValue("VITE_POLLEK_LCP_ORIGIN") ??
     envValue("VITE_POLLEK_API_ORIGIN") ??
     ""
-  );
-}
-
-function configuredMockCloudOrigin() {
-  return (
-    envValue("VITE_POLLEK_MOCK_CLOUD_ORIGIN") ??
-    envValue("VITE_POLLEK_CLOUD_ORIGIN") ??
-    MOCK_CLOUD_DEFAULT_ORIGIN
   );
 }
 
@@ -334,20 +325,13 @@ export type ContractDiscoveryResponse =
 export class ControlPlaneClient {
   public baseUrl: string;
   public tenantId: string;
-  public mockRole: string;
 
-  constructor(profile: "local" | "mock-cloud" = "local") {
+  constructor() {
     this.tenantId = "local";
-    if (profile === "mock-cloud") {
-      this.baseUrl = tenantBaseUrl(configuredMockCloudOrigin(), this.tenantId);
-      this.mockRole = "admin";
-    } else {
-      const origin = configuredLocalOrigin();
-      this.baseUrl = origin
-        ? tenantBaseUrl(origin, this.tenantId)
-        : `/v1/tenants/${this.tenantId}`;
-      this.mockRole = "";
-    }
+    const origin = configuredLocalOrigin();
+    this.baseUrl = origin
+      ? tenantBaseUrl(origin, this.tenantId)
+      : `/v1/tenants/${this.tenantId}`;
   }
 
   get rootUrl(): string {
@@ -371,9 +355,6 @@ export class ControlPlaneClient {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    if (this.mockRole) {
-      headers["x-mock-role"] = this.mockRole;
-    }
 
     const url = `${this.rootUrl}${path}`;
     const res = await fetch(url, {
@@ -393,9 +374,6 @@ export class ControlPlaneClient {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    if (this.mockRole) {
-      headers["x-mock-role"] = this.mockRole;
-    }
 
     const url = `${this.baseUrl}${path}`;
     const res = await fetch(url, {
@@ -763,7 +741,7 @@ export class ControlPlaneClient {
   }
 
   async pushSync(): Promise<unknown> {
-    // Note: the mock server push is a stream, but we might just hit a sync endpoint.
+    // Note: the server push is a stream, but we might just hit a sync endpoint.
     // Assuming /bundles/sync or just let the dashboard know it triggers a reload
     return this.fetchApi("/bundles/sync", { method: "POST" });
   }
@@ -1072,23 +1050,10 @@ export class ControlPlaneClient {
   }
 }
 
-// Store the active profile in localStorage to persist across reloads
-const getStorage = () => {
-  try {
-    return typeof window !== "undefined" ? window.localStorage : null;
-  } catch {
-    return null;
-  }
-};
-
-const getStoredProfile = (): "local" | "mock-cloud" => {
-  const p = getStorage()?.getItem("dek_admin_profile");
-  if (p === "mock-cloud") return "mock-cloud";
-  return "local";
-};
-
-// Global default client
-export const defaultClient = new ControlPlaneClient(getStoredProfile());
+// Global default client. The admin dashboard always targets the local
+// control plane; cloud sync is performed server-side by local-control-plane
+// (see cloud_sync.rs / DEK_CLOUD_URL), not from the browser.
+export const defaultClient = new ControlPlaneClient();
 
 export const DeploymentApi = {
   listInventory: () => defaultClient.fetchApi("/agent-inventory"),
@@ -1148,12 +1113,6 @@ export const LogApi = {
   resourceAccess: () => defaultClient.fetchApi("/logs/resource-access"),
   deployments: () => defaultClient.fetchApi("/logs/policy-deployments"),
   pepHealth: () => defaultClient.fetchApi("/logs/pep-health"),
-};
-
-// Helper to switch profile
-export const switchProfile = (profile: "local" | "mock-cloud") => {
-  getStorage()?.setItem("dek_admin_profile", profile);
-  window.location.reload();
 };
 
 export const RegistryApi = {

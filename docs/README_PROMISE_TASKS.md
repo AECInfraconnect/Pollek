@@ -1,6 +1,6 @@
 # README Promise Task List
 
-<!-- readme-promises-sha256: 1aa7e5bcfcacb1913b308670278f8a2d102a24fb9b4d57e81e15815a58680a83 -->
+<!-- readme-promises-sha256: 88a269a658e498b09595b2deff3f2d2bc689235eecd83b3ac7f4ac0a3704056c -->
 <!-- readme-promises-count: 57 -->
 
 This is the living implementation checklist for the user-facing promises in
@@ -116,4 +116,4 @@ Status values:
 | Active | Identity crates | Keep SPIRE node and enrollment model aligned with Cloud trace identity. |
 | Active | Interop crates | Keep A2A, sandbox, connector, normalizer, stdio wrapper, binding, and fingerprint crates buildable. |
 | Active | SDK crates | Keep PDP/plugin host and policy preset APIs aligned with generated contracts. |
-| Active | Control Plane crates | Keep local-control-plane, control-plane API, and mock-cloud using the same Pollek contracts. |
+| Active | Control Plane crates | Keep local-control-plane and control-plane API using the same Pollek contracts. |

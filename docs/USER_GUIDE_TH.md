@@ -9,7 +9,6 @@ Pollek Local Enforcement Kit (Distributed Enforcement Kernel) คือเคร
 - **Pollek Local Enforcement Kit Core (`Pollek-Local Enforcement Kit`)**: เซอร์วิสเบื้องหลังที่จัดการการยืนยันตัวตน ดาวน์โหลดนโยบาย และควบคุมการบังคับใช้
 - **Pollek Local Enforcement Kit CLI (`Pollek-dekctl`)**: เครื่องมือ Command-line สำหรับลงทะเบียน จัดการ และตรวจสอบการทำงานของ Local Enforcement Kit
 - **Pollek MCP Proxy (`Pollek-mcp-proxy`)**: พร็อกซีสำหรับการใช้งาน Model Context Protocol (MCP) ช่วยตรวจสอบสิทธิ์ก่อนส่งคำขอไปยังเครื่องมือต่างๆ
-- **Mock Cloud (`Pollek-mock-cloud`)**: ระบบจำลองการทำงานของ Pollek Cloud สำหรับการพัฒนาและทดสอบในช่วง Beta
 
 ## ฟีเจอร์ของ Local Admin Dashboard
 

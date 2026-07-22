@@ -35,7 +35,7 @@ NoNewPrivileges=yes
 MemoryDenyWriteExecute=yes
 
 # Network restrictions
-# Allow AF_INET/AF_INET6 for mTLS to Mock-Cloud.
+# Allow AF_INET/AF_INET6 for mTLS to Pollek Cloud.
 # AF_UNIX for local IPC / MCP communication.
 # AF_NETLINK if eBPF daemon communication is required later.
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK

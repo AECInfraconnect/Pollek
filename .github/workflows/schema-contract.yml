@@ -27,16 +27,19 @@ jobs:
         run: npm install -g ajv-cli ajv-formats
 
       - name: Validate schemas
+        # --strict=false: unknown `format` values (e.g. uint16/uint32/uint64
+        # emitted by the type generator) are advisory annotations per the JSON
+        # Schema spec, not hard errors. ajv's default strict mode rejects them.
         run: |
           for file in docs/contracts/schemas/*.schema.json; do
             echo "Validating schema $file"
-            ajv compile -s "$file" -c ajv-formats || exit 1
+            ajv compile -s "$file" -c ajv-formats --strict=false || exit 1
           done
 
       - name: Validate sample payloads against schemas
         run: |
-          ajv validate -c ajv-formats -s docs/contracts/schemas/telemetry-event.schema.json -d crates/mock-cloud/tests/fixtures/decision_event.json
-          ajv validate -c ajv-formats -s docs/contracts/schemas/dek-device.schema.json -d crates/mock-cloud/tests/fixtures/device_register.json
+          ajv validate -c ajv-formats --strict=false -s docs/contracts/schemas/telemetry-event.schema.json -d docs/contracts/fixtures/decision_event.json
+          ajv validate -c ajv-formats --strict=false -s docs/contracts/schemas/dek-device.schema.json -d docs/contracts/fixtures/device_register.json
 
   validate_openapi:
     name: Validate OpenAPI Spec

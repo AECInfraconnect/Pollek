@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { PageHeader } from "../components/layout/PageHeader";
 import {
   LOCAL_CONTROL_PLANE_DEFAULT_ORIGIN,
-  MOCK_CLOUD_DEFAULT_ORIGIN,
-  switchProfile,
   defaultClient,
 } from "../services/api";
 import type { ContractDiscoveryResponse } from "../services/api";
@@ -17,7 +15,6 @@ import {
 } from "lucide-react";
 
 export function Settings() {
-  const [profile, setProfile] = useState<"local" | "mock-cloud">("local");
   const [discovery, setDiscovery] = useState<ContractDiscoveryResponse | null>(
     null,
   );
@@ -26,8 +23,6 @@ export function Settings() {
   const [checkingUpdates, setCheckingUpdates] = useState(false);
 
   useEffect(() => {
-    const p = localStorage.getItem("dek_admin_profile");
-    if (p === "mock-cloud") setProfile("mock-cloud");
     loadDiscovery();
   }, []);
 
@@ -39,11 +34,6 @@ export function Settings() {
     } catch (e: any) {
       setDiscoveryError(e.message || String(e));
     }
-  };
-
-  const handleProfileChange = (newProfile: "local" | "mock-cloud") => {
-    setProfile(newProfile);
-    switchProfile(newProfile); // This will reload the page
   };
 
   const checkUpdates = () => {
@@ -64,28 +54,9 @@ export function Settings() {
       />
 
       <div className="glass p-6 rounded-xl space-y-6">
-        <h3 className="text-lg font-medium">Local Service Profile</h3>
+        <h3 className="text-lg font-medium">Local Service</h3>
 
         <div className="space-y-4 max-w-md">
-          <div className="grid gap-2">
-            <label
-              htmlFor="settings-active-profile"
-              className="text-sm font-medium"
-            >
-              Active Profile
-            </label>
-            <select
-              id="settings-active-profile"
-              value={profile}
-              onChange={(e) => handleProfileChange(e.target.value as any)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="local">Local service (127.0.0.1:43891)</option>
-              <option value="mock-cloud">
-                Mock Pollek Cloud (127.0.0.1:43892)
-              </option>
-            </select>
-          </div>
           <div className="grid gap-2">
             <label
               htmlFor="settings-api-endpoint"
@@ -98,25 +69,16 @@ export function Settings() {
               type="text"
               className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
               value={
-                profile === "mock-cloud"
-                  ? MOCK_CLOUD_DEFAULT_ORIGIN
-                  : defaultClient.rootUrl ||
-                    `same origin (${LOCAL_CONTROL_PLANE_DEFAULT_ORIGIN})`
+                defaultClient.rootUrl ||
+                `same origin (${LOCAL_CONTROL_PLANE_DEFAULT_ORIGIN})`
               }
               disabled
             />
-          </div>
-          <div className="grid gap-2">
-            <label htmlFor="settings-mock-role" className="text-sm font-medium">
-              Mock Role
-            </label>
-            <input
-              id="settings-mock-role"
-              type="text"
-              className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
-              value={profile === "mock-cloud" ? "admin" : ""}
-              disabled
-            />
+            <p className="text-xs text-muted-foreground">
+              The dashboard talks to the local control plane. Syncing with
+              Pollek Cloud is performed by the local service (configured via
+              DEK_CLOUD_URL), not from the browser.
+            </p>
           </div>
         </div>
       </div>

@@ -7,14 +7,11 @@
 //! Phase 5 — contract integration matrix (in-process, deterministic, CI-friendly).
 //!
 //! Exercises the policy-syncer contract end-to-end WITHOUT spawning binaries:
-//! an in-process axum "mock cloud" serves a `/v1/keys` payload signed by the
+//! an in-process axum test cloud serves a `/v1/keys` payload signed by the
 //! bootstrap key, and the test drives verify (TrustedKeySet), rotation (merge),
 //! the freshness state machine (evaluate_state), and the PEP gate (status file).
 //!
 //! Run: cargo test -p dek-policy-syncer --test contract_matrix
-//!
-//! The full process-level matrix (spawn mock-cloud + dek-core over mTLS) lives
-//! in `crates/acceptance-tests` — see PHASE5_acceptance_matrix.md.
 
 use dek_bundle_sync::keys::{
     parse_signatures, KeyStatus, TrustedKey, TrustedKeySet, VerifyOutcome,
@@ -227,7 +224,7 @@ async fn s5_v1_keys_chain_of_trust() {
     let (_sk_rogue, _pk_rogue) = keypair(7);
     let current = TrustedKeySet::from_single_pinned(&pk_boot);
 
-    // mock cloud serves /v1/keys signed by bootstrap (legit) on an ephemeral port
+    // in-process test cloud serves /v1/keys signed by bootstrap (legit) on an ephemeral port
     let (_sk2, pk2) = keypair(2);
     let signed = json!({ "version": 1, "keys": [
         { "key_id": "bootstrap", "public_b64": pk_boot, "status": "active", "not_before_unix": 0, "not_after_unix": 0 },

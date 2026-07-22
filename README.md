@@ -253,7 +253,7 @@ Full detail: **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 | **Identity** | `dek-spire-node`, `dek-enroll` |
 | **Interop** | `dek-a2a-mediator`, `dek-execution-sandbox`, `dek-agent-connector`, `dek-mcp-normalizer`, `dek-mcp-stdio-wrapper`, `dek-agent-binding`, `dek-fingerprint-defs` |
 | **SDK** | `dek-pdp-sdk`, `dek-plugin-sdk`, `dek-plugin-host`, `dek-policy-presets` |
-| **Control Planes** | `dek-control-plane-api`, `local-control-plane`, `mock-cloud` |
+| **Control Planes** | `dek-control-plane-api`, `local-control-plane` |
 
 ## Documentation
 

@@ -13,7 +13,7 @@
 //!     becomes the DEK's mTLS identity.
 //!
 //! Transport note: real SPIRE uses the gRPC Node API. This HTTP shape matches
-//! Pollek's `mock-cloud` `/node/attest` endpoint and is trivial to retarget to
+//! Pollek Cloud's `/node/attest` endpoint and is trivial to retarget to
 //! gRPC later; the issued artifact (X.509-SVID) is identical either way.
 
 use anyhow::{Context, Result};

@@ -13,7 +13,6 @@ reqwest = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-serde_yaml = "0.9.34"
 dek-capability-registry = { path = "../dek-capability-registry" }
 dek-deployment-planner = { path = "../dek-deployment-planner" }
 dek-domain-schema = { path = "../dek-domain-schema" }

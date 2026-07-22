@@ -24,11 +24,11 @@ measured accurately versus estimated at the source.
    `POST /v1/telemetry/batches`, then marks the AI usage events `acked`. Delivery
    is at-least-once, so the same `event_id` may arrive more than once.
 
-3. **Ingest + flatten (Cloud).** `mock-cloud`'s telemetry ingest records every
-   `ai_usage_event` envelope into a `UsageLedger` (see `mock-cloud/src/usage.rs`
-   and `state.rs`). The ledger dedups by `event_id` so redelivery never
-   double-counts cost or tokens. Only privacy-preserving identifiers are kept —
-   the user dimension is the pre-hashed `actor_id_hash`.
+3. **Ingest + flatten (Cloud).** Pollek Cloud's telemetry ingest records every
+   `ai_usage_event` envelope into a `UsageLedger`. The ledger dedups by
+   `event_id` so redelivery never double-counts cost or tokens. Only
+   privacy-preserving identifiers are kept — the user dimension is the pre-hashed
+   `actor_id_hash`.
 
 4. **Report (Cloud).** Cloud aggregates the ledger on demand into grouped
    reports.

@@ -44,6 +44,7 @@ pub mod pdp_routing_api;
 pub mod pdp_runtime_api;
 
 pub mod cloud_sync;
+pub mod cloud_sync_client;
 
 pub mod consent_api;
 pub mod plugin_api;
