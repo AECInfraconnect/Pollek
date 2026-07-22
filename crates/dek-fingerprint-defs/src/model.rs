@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignedDefinition {
@@ -180,7 +180,7 @@ pub struct ModelClassifierDef {
     #[serde(default)]
     pub family_rules: Vec<FamilyRuleDef>,
     #[serde(default)]
-    pub attribute_parsers: HashMap<String, AttributeParserDef>,
+    pub attribute_parsers: BTreeMap<String, AttributeParserDef>,
     #[serde(default)]
     pub risk_flags: Vec<RiskFlagDef>,
     #[serde(default)]
@@ -211,7 +211,7 @@ pub struct FamilyRuleDef {
 #[serde(untagged)]
 pub enum AttributeParserDef {
     String(String),
-    Map(HashMap<String, String>),
+    Map(BTreeMap<String, String>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -333,7 +333,7 @@ pub struct AgentSignatureV2 {
     #[serde(default)]
     pub binary_hashes: Vec<String>,
     #[serde(default)]
-    pub config_paths: HashMap<String, Vec<String>>,
+    pub config_paths: BTreeMap<String, Vec<String>>,
     #[serde(default)]
     pub config_parsers: Vec<String>,
     #[serde(default)]

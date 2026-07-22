@@ -45,23 +45,28 @@ export function DecisionLogs() {
         if (data && data.length > 0) {
           setEvents(data);
         } else {
+          // No PDP decision-log entries yet: fall back to REAL observed
+          // activity decisions. Only fields that genuinely exist on the
+          // activity item are carried over — nothing is fabricated.
           ActivityApi.getActivity()
             .then((res: any) => {
-              const mockEvents = (res.activity_sets || [])
+              const activityEvents = (res.activity_sets || [])
                 .flatMap((set: any) => set.items)
-                .map((item: any) => ({
+                .map((item: any, index: number) => ({
                   timestamp: item.timestamp,
-                  event_id: `mock_${Math.random().toString(36).substr(2, 9)}`,
+                  event_id:
+                    item.event_id ??
+                    `activity_${item.timestamp ?? "unknown"}_${index}`,
                   payload: {
                     decision: item.decision,
                     reason: item.reason,
-                    request_id: "req_mock",
-                    matched_policy_ids: [],
-                    latency_ms: 10,
+                    request_id: item.request_id,
+                    matched_policy_ids: item.matched_policy_ids ?? [],
+                    latency_ms: item.latency_ms,
                     resource: item.resource,
                   },
                 }));
-              setEvents(mockEvents);
+              setEvents(activityEvents);
             })
             .catch(console.error);
         }

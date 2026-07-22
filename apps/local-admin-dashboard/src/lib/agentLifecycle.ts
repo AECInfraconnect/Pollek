@@ -102,7 +102,13 @@ const LIVE_FRESHNESS_MS = 15 * 60 * 1000; // 15 minutes
 // just stopped/closed), rather than fully "uninstalled".
 const DORMANT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-function scanIdsForCandidate(candidate: DiscoveredAgentCandidateV2): string[] {
+/**
+ * All scan ids a candidate has been seen in (SSOT — the only implementation;
+ * pages must import this instead of re-deriving it).
+ */
+export function scanIdsForCandidate(
+  candidate: DiscoveredAgentCandidateV2,
+): string[] {
   const ids = new Set<string>();
   if (candidate.last_scan_id) ids.add(candidate.last_scan_id);
   for (const id of candidate.scan_ids ?? []) {
@@ -113,6 +119,30 @@ function scanIdsForCandidate(candidate: DiscoveredAgentCandidateV2): string[] {
     if (typeof id === "string" && id.length > 0) ids.add(id);
   }
   return Array.from(ids);
+}
+
+/** The most recent scan id this candidate was seen in. */
+export function latestScanIdForCandidate(
+  candidate: DiscoveredAgentCandidateV2,
+): string | undefined {
+  return (
+    candidate.last_scan_id ||
+    candidate.scan_ids?.[candidate.scan_ids.length - 1] ||
+    (candidate.evidence ?? [])
+      .map(
+        (evidence) =>
+          (evidence?.data as { scan_id?: unknown } | undefined)?.scan_id,
+      )
+      .find((id): id is string => typeof id === "string" && id.length > 0)
+  );
+}
+
+/** Whether a candidate was seen in the given scan. */
+export function candidateHasScanId(
+  candidate: DiscoveredAgentCandidateV2,
+  scanId: string,
+): boolean {
+  return scanIdsForCandidate(candidate).includes(scanId);
 }
 
 function hasLiveProcessEvidence(

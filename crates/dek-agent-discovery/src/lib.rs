@@ -29,7 +29,6 @@ pub mod python_framework_scan;
 pub mod redaction;
 pub mod signature_match;
 pub mod sni_source;
-pub mod source_catalog;
 pub mod web_ai_scan;
 
 pub use api::{run_scan, run_scan_v2, stable_agent_key, to_registry_agent, to_registry_agent_v2};

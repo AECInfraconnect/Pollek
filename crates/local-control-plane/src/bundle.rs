@@ -135,12 +135,6 @@ pub async fn build_signed_bundle(
     })
 }
 
-pub fn verify_bundle(_manifest: &PollekPolicyBundle, _public_b64: &str) -> bool {
-    // In v1, signature is verified against the outer SignedBundle or HTTP headers.
-    // Stubbing to true for local-control-plane.
-    true
-}
-
 pub fn router() -> Router<AppState> {
     Router::new()
         .route(

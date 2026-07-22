@@ -64,6 +64,28 @@ async fn deploy_preset(
 
     let mut bindings = Vec::new();
     for artifact in rendered_artifacts {
+        // A budget_limit artifact binds to the REAL budget engine: upsert it
+        // into the budget store the usage pipeline evaluates against, so the
+        // cap is enforced rather than merely described.
+        if artifact.language == "budget_limit" {
+            let mut budget: dek_agent_observer::usage_budget::AiBudgetLimit =
+                serde_json::from_str(&artifact.content).map_err(|e| {
+                    ApiError::Internal(anyhow::anyhow!("invalid budget_limit artifact: {e}"))
+                })?;
+            budget.tenant_id = tenant.clone();
+            let now = chrono::Utc::now().to_rfc3339();
+            if budget.created_at.is_empty() {
+                budget.created_at = now.clone();
+            }
+            budget.updated_at = now;
+            st.observability_store
+                .upsert_ai_budget(&budget)
+                .await
+                .map_err(ApiError::Internal)?;
+            bindings.push(format!("budget:{}", budget.budget_id));
+            continue;
+        }
+
         // Save PEP bindings based on language
         let pep_type = match artifact.language.as_str() {
             "rego" => "opa_rego",

@@ -75,7 +75,7 @@ impl FingerprintDb {
             DefinitionKind::Delta => {
                 if def.base_version != Some(self.version) {
                     anyhow::bail!(
-                        "delta base {:?} != current {} โ€” เธ•เนเธญเธเธ”เธถเธ full",
+                        "delta base {:?} != current {} — a full definition sync is required",
                         def.base_version,
                         self.version
                     );
