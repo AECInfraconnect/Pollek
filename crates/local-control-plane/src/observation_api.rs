@@ -92,7 +92,7 @@ async fn ingest_observation(
             };
             if let Err(e) = state
                 .observability_store
-                .insert_cost_ledger(&cost_entry)
+                .insert_cost_ledger(&ev.tenant_id, &cost_entry)
                 .await
             {
                 tracing::error!("Failed to insert cost ledger: {}", e);
@@ -147,7 +147,7 @@ async fn cost_summary(
     State(state): State<AppState>,
     Path(tenant): Path<String>,
 ) -> impl IntoResponse {
-    let ledger_entries = match state.observability_store.list_cost_ledger().await {
+    let ledger_entries = match state.observability_store.list_cost_ledger(&tenant).await {
         Ok(entries) => entries,
         Err(e) => {
             tracing::error!("Failed to fetch cost ledger: {}", e);
@@ -162,9 +162,8 @@ async fn cost_summary(
     let mut total_tokens = 0;
     let mut provider_costs = std::collections::HashMap::new();
 
+    // Entries are already scoped to this tenant by the store query.
     for entry in ledger_entries {
-        // Simple mock to filter by tenant if we had tenant_id in cost_ledger
-        // For now we aggregate all since local-control-plane is mostly single-tenant in demo.
         total_cost += entry.total_cost;
         total_tokens += entry.total_tokens;
         *provider_costs.entry(entry.provider).or_insert(0.0) += entry.total_cost;

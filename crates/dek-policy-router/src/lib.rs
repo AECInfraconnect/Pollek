@@ -179,8 +179,6 @@ pub struct PolicyRouter {
     round_robin_counter: AtomicUsize,
     pdp_timeout_ms: u64,
     circuit_config: CircuitConfig,
-    #[allow(dead_code)]
-    binding_store: Option<dek_agent_binding::binding::AgentBinding>, // Should be SharedBindingStore from dek-agent-observer, but to avoid circular deps for now we put a placeholderef or a generic fetcher. Actually, just adding dek-agent-binding dependency allows us to use AgentBinding.
 }
 
 impl PolicyRouter {
@@ -194,11 +192,10 @@ impl PolicyRouter {
             round_robin_counter: AtomicUsize::new(0),
             pdp_timeout_ms: 500,
             circuit_config: CircuitConfig::default(),
-            binding_store: None,
         }
     }
 
-    /// ids เน€เธโ€เน€เธเธเน€เธโ€ก evaluator เน€เธโ€”เน€เธเธ•เน€เธห register เน€เธหเน€เธเธเน€เธเธ”เน€เธโ€กเน€เธฦ’เน€เธโข build เน€เธโขเน€เธเธ•เน€เธโ€ฐ (feature-gated adapters)
+    /// IDs of every evaluator currently registered and built (feature-gated adapters).
     pub fn evaluator_ids(&self) -> Vec<String> {
         self.evaluators.keys().cloned().collect()
     }

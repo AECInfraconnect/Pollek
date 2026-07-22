@@ -149,9 +149,10 @@ impl ObservabilityStore for SqliteStore {
         Ok(out)
     }
 
-    async fn insert_cost_ledger(&self, entry: &CostLedgerEntry) -> Result<()> {
+    async fn insert_cost_ledger(&self, tenant_id: &str, entry: &CostLedgerEntry) -> Result<()> {
         let conn_arc = self.conn.clone();
 
+        let tenant_id = tenant_id.to_string();
         let event_id = entry.event_id.clone();
         let agent_id = entry.agent_id.clone();
         let provider = entry.provider.clone();
@@ -170,23 +171,24 @@ impl ObservabilityStore for SqliteStore {
             let conn = conn_arc.lock().map_err(|_| anyhow::anyhow!("sqlite store connection lock poisoned"))?;
             conn.execute(
                 r#"
-                INSERT INTO cost_ledger (id, agent_id, provider, model, input_tokens, output_tokens, total_tokens, input_cost, output_cost, total_cost, currency, estimated, timestamp)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+                INSERT INTO cost_ledger (id, tenant_id, agent_id, provider, model, input_tokens, output_tokens, total_tokens, input_cost, output_cost, total_cost, currency, estimated, timestamp)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
                 "#,
-                params![event_id, agent_id, provider, model, input_tokens, output_tokens, total_tokens, input_cost, output_cost, total_cost, currency, estimated, timestamp]
+                params![event_id, tenant_id, agent_id, provider, model, input_tokens, output_tokens, total_tokens, input_cost, output_cost, total_cost, currency, estimated, timestamp]
             )?;
             Ok(())
         }).await??;
         Ok(())
     }
 
-    async fn list_cost_ledger(&self) -> Result<Vec<CostLedgerEntry>> {
+    async fn list_cost_ledger(&self, tenant_id: &str) -> Result<Vec<CostLedgerEntry>> {
         let conn_arc = self.conn.clone();
+        let tenant_id = tenant_id.to_string();
 
         let out = tokio::task::spawn_blocking(move || -> Result<Vec<CostLedgerEntry>> {
             let conn = conn_arc.lock().map_err(|_| anyhow::anyhow!("sqlite store connection lock poisoned"))?;
-            let mut stmt = conn.prepare("SELECT id, agent_id, provider, model, input_tokens, output_tokens, total_tokens, input_cost, output_cost, total_cost, currency, estimated, timestamp FROM cost_ledger ORDER BY timestamp DESC")?;
-            let mut rows = stmt.query(params![])?;
+            let mut stmt = conn.prepare("SELECT id, agent_id, provider, model, input_tokens, output_tokens, total_tokens, input_cost, output_cost, total_cost, currency, estimated, timestamp FROM cost_ledger WHERE tenant_id = ?1 ORDER BY timestamp DESC")?;
+            let mut rows = stmt.query(params![tenant_id])?;
             let mut out = Vec::new();
             while let Some(r) = rows.next()? {
                 out.push(CostLedgerEntry {
@@ -802,10 +804,11 @@ impl ObservabilityStore for SqliteStore {
 
     async fn cost_breakdown_by_agent(
         &self,
-        _tenant: &str,
+        tenant: &str,
         since: &str,
     ) -> Result<Vec<AgentCostRow>> {
         let since_val = since.to_string();
+        let tenant_val = tenant.to_string();
         let conn_arc = self.conn.clone();
 
         let rows = tokio::task::spawn_blocking(move || -> Result<Vec<AgentCostRow>> {
@@ -817,12 +820,12 @@ impl ObservabilityStore for SqliteStore {
                        COALESCE(SUM(total_cost),0)   AS cost,
                        COALESCE(SUM(total_tokens),0) AS tokens
                 FROM cost_ledger
-                WHERE timestamp >= ?1
+                WHERE tenant_id = ?1 AND timestamp >= ?2
                 GROUP BY agent_id
                 ORDER BY cost DESC
             "#;
             let mut stmt = conn.prepare(sql)?;
-            let mut rows = stmt.query(params![since_val])?;
+            let mut rows = stmt.query(params![tenant_val, since_val])?;
             let mut result = Vec::new();
             while let Some(row) = rows.next()? {
                 result.push(AgentCostRow {
@@ -869,5 +872,60 @@ impl ObservabilityStore for SqliteStore {
             Ok(result)
         }).await??;
         Ok(rows)
+    }
+}
+
+#[cfg(test)]
+mod tenant_isolation_tests {
+    use super::*;
+    use crate::store::SqliteStore;
+
+    fn ledger_entry(id: &str, agent: &str, cost: f64) -> CostLedgerEntry {
+        CostLedgerEntry {
+            event_id: id.into(),
+            agent_id: agent.into(),
+            provider: "fixture".into(),
+            model: None,
+            input_tokens: 10,
+            output_tokens: 5,
+            total_tokens: 15,
+            input_cost: cost / 2.0,
+            output_cost: cost / 2.0,
+            total_cost: cost,
+            currency: "USD".into(),
+            estimated: false,
+            timestamp: "2026-07-22T00:00:00Z".into(),
+        }
+    }
+
+    // The cost ledger must be scoped per tenant: a summary for tenant A must
+    // never include tenant B's spend (the bug this migration fixed).
+    #[tokio::test]
+    async fn cost_ledger_is_tenant_scoped() -> anyhow::Result<()> {
+        let store = SqliteStore::new(":memory:").await?;
+
+        store
+            .insert_cost_ledger("tenant-a", &ledger_entry("a1", "agent-a", 1.0))
+            .await?;
+        store
+            .insert_cost_ledger("tenant-b", &ledger_entry("b1", "agent-b", 9.0))
+            .await?;
+
+        let a = store.list_cost_ledger("tenant-a").await?;
+        assert_eq!(a.len(), 1, "tenant-a must only see its own entry");
+        assert_eq!(a[0].event_id, "a1");
+
+        let b = store.list_cost_ledger("tenant-b").await?;
+        assert_eq!(b.len(), 1);
+        assert_eq!(b[0].total_cost, 9.0);
+
+        // Per-agent breakdown is scoped too.
+        let rows_a = store
+            .cost_breakdown_by_agent("tenant-a", "1970-01-01")
+            .await?;
+        assert_eq!(rows_a.len(), 1);
+        assert_eq!(rows_a[0].agent_id, "agent-a");
+        assert_eq!(rows_a[0].cost, 1.0);
+        Ok(())
     }
 }
