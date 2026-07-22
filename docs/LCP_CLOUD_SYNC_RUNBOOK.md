@@ -37,7 +37,7 @@ Gates enforced by the client:
   reuses the same `event_id` on retry, so replays return under `duplicates` and
   never double-count. Any 2xx is safe to clear the spool.
 - **Redaction** — `redaction_applied` is set honestly and any event containing
-  `authorization:`, `bearer `, or `"password"` is dropped locally before send
+  `authorization:`, `bearer` (with a trailing space), or `"password"` is dropped locally before send
   (the Cloud would otherwise quarantine it).
 - **Consistent identity** — `tenant_id` / `device_id` / `lcp_id` are sent on
   every call (headers + body); never relying on Cloud defaults.
