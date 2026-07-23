@@ -13,6 +13,7 @@ pub mod discovery;
 pub mod error;
 pub mod governance;
 pub mod hotreload_api;
+pub mod identity_api;
 pub mod inventory_api;
 pub mod local_observe;
 pub mod policy;

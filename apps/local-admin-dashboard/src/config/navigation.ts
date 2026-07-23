@@ -17,6 +17,7 @@ import {
   Settings,
   ShieldAlert,
   Cloud,
+  Fingerprint,
   Package,
   ShieldCheck,
   SlidersHorizontal,
@@ -129,6 +130,14 @@ export const NAV: NavGroup[] = [
         th: "อัปเดตนิยามแบบสด",
         href: "/definitions-hot-reload",
         icon: Package,
+        modes: ALL,
+      },
+      {
+        id: "workload-identity",
+        en: "Workload Identity",
+        th: "ตัวตนของอุปกรณ์",
+        href: "/workload-identity",
+        icon: Fingerprint,
         modes: ALL,
       },
       {
