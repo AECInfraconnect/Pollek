@@ -41,6 +41,7 @@ dek-policy-compiler = { version = "1.0.0-beta.1", path = "../dek-policy-compiler
 pollek-contract = { version = "0.1.0", path = "../../contracts/generated/rust/pollek-contract" }
 dek-policy-router = { version = "0.1.0", path = "../dek-policy-router" }
 dek-plugin-sdk = { version = "1.0.0-beta.10", path = "../dek-plugin-sdk" }
+dek-wasm-host = { path = "../dek-wasm-host" }
 dek-fingerprint-defs = { path = "../dek-fingerprint-defs" }
 dek-cedar = { version = "0.1.0", path = "../dek-cedar" }
 dek-policy-runtime = { version = "0.1.0", path = "../dek-policy-runtime" }

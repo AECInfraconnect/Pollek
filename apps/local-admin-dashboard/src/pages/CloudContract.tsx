@@ -21,6 +21,8 @@ import {
   type BundleCompatibility,
   type CompatibilityStatus,
   type CompatibilityVerdict,
+  type ContractAdapterInfo,
+  type ContractAdaptationResult,
   type DekContract,
 } from "../services/api";
 import type { UiStatus } from "../lib/status";
@@ -273,7 +275,138 @@ export function CloudContract() {
           )}
         </CardContent>
       </Card>
+
+      <ContractAdapterCard />
     </div>
+  );
+}
+
+function ContractAdapterCard() {
+  const [info, setInfo] = useState<ContractAdapterInfo | null>(null);
+  const [draft, setDraft] = useState(
+    JSON.stringify(
+      {
+        metadata: { bundle_id: "cloud-bundle-legacy" },
+        compatibility: { required_pep_types: ["mcp_proxy"] },
+      },
+      null,
+      2,
+    ),
+  );
+  const [result, setResult] = useState<ContractAdaptationResult | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    ContractApi.adapterInfo()
+      .then(setInfo)
+      .catch(() => setInfo({ loaded: false }));
+  }, []);
+
+  const adapt = useCallback(async () => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(draft);
+    } catch {
+      toast.error("Bundle is not valid JSON");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await ContractApi.adapt(parsed);
+      setResult(res);
+      toast.success(
+        res.adapted ? `Adapted — ${res.changes.length} change(s)` : "No changes needed",
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [draft]);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Boxes className="h-5 w-5" />
+          </span>
+          <div>
+            <CardTitle className="text-base">Adapt a bundle (WASM)</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Migrate a bundle authored for another contract generation into the
+              shape this DEK expects — the version-skew bridge, run in a
+              sandboxed WASM component.
+            </p>
+          </div>
+        </div>
+        {info?.loaded && (
+          <Badge variant="ok">
+            wasm {info.wasm_sha256?.slice(0, 8)} · {info.wasm_bytes} B
+          </Badge>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          spellCheck={false}
+          className="h-40 w-full rounded-lg border border-border bg-background p-3 font-mono text-xs"
+        />
+        <button
+          type="button"
+          onClick={() => void adapt()}
+          disabled={busy || !info?.loaded}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground",
+            "hover:bg-primary/90 disabled:opacity-60",
+          )}
+        >
+          {busy ? "Adapting…" : "Adapt via WASM"}
+        </button>
+
+        {result && (
+          <div className="space-y-3 rounded-lg border border-border p-4">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-medium">Result</span>
+              {result.verdict_before && (
+                <Badge variant={statusUi(result.verdict_before.status)}>
+                  before: {statusLabel(result.verdict_before.status)}
+                </Badge>
+              )}
+              <span className="text-muted-foreground">→</span>
+              {result.verdict_after ? (
+                <Badge variant={statusUi(result.verdict_after.status)}>
+                  after: {statusLabel(result.verdict_after.status)}
+                </Badge>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  after: no compatibility block
+                </span>
+              )}
+              <span className="ml-auto text-xs text-muted-foreground">
+                {result.changes.length} change(s) · → contract {result.to_contract}
+              </span>
+            </div>
+            {result.changes.length > 0 && (
+              <ul className="list-inside list-disc space-y-0.5 text-xs">
+                {result.changes.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            )}
+            <details>
+              <summary className="cursor-pointer text-xs text-muted-foreground">
+                Migrated bundle
+              </summary>
+              <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-2 text-xs">
+                {JSON.stringify(result.migrated_bundle, null, 2)}
+              </pre>
+            </details>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
