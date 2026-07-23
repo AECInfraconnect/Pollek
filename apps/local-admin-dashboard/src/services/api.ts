@@ -1358,6 +1358,15 @@ export interface WorkloadIdentity {
     oidc_client_id?: string | null;
     auth_subject?: string | null;
   };
+  tenant_binding?: {
+    request_tenant: string;
+    presented_via: string;
+    presented_spiffe_id?: string | null;
+    spiffe_tenant?: string | null;
+    token_claim_enforced: string;
+    consistent: boolean;
+    fail_closed: boolean;
+  };
 }
 
 export const IdentityApi = {

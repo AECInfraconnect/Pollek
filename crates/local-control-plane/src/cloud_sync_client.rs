@@ -63,6 +63,58 @@ pub struct SyncConfig {
     /// than a shared secret. Populated at runtime from the SPIRE JWT-SVID
     /// (`dek-spire-node::jwt_svid`) or `POLLEK_OIDC_CLIENT_ASSERTION`.
     pub oidc_client_assertion: Option<String>,
+    /// The DEK's verified workload SPIFFE ID, read from the URI SAN of the
+    /// provisioned X.509-SVID (`identity/svid.pem`) or `POLLEK_SPIFFE_ID`.
+    /// Presented to Cloud on every request via the `x-pollek-spiffe-id` header
+    /// (per the Cloud hand-off ask #3) so ingress can enforce
+    /// `tenant/<id> == request tenant`. `None` in bearer/dev mode ⇒ header omitted.
+    pub spiffe_id: Option<String>,
+}
+
+/// SPIFFE trust scheme the DEK and Cloud agreed on:
+/// `spiffe://pollek.io/tenant/<tenant_id>/device/<device_id>` (agents:
+/// `.../agent/<agent_id>`). Extract the authoritative tenant segment — the
+/// binding Cloud enforces at ingress against the request tenant.
+pub fn tenant_from_spiffe_id(spiffe_id: &str) -> Option<String> {
+    let rest = spiffe_id.strip_prefix("spiffe://")?;
+    let mut parts = rest.split('/');
+    let _trust_domain = parts.next()?; // e.g. pollek.io
+    while let Some(key) = parts.next() {
+        if key == "tenant" {
+            return parts.next().filter(|s| !s.is_empty()).map(str::to_string);
+        }
+    }
+    None
+}
+
+/// The identity directory where the DEK keeps its SVID triple.
+fn default_identity_dir() -> std::path::PathBuf {
+    let base = std::env::var("DEK_LCP_DATA").unwrap_or_else(|_| "./pollek-local-data".into());
+    std::path::PathBuf::from(base).join("identity")
+}
+
+/// Resolve the workload SPIFFE ID to present to Cloud: prefer the URI SAN of the
+/// provisioned X.509-SVID (`identity_dir/svid.pem`), else `POLLEK_SPIFFE_ID`.
+/// Never fabricated — returns `None` when neither exists (bearer/dev mode).
+pub fn resolve_spiffe_id(identity_dir: &std::path::Path, now_unix: i64) -> Option<String> {
+    if let Ok(pem) = std::fs::read_to_string(identity_dir.join("svid.pem")) {
+        if let Ok(info) = dek_spire_node::describe_svid(&pem, now_unix) {
+            if let Some(id) = info.spiffe_id.filter(|s| !s.is_empty()) {
+                return Some(id);
+            }
+        }
+    }
+    std::env::var("POLLEK_SPIFFE_ID")
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+}
+
+fn now_unix() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
 }
 
 /// Keycloak/OIDC token endpoint path appended to a realm issuer URL.
@@ -228,6 +280,7 @@ impl SyncConfig {
             oidc_client_secret: get("POLLEK_OIDC_CLIENT_SECRET").filter(|v| !v.is_empty()),
             oidc_scope: get("POLLEK_OIDC_SCOPE").filter(|v| !v.is_empty()),
             oidc_client_assertion: get("POLLEK_OIDC_CLIENT_ASSERTION").filter(|v| !v.is_empty()),
+            spiffe_id: resolve_spiffe_id(&default_identity_dir(), now_unix()),
         })
     }
 
@@ -269,11 +322,33 @@ impl SyncConfig {
             oidc_client_secret: get("POLLEK_OIDC_CLIENT_SECRET"),
             oidc_scope: get("POLLEK_OIDC_SCOPE"),
             oidc_client_assertion: get("POLLEK_OIDC_CLIENT_ASSERTION"),
+            spiffe_id: resolve_spiffe_id(&default_identity_dir(), now_unix()),
         }
     }
 
     fn url(&self, path: &str) -> String {
         format!("{}{}", self.cloud_url, path)
+    }
+
+    /// Fail-closed tenant binding (Cloud hand-off ask #2). Cloud enforces that
+    /// the caller's proven tenant equals the request tenant. When an SVID is
+    /// present, its SPIFFE `tenant/<id>` segment is the proof and MUST equal
+    /// `tenant_id`; a mismatch means the DEK would be asserting a tenant it
+    /// cannot prove, so it refuses to sync rather than send a claim Cloud will
+    /// (rightly) reject. With no SVID (bearer/dev) there is nothing to contradict.
+    pub fn assert_tenant_binding(&self) -> Result<()> {
+        if let Some(spiffe) = self.spiffe_id.as_deref() {
+            if let Some(spiffe_tenant) = tenant_from_spiffe_id(spiffe) {
+                if spiffe_tenant != self.tenant_id {
+                    anyhow::bail!(
+                        "tenant binding mismatch: SPIFFE tenant '{spiffe_tenant}' (from {spiffe}) \
+                         != request tenant '{}'; refusing to present an unprovable tenant",
+                        self.tenant_id
+                    );
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Ensure `api_key` holds a bearer token. If one was supplied explicitly
@@ -376,6 +451,11 @@ fn apply_headers(mut req: reqwest::RequestBuilder, cfg: &SyncConfig) -> reqwest:
         .header("x-pollek-tenant-id", &cfg.tenant_id)
         .header("x-pollek-device-id", &cfg.device_id)
         .header("x-pollek-lcp-id", &cfg.lcp_id);
+    // Present the verified workload SPIFFE ID (Cloud hand-off ask #3). Cloud's
+    // trusted ingress enforces `tenant/<id> == request tenant` from this header.
+    if let Some(spiffe) = cfg.spiffe_id.as_deref().filter(|s| !s.is_empty()) {
+        req = req.header("x-pollek-spiffe-id", spiffe);
+    }
     if !cfg.api_key.is_empty() {
         req = req.bearer_auth(&cfg.api_key);
     }
@@ -482,6 +562,10 @@ pub async fn run_full_sync_once(
 ) -> Result<SyncReport> {
     let mut report = SyncReport::default();
 
+    // Fail closed before any request leaves the device: never present a tenant
+    // the SVID does not prove (Cloud hand-off ask #2).
+    cfg.assert_tenant_binding()?;
+
     let (enroll_status, _enroll_body) = enroll(client, cfg).await?;
     report.enrolled = (200..300).contains(&enroll_status);
 
@@ -505,6 +589,97 @@ pub async fn run_full_sync_once(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Minimal config for header/binding tests (no network).
+    fn cfg_with(tenant: &str, spiffe: Option<&str>) -> SyncConfig {
+        SyncConfig {
+            cloud_url: "https://cloud.example".into(),
+            tenant_id: tenant.into(),
+            device_id: "device_1".into(),
+            lcp_id: "lcp_1".into(),
+            hostname: "h".into(),
+            os: "linux".into(),
+            os_family: "linux".into(),
+            os_version: "1".into(),
+            arch: "x86_64".into(),
+            api_key: String::new(),
+            user_subject: "local".into(),
+            oidc_token_url: None,
+            oidc_client_id: None,
+            oidc_client_secret: None,
+            oidc_scope: None,
+            oidc_client_assertion: None,
+            spiffe_id: spiffe.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn tenant_parsed_from_spiffe_device_and_agent_forms() {
+        assert_eq!(
+            tenant_from_spiffe_id("spiffe://pollek.io/tenant/acme/device/dv-9").as_deref(),
+            Some("acme")
+        );
+        assert_eq!(
+            tenant_from_spiffe_id("spiffe://pollek.io/tenant/acme/agent/ag-1").as_deref(),
+            Some("acme")
+        );
+        // Malformed / missing tenant segment ⇒ None (no fabricated tenant).
+        assert_eq!(
+            tenant_from_spiffe_id("spiffe://pollek.io/device/dv-9"),
+            None
+        );
+        assert_eq!(tenant_from_spiffe_id("https://pollek.io/tenant/acme"), None);
+    }
+
+    #[test]
+    fn tenant_binding_fails_closed_on_mismatch() {
+        // Matching SPIFFE tenant ⇒ ok.
+        assert!(
+            cfg_with("acme", Some("spiffe://pollek.io/tenant/acme/device/d"))
+                .assert_tenant_binding()
+                .is_ok()
+        );
+        // No SVID ⇒ nothing to contradict ⇒ ok (bearer/dev).
+        assert!(cfg_with("acme", None).assert_tenant_binding().is_ok());
+        // SPIFFE tenant != request tenant ⇒ refuse (fail closed).
+        let err = cfg_with("acme", Some("spiffe://pollek.io/tenant/evil/device/d"))
+            .assert_tenant_binding()
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("tenant binding mismatch"), "{err}");
+    }
+
+    #[test]
+    fn spiffe_id_header_presented_only_when_provisioned() {
+        let client = Client::new();
+        // Present when set.
+        let req = apply_headers(
+            client.post("https://cloud.example/enroll"),
+            &cfg_with("acme", Some("spiffe://pollek.io/tenant/acme/device/d")),
+        )
+        .build()
+        .unwrap();
+        assert_eq!(
+            req.headers()
+                .get("x-pollek-spiffe-id")
+                .and_then(|v| v.to_str().ok()),
+            Some("spiffe://pollek.io/tenant/acme/device/d")
+        );
+        assert_eq!(
+            req.headers()
+                .get("x-pollek-tenant-id")
+                .and_then(|v| v.to_str().ok()),
+            Some("acme")
+        );
+        // Omitted in bearer/dev mode.
+        let req2 = apply_headers(
+            client.post("https://cloud.example/enroll"),
+            &cfg_with("acme", None),
+        )
+        .build()
+        .unwrap();
+        assert!(req2.headers().get("x-pollek-spiffe-id").is_none());
+    }
 
     #[test]
     fn private_key_jwt_form_is_rfc7523_shaped() {
