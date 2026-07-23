@@ -2718,6 +2718,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "dek-trust-gate"
+version = "1.0.0-beta.10"
+dependencies = [
+ "base64 0.22.1",
+ "dek-bundle-format",
+ "dek-bundle-sync",
+ "ed25519-dalek",
+ "hex",
+ "serde",
+ "serde_jcs",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "dek-updater"
 version = "0.1.0"
 dependencies = [
@@ -4441,6 +4456,7 @@ dependencies = [
  "dek-agent-discovery",
  "dek-agent-observer",
  "dek-bundle-format",
+ "dek-bundle-sync",
  "dek-capability",
  "dek-capability-registry",
  "dek-cedar",
@@ -4464,6 +4480,7 @@ dependencies = [
  "dek-secure-spool",
  "dek-spire-node",
  "dek-telemetry",
+ "dek-trust-gate",
  "dek-wasm-host",
  "ed25519-dalek",
  "futures-util",

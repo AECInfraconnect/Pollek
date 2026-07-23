@@ -24,6 +24,7 @@ pub mod signing;
 pub mod state;
 pub mod store;
 pub mod telemetry;
+pub mod trust_api;
 pub mod usage_api;
 
 pub mod activity_api;

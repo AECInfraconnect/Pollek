@@ -36,6 +36,7 @@ import { SignalCorrelation } from "@/pages/SignalCorrelation";
 import { CloudContract } from "@/pages/CloudContract";
 import { DefinitionsHotReload } from "@/pages/DefinitionsHotReload";
 import { WorkloadIdentity } from "@/pages/WorkloadIdentity";
+import { TrustProvenance } from "@/pages/TrustProvenance";
 import AgentsV2 from "@/pages/AgentsV2";
 import ToolsResourcesV2 from "@/pages/ToolsResourcesV2";
 import PoliciesV2 from "@/pages/PoliciesV2";
@@ -137,6 +138,11 @@ export const dashboardRoutes: DashboardRoute[] = [
     key: "workload-identity",
     path: "workload-identity",
     element: <WorkloadIdentity />,
+  },
+  {
+    key: "trust-provenance",
+    path: "trust-provenance",
+    element: <TrustProvenance />,
   },
   {
     key: "activity-timeline",
