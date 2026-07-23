@@ -1324,6 +1324,44 @@ export interface ContractAdaptationResult {
   verdict_after: CompatibilityVerdict | null;
 }
 
+export interface WorkloadIdentity {
+  schema_version: string;
+  tenant_id: string;
+  device: {
+    actor_id: string;
+    workspace_id: string;
+    environment_id: string;
+  };
+  transport: {
+    mtls_ready: boolean;
+    svid_present: boolean;
+    private_key_present: boolean;
+    trust_bundle_present: boolean;
+  };
+  workload_identity: {
+    provisioned: boolean;
+    spiffe_id?: string | null;
+    subject?: string;
+    issuer?: string;
+    serial?: string;
+    not_before_unix?: number;
+    not_after_unix?: number;
+    seconds_until_expiry?: number;
+    expired?: boolean;
+    error?: string;
+  };
+  user_identity: {
+    oauth_configured: boolean;
+    oidc_issuer?: string | null;
+    oidc_client_id?: string | null;
+    auth_subject?: string | null;
+  };
+}
+
+export const IdentityApi = {
+  get: () => defaultClient.fetchApi<WorkloadIdentity>("/identity"),
+};
+
 export const ContractApi = {
   get: () => defaultClient.getDekContract(),
   evaluate: (compat: BundleCompatibility) =>

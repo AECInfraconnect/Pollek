@@ -35,6 +35,7 @@ import { DetectionCoveragePage } from "@/pages/DetectionCoveragePage";
 import { SignalCorrelation } from "@/pages/SignalCorrelation";
 import { CloudContract } from "@/pages/CloudContract";
 import { DefinitionsHotReload } from "@/pages/DefinitionsHotReload";
+import { WorkloadIdentity } from "@/pages/WorkloadIdentity";
 import AgentsV2 from "@/pages/AgentsV2";
 import ToolsResourcesV2 from "@/pages/ToolsResourcesV2";
 import PoliciesV2 from "@/pages/PoliciesV2";
@@ -131,6 +132,11 @@ export const dashboardRoutes: DashboardRoute[] = [
     key: "definitions-hot-reload",
     path: "definitions-hot-reload",
     element: <DefinitionsHotReload />,
+  },
+  {
+    key: "workload-identity",
+    path: "workload-identity",
+    element: <WorkloadIdentity />,
   },
   {
     key: "activity-timeline",
