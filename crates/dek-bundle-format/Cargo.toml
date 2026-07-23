@@ -11,6 +11,7 @@ rust-version.workspace = true
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
+semver = "1.0"
 
 [lints]
 workspace = true
