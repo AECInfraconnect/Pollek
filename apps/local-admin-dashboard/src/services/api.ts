@@ -1298,6 +1298,50 @@ export const ContractApi = {
     defaultClient.evaluateContract(compat),
 };
 
+export interface DefinitionState {
+  schema_version: string;
+  tenant_id: string;
+  current: {
+    schema_version: string;
+    definition_version: number;
+    counts: {
+      signatures: number;
+      web_ai_signatures: number;
+      browser_processes: number;
+      installed_app_signatures: number;
+    };
+  };
+  last_activation: {
+    operation?: string;
+    kind?: string;
+    from_version?: number;
+    to_version?: number;
+    activated_at?: string;
+  } | null;
+  rollback_available: boolean;
+}
+
+export interface DefinitionActivateResult {
+  status: string;
+  reason?: string;
+  event?: Record<string, unknown>;
+  current: DefinitionState["current"];
+}
+
+export const DefinitionApi = {
+  getState: () => defaultClient.fetchApi<DefinitionState>("/definitions"),
+  activate: (definition: unknown) =>
+    defaultClient.fetchApi<DefinitionActivateResult>("/definitions/activate", {
+      method: "POST",
+      body: JSON.stringify(definition),
+    }),
+  rollback: () =>
+    defaultClient.fetchApi<DefinitionActivateResult>("/definitions/rollback", {
+      method: "POST",
+      body: "{}",
+    }),
+};
+
 export const UsageApi = {
   getSummary: (
     params?: Parameters<ControlPlaneClient["getAiUsageSummary"]>[0],
