@@ -16,6 +16,7 @@ import {
   Server,
   Settings,
   ShieldAlert,
+  Cloud,
   ShieldCheck,
   SlidersHorizontal,
   Users,
@@ -111,6 +112,14 @@ export const NAV: NavGroup[] = [
         th: "การเชื่อมโยงสัญญาณ",
         href: "/signal-correlation",
         icon: Workflow,
+        modes: ALL,
+      },
+      {
+        id: "cloud-contract",
+        en: "Cloud Contract",
+        th: "สัญญากับคลาวด์",
+        href: "/cloud-contract",
+        icon: Cloud,
         modes: ALL,
       },
       {

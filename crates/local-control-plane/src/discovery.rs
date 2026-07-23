@@ -10,9 +10,10 @@ async fn get_discovery() -> Json<serde_json::Value> {
         "schema_version": "contract-discovery.v1",
         "supported": ["1.0"],
         "preferred": "1.0",
-        "contract_version": "2026.06.29",
+        "contract_version": crate::contract_api::CONTRACT_VERSION,
         "compatible_cloud_contracts": [">=2026.06.29 <2026.09.00"],
-        "minimum_dek_version": "1.0.0-beta.6",
+        "dek_version": dek_bundle_format::dek_version(),
+        "minimum_dek_version": crate::contract_api::MIN_SUPPORTED_DEK_VERSION,
         "sunset": { "0.9": "2026-10-01T00:00:00Z" },
         "schemas": {
             "contract.discovery": "contract-discovery.v1.schema.json",

@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+pub mod contract;
+pub use contract::{
+    dek_version, evaluate_compatibility, CompatibilityStatus, CompatibilityVerdict, DekContract,
+};
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PollekPolicyBundle {
@@ -28,7 +33,7 @@ pub struct BundleCompatibility {
     pub required_os_modules: OsModulesConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct OsModulesConfig {
     #[serde(default)]
     pub linux: Vec<String>,

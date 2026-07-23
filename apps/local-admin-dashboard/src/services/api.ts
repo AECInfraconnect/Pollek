@@ -968,6 +968,19 @@ export class ControlPlaneClient {
     return this.fetchApi<SignalCorrelationResponse>("/correlation");
   }
 
+  async getDekContract(): Promise<DekContractResponse> {
+    return this.fetchApi<DekContractResponse>("/contract");
+  }
+
+  async evaluateContract(
+    compatibility: BundleCompatibility,
+  ): Promise<ContractEvaluationResponse> {
+    return this.fetchApi<ContractEvaluationResponse>("/contract/evaluate", {
+      method: "POST",
+      body: JSON.stringify(compatibility),
+    });
+  }
+
   async getAiUsageSummary(params?: {
     from?: string;
     to?: string;
@@ -1229,6 +1242,60 @@ export interface SignalCorrelationResponse {
 
 export const CorrelationApi = {
   get: () => defaultClient.getSignalCorrelation(),
+};
+
+export interface OsModulesConfig {
+  linux: string[];
+  windows: string[];
+  macos: string[];
+}
+
+export interface DekContract {
+  dek_version: string;
+  contract_version: string;
+  supported_bundle_api_versions: string[];
+  available_pep_types: string[];
+  os_modules: OsModulesConfig;
+  platform: string;
+}
+
+export interface DekContractResponse {
+  schema_version: string;
+  contract: DekContract;
+}
+
+export interface BundleCompatibility {
+  min_dek_version: string;
+  required_crates: string[];
+  required_pep_types: string[];
+  required_os_modules: OsModulesConfig;
+}
+
+export type CompatibilityStatus =
+  | "compatible"
+  | "needs_upgrade"
+  | "unsupported";
+
+export interface CompatibilityVerdict {
+  status: CompatibilityStatus;
+  reasons: string[];
+  missing_pep_types: string[];
+  missing_os_modules: string[];
+  dek_version: string;
+  min_dek_version: string;
+}
+
+export interface ContractEvaluationResponse {
+  schema_version: string;
+  contract: DekContract;
+  compatibility: BundleCompatibility;
+  verdict: CompatibilityVerdict;
+}
+
+export const ContractApi = {
+  get: () => defaultClient.getDekContract(),
+  evaluate: (compat: BundleCompatibility) =>
+    defaultClient.evaluateContract(compat),
 };
 
 export const UsageApi = {

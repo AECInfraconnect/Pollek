@@ -1806,6 +1806,7 @@ dependencies = [
 name = "dek-bundle-format"
 version = "1.0.0-beta.10"
 dependencies = [
+ "semver",
  "serde",
 ]
 
