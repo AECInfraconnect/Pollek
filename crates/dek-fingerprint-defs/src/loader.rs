@@ -98,13 +98,19 @@ impl DefinitionStore {
             DefinitionKind::Delta => merge_delta(&cur, &incoming)?,
         };
 
-        self.current.store(Arc::new(merged.clone()));
-
+        // Persist to disk (atomic tmp+rename) BEFORE swapping the live value, so
+        // a persistence failure never leaves the in-memory definition ahead of
+        // what would be reloaded on restart.
         if let Ok(json) = serde_json::to_string_pretty(&merged) {
+            if let Some(parent) = self.on_disk_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
             let tmp_path = self.on_disk_path.with_extension("tmp");
             std::fs::write(&tmp_path, json)?;
             std::fs::rename(tmp_path, &self.on_disk_path)?;
         }
+
+        self.current.store(Arc::new(merged.clone()));
 
         tracing::info!(
             version = merged.definition_version,

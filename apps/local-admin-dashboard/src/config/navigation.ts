@@ -17,6 +17,7 @@ import {
   Settings,
   ShieldAlert,
   Cloud,
+  Package,
   ShieldCheck,
   SlidersHorizontal,
   Users,
@@ -120,6 +121,14 @@ export const NAV: NavGroup[] = [
         th: "สัญญากับคลาวด์",
         href: "/cloud-contract",
         icon: Cloud,
+        modes: ALL,
+      },
+      {
+        id: "definitions-hot-reload",
+        en: "Definitions Hot-Reload",
+        th: "อัปเดตนิยามแบบสด",
+        href: "/definitions-hot-reload",
+        icon: Package,
         modes: ALL,
       },
       {
