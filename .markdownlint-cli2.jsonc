@@ -1,3 +1,26 @@
 {
-  "ignores": ["**/node_modules/**", "**/target/**", ".git/**"]
+  // Single source of truth for markdownlint (used by .github/workflows/docs.yml
+  // via markdownlint-cli2-action). Rules and ignores were previously split across
+  // .markdownlint.json, a UTF-16-encoded .markdownlint.yaml, and .markdownlintignore.
+  "config": {
+    "default": true,
+    "MD003": false,
+    "MD013": false,
+    "MD022": false,
+    "MD024": { "siblings_only": true },
+    "MD025": false,
+    "MD033": false,
+    "MD034": false,
+    "MD036": false,
+    "MD040": false,
+    "MD060": false
+  },
+  "ignores": [
+    "**/node_modules/**",
+    "**/target/**",
+    "**/test-results/**",
+    "**/playwright-report/**",
+    ".git/**",
+    "POLLEK_DEK_RELEASE_READINESS_PLAN.md"
+  ]
 }

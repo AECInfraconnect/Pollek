@@ -7,16 +7,19 @@ use uuid::Uuid;
 
 #[allow(clippy::print_stdout)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Keep every artifact this demo produces (wrapped key + spool segment) inside a
+    // dedicated temp working directory, so running it never litters the current
+    // directory or the repository root.
+    let work_dir = std::env::temp_dir().join("dek-spool-demo");
+    std::fs::create_dir_all(&work_dir)?;
+    println!("Demo working directory: {}", work_dir.display());
+
     println!("Initialize OS-specific KeyStore...");
-
     #[cfg(windows)]
-    let store = DefaultOsKeyStore::new(std::path::PathBuf::from("master.key.wrapped"));
-
-    #[cfg(target_os = "linux")]
-    let store = DefaultOsKeyStore::new(std::path::PathBuf::from("master.key.fallback"));
-
-    #[cfg(target_os = "macos")]
-    let store = DefaultOsKeyStore::new(std::path::PathBuf::from("master.key.fallback"));
+    let key_path = work_dir.join("master.key.wrapped");
+    #[cfg(not(windows))]
+    let key_path = work_dir.join("master.key.fallback");
+    let store = DefaultOsKeyStore::new(key_path);
 
     let key_manager = SpoolKeyManager::new(store);
     let active_key = key_manager.active_aead_key()?;
@@ -41,8 +44,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }),
     };
 
-    let spool_file = std::path::Path::new("seg-demo.pds");
-    let mut writer = SegmentWriter::create(spool_file, "tnt_demo", "dev_demo", "seg_demo_001")?;
+    let spool_file = work_dir.join("seg-demo.pds");
+    let mut writer = SegmentWriter::create(&spool_file, "tnt_demo", "dev_demo", "seg_demo_001")?;
 
     println!("Appending encrypted event to {}...", spool_file.display());
     writer.append_event(&active_key, &event)?;
