@@ -1333,6 +1333,7 @@ export interface WorkloadIdentity {
     environment_id: string;
   };
   transport: {
+    mode?: "mtls" | "bearer";
     mtls_ready: boolean;
     svid_present: boolean;
     private_key_present: boolean;
@@ -1352,6 +1353,7 @@ export interface WorkloadIdentity {
   };
   user_identity: {
     oauth_configured: boolean;
+    auth_mechanism?: "private_key_jwt" | "client_credentials" | "static_bearer" | "none";
     oidc_issuer?: string | null;
     oidc_client_id?: string | null;
     auth_subject?: string | null;

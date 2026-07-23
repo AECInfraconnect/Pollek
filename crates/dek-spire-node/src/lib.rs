@@ -22,9 +22,11 @@ use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
 pub mod jwt_svid;
+pub mod mtls;
 pub mod svid_info;
 pub mod trust_bundle;
 
+pub use mtls::{client_from_identity_dir, identity_present, mtls_config};
 pub use svid_info::{describe_svid, SvidInfo};
 pub use trust_bundle::{
     fetch_trust_bundle, install_root, spawn_trust_bundle_poller, TrustBundleResponse,

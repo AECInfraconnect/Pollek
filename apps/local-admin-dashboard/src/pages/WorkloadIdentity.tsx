@@ -18,6 +18,19 @@ import { Badge } from "../components/ui/Badge";
 import { IdentityApi, type WorkloadIdentity } from "../services/api";
 import { cn } from "../lib/utils";
 
+function authMechanismLabel(m?: string): string {
+  switch (m) {
+    case "private_key_jwt":
+      return "private_key_jwt (JWT-SVID)";
+    case "client_credentials":
+      return "client_credentials (shared secret)";
+    case "static_bearer":
+      return "static bearer token";
+    default:
+      return "none (dev)";
+  }
+}
+
 function expiryLabel(seconds?: number, expired?: boolean): string {
   if (expired) return "expired";
   if (seconds == null) return "—";
@@ -140,6 +153,13 @@ export function WorkloadIdentity() {
                     : "No SVID provisioned yet. The device enrolls with a join token and receives an SVID from Pollek Cloud."}
                 </p>
               )}
+              <Row label="Transport">
+                <Badge variant={tr?.mode === "mtls" ? "ok" : "idle"}>
+                  {tr?.mode === "mtls"
+                    ? "mutual TLS (SVID client cert)"
+                    : "bearer (pre-enrollment)"}
+                </Badge>
+              </Row>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <MatBadge ok={tr?.svid_present} label="SVID cert" icon={Fingerprint} />
                 <MatBadge ok={tr?.private_key_present} label="Private key" icon={KeyRound} />
@@ -165,6 +185,11 @@ export function WorkloadIdentity() {
               <Row label="Configured">
                 <Badge variant={ui?.oauth_configured ? "ok" : "degraded"}>
                   {ui?.oauth_configured ? "yes" : "no"}
+                </Badge>
+              </Row>
+              <Row label="Auth">
+                <Badge variant={ui?.auth_mechanism === "private_key_jwt" ? "ok" : "idle"}>
+                  {authMechanismLabel(ui?.auth_mechanism)}
                 </Badge>
               </Row>
               <Row label="OIDC issuer">
