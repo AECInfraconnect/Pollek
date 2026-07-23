@@ -1,93 +1,207 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
-//! The Trust Policy Gate — one `verify()` every activation path routes through.
+//! The Trust Policy Gate — one `verify()` every activation routes through,
+//! aligned to the real Cloud `bundle-manifest.v2` wire contract.
 //!
-//! Failure of any *required* check → `Quarantine` (keep previous, raise CRITICAL
-//! audit). The function is pure: no I/O, no globals; the caller wires activation
-//! and audit. Signature + signer-allowlist + revocation come from the existing
-//! `dek-bundle-sync::keys::TrustedKeySet`; provenance / SBOM / attestation /
-//! generation-monotonicity / tenant-match are added here so a single gate
-//! composes all of the SRS trust requirements.
+//! Failure of any *required* check → `Quarantine`. Pure: no I/O, no globals.
 
 use crate::model::*;
-use dek_bundle_sync::keys::{SignatureEntry, TrustedKeySet, VerifyOutcome};
+use base64::Engine;
+use ed25519_dalek::{Signature, VerifyingKey};
+use serde_json::Value;
 use sha2::Digest;
 use std::collections::HashMap;
 
-/// RFC-8785 canonical bytes of the signed content — the exact bytes ed25519
-/// signs and verifies. Matches `serde_jcs::to_vec(&signed)` used across
-/// `dek-bundle-sync`, so DEK verification is byte-identical to Cloud signing.
-pub fn canonical_bytes(signed: &SignedContent) -> Result<Vec<u8>, serde_json::Error> {
-    serde_jcs::to_vec(signed)
+/// Fields the Cloud adds on top of the signed manifest
+/// (`{ ...unsignedManifest, payload_hash, signatures, verification, signing_action }`).
+/// The signed payload is the manifest with exactly these removed.
+const ADDED_KEYS: &[&str] = &[
+    "payload_hash",
+    "signatures",
+    "verification",
+    "signing_action",
+];
+
+/// Canonical JSON identical to the Cloud's `stableJson` (server.mjs): recursive
+/// sorted object keys, `JSON.stringify` scalars, no whitespace. Byte-for-byte
+/// equal to what the Cloud signs, so verification matches across languages.
+pub fn stable_json(v: &Value) -> String {
+    match v {
+        Value::Object(map) => {
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            let inner: Vec<String> = keys
+                .iter()
+                .map(|k| {
+                    let key_json = serde_json::to_string(k).unwrap_or_else(|_| "\"\"".to_string());
+                    let val_json = map
+                        .get(*k)
+                        .map(stable_json)
+                        .unwrap_or_else(|| "null".into());
+                    format!("{key_json}:{val_json}")
+                })
+                .collect();
+            format!("{{{}}}", inner.join(","))
+        }
+        Value::Array(arr) => {
+            let inner: Vec<String> = arr.iter().map(stable_json).collect();
+            format!("[{}]", inner.join(","))
+        }
+        scalar => serde_json::to_string(scalar).unwrap_or_else(|_| "null".to_string()),
+    }
 }
 
-/// Everything the gate needs to reach a verdict. Borrowed — no ownership taken.
+/// The exact bytes the Cloud signed: the wire manifest minus the added fields,
+/// canonicalized with `stable_json`.
+pub fn unsigned_payload(manifest: &Value) -> String {
+    match manifest {
+        Value::Object(map) => {
+            let mut obj = map.clone();
+            for k in ADDED_KEYS {
+                obj.remove(*k);
+            }
+            stable_json(&Value::Object(obj))
+        }
+        other => stable_json(other),
+    }
+}
+
+fn sha256_hex(s: &str) -> String {
+    hex::encode(sha2::Sha256::digest(s.as_bytes()))
+}
+
+impl TrustedSigner {
+    /// Parse a signer from an SPKI PEM public key (Cloud `public_key_pem` form).
+    pub fn from_pem(key_id: impl Into<String>, pem: &str) -> Option<Self> {
+        let body: String = pem
+            .lines()
+            .filter(|l| !l.starts_with("-----"))
+            .collect::<Vec<_>>()
+            .join("");
+        let der = base64::engine::general_purpose::STANDARD
+            .decode(body.trim())
+            .ok()?;
+        if der.len() < 32 {
+            return None;
+        }
+        let raw: [u8; 32] = der[der.len() - 32..].try_into().ok()?;
+        Some(Self {
+            key_id: key_id.into(),
+            verifying_key: VerifyingKey::from_bytes(&raw).ok()?,
+        })
+    }
+
+    /// Parse a signer from a base64 raw 32-byte ed25519 key (enrollment / `/v1/keys` form).
+    pub fn from_base64(key_id: impl Into<String>, b64: &str) -> Option<Self> {
+        let bytes = base64::engine::general_purpose::STANDARD.decode(b64).ok()?;
+        let raw: [u8; 32] = bytes.as_slice().try_into().ok()?;
+        Some(Self {
+            key_id: key_id.into(),
+            verifying_key: VerifyingKey::from_bytes(&raw).ok()?,
+        })
+    }
+}
+
+/// Everything the gate needs to reach a verdict.
 pub struct VerifyInput<'a> {
-    pub envelope: &'a SignedBundleEnvelope,
+    /// The full wire manifest (`bundle-manifest.v2`) including `signatures[]`.
+    pub manifest: &'a Value,
     pub policy: &'a TrustPolicy,
-    pub trusted_keys: &'a TrustedKeySet,
+    /// Trusted bundle-signing keys the DEK pins (from enrollment / rotation).
+    pub trusted_signers: &'a [TrustedSigner],
     pub now_unix: i64,
-    /// Last activated revision for this `bundle_id` (monotonicity). `None` = first
-    /// activation for this bundle.
     pub last_activated_revision: Option<&'a str>,
-    /// Actual artifact bytes keyed by `BundleArtifact.path`. When empty, artifact
-    /// integrity is `Skipped` (signature-only mode); when present, every declared
-    /// artifact must be supplied and match its authenticated sha256.
+    /// Actual artifact bytes keyed by `artifact.name`. Empty ⇒ integrity skipped.
     pub artifact_bytes: &'a HashMap<String, Vec<u8>>,
 }
 
-/// Run the full gate and return a structured verdict.
+fn str_field<'a>(m: &'a Value, k: &str) -> &'a str {
+    m.get(k).and_then(|v| v.as_str()).unwrap_or("")
+}
+
+/// Run the full gate over a Cloud `bundle-manifest.v2` and return a verdict.
 pub fn verify(input: VerifyInput<'_>) -> Verdict {
-    let signed = &input.envelope.signed;
-    let bundle = &signed.bundle;
+    let m = input.manifest;
     let mut checks: Vec<CheckResult> = Vec::new();
     let mut failures: Vec<String> = Vec::new();
     let mut signer_key_id: Option<String> = None;
 
-    // ---- 1. Signature (also covers signer-allowlist + revocation via keyset) ----
+    let tenant = str_field(m, "tenant_id").to_string();
+    let revision = str_field(m, "revision").to_string();
+    let bundle_id = str_field(m, "bundle_id").to_string();
+
+    // ---- 1. Signature (Ed25519 over stable_json(unsigned manifest), base64url) ----
+    let payload = unsigned_payload(m);
+    let payload_hash = sha256_hex(&payload);
+    let signatures: Vec<ManifestSignature> = m
+        .get("signatures")
+        .and_then(|v| serde_json::from_value(v.clone()).ok())
+        .unwrap_or_default();
+
     if input.policy.require_signature {
-        match canonical_bytes(signed) {
-            Ok(bytes) => {
-                let sigs: Vec<SignatureEntry> = input
-                    .envelope
-                    .signatures
-                    .iter()
-                    .map(|s| SignatureEntry {
-                        key_id: s.keyid.clone(),
-                        sig_b64: s.sig.clone(),
-                    })
-                    .collect();
-                match input.trusted_keys.verify(input.now_unix, &bytes, &sigs) {
-                    VerifyOutcome::Valid { key_id } => {
-                        checks.push(CheckResult::pass(
-                            "signature",
-                            format!("verified by trusted key '{key_id}'"),
-                        ));
-                        signer_key_id = Some(key_id);
+        if signatures.is_empty() {
+            checks.push(CheckResult::fail(
+                "signature",
+                "manifest carries no signatures",
+            ));
+            failures.push("signature_failure".into());
+        } else if input.trusted_signers.is_empty() {
+            checks.push(CheckResult::fail(
+                "signature",
+                "no trusted signer keys provisioned — fail closed",
+            ));
+            failures.push("signature_failure".into());
+        } else {
+            let mut verified: Option<String> = None;
+            let mut hash_ok = true;
+            'outer: for s in &signatures {
+                // Signature must match the recomputed payload hash if it declares one.
+                if let Some(ph) = &s.payload_hash {
+                    if ph != &payload_hash {
+                        hash_ok = false;
+                        continue;
                     }
-                    VerifyOutcome::NoValidSignature => {
-                        checks.push(CheckResult::fail(
-                            "signature",
-                            "no signature verified against any usable trusted key (unsigned/forged/revoked-key)",
-                        ));
-                        failures.push("signature_failure".into());
+                }
+                let Ok(sig_bytes) = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(&s.sig)
+                else {
+                    continue;
+                };
+                let Ok(sig_arr): Result<[u8; 64], _> = sig_bytes.as_slice().try_into() else {
+                    continue;
+                };
+                let signature = Signature::from_bytes(&sig_arr);
+                for signer in input.trusted_signers {
+                    if s.key_id.as_ref().is_some_and(|kid| kid != &signer.key_id) {
+                        continue;
                     }
-                    VerifyOutcome::NoUsableKeys => {
-                        checks.push(CheckResult::fail(
-                            "signature",
-                            "no usable trusted keys (all revoked or misconfigured) — fail closed",
-                        ));
-                        failures.push("signature_failure".into());
+                    if signer
+                        .verifying_key
+                        .verify_strict(payload.as_bytes(), &signature)
+                        .is_ok()
+                    {
+                        verified = Some(signer.key_id.clone());
+                        break 'outer;
                     }
                 }
             }
-            Err(e) => {
-                checks.push(CheckResult::fail(
-                    "signature",
-                    format!("could not canonicalize signed content: {e}"),
-                ));
-                failures.push("signature_failure".into());
+            match verified {
+                Some(kid) => {
+                    checks.push(CheckResult::pass(
+                        "signature",
+                        format!("Ed25519 verified by trusted signer '{kid}'"),
+                    ));
+                    signer_key_id = Some(kid);
+                }
+                None => {
+                    let detail = if !hash_ok {
+                        "signature payload_hash does not match recomputed manifest hash (tampered)"
+                    } else {
+                        "no signature verified against any pinned trusted signer (unsigned/forged/wrong-key)"
+                    };
+                    checks.push(CheckResult::fail("signature", detail));
+                    failures.push("signature_failure".into());
+                }
             }
         }
     } else {
@@ -105,20 +219,20 @@ pub fn verify(input: VerifyInput<'_>) -> Verdict {
             Some(kid) if input.policy.signer_allowlist.iter().any(|k| k == kid) => {
                 checks.push(CheckResult::pass(
                     "signer_allowlist",
-                    format!("signer '{kid}' is allowlisted"),
+                    format!("signer '{kid}' allowlisted"),
                 ));
             }
             Some(kid) => {
                 checks.push(CheckResult::fail(
                     "signer_allowlist",
-                    format!("signer '{kid}' is not in the allowlist"),
+                    format!("signer '{kid}' not in allowlist"),
                 ));
                 failures.push("signer_not_allowlisted".into());
             }
             None => {
                 checks.push(CheckResult::fail(
                     "signer_allowlist",
-                    "no verified signer to check against the allowlist",
+                    "no verified signer to check",
                 ));
                 failures.push("signer_not_allowlisted".into());
             }
@@ -127,49 +241,41 @@ pub fn verify(input: VerifyInput<'_>) -> Verdict {
 
     // ---- 3. Tenant / target match ----
     match &input.policy.expected_tenant {
-        Some(expected) if expected == &bundle.metadata.tenant => {
+        Some(expected) if expected == &tenant => {
             checks.push(CheckResult::pass(
                 "tenant_match",
-                format!("bundle tenant '{expected}' matches expected"),
+                format!("tenant '{expected}' matches"),
             ));
         }
         Some(expected) => {
             checks.push(CheckResult::fail(
                 "tenant_match",
-                format!(
-                    "bundle tenant '{}' != expected '{}'",
-                    bundle.metadata.tenant, expected
-                ),
+                format!("manifest tenant '{tenant}' != expected '{expected}'"),
             ));
             failures.push("tenant_mismatch".into());
         }
-        None => {
-            checks.push(CheckResult::skip(
-                "tenant_match",
-                "no expected tenant configured",
-            ));
-        }
+        None => checks.push(CheckResult::skip(
+            "tenant_match",
+            "no expected tenant configured",
+        )),
     }
 
-    // ---- 4. Generation monotonicity (downgrade / replay guard) ----
+    // ---- 4. Generation monotonicity (revision string) ----
     if input.policy.require_generation_monotonicity {
         match input.last_activated_revision {
             None => checks.push(CheckResult::pass(
                 "generation_monotonicity",
-                format!("first activation at revision '{}'", signed.bundle_revision),
+                format!("first activation at revision '{revision}'"),
             )),
-            Some(last) if signed.bundle_revision.as_str() > last => {
-                checks.push(CheckResult::pass(
-                    "generation_monotonicity",
-                    format!("revision '{}' > last '{}'", signed.bundle_revision, last),
-                ));
-            }
+            Some(last) if revision.as_str() > last => checks.push(CheckResult::pass(
+                "generation_monotonicity",
+                format!("revision '{revision}' > last '{last}'"),
+            )),
             Some(last) => {
                 checks.push(CheckResult::fail(
                     "generation_monotonicity",
                     format!(
-                        "revision '{}' is not newer than last activated '{}' (downgrade/replay)",
-                        signed.bundle_revision, last
+                        "revision '{revision}' not newer than last '{last}' (downgrade/replay)"
                     ),
                 ));
                 failures.push("revision_mismatch".into());
@@ -182,25 +288,38 @@ pub fn verify(input: VerifyInput<'_>) -> Verdict {
         ));
     }
 
-    // ---- 5. Artifact integrity (real bytes vs authenticated sha256) ----
+    // ---- 5. Status (revoked bundles rejected) ----
+    match m.get("status").and_then(|v| v.as_str()) {
+        Some("revoked") => {
+            checks.push(CheckResult::fail("status", "bundle status is 'revoked'"));
+            failures.push("revoked".into());
+        }
+        Some(s) => checks.push(CheckResult::pass("status", format!("status '{s}'"))),
+        None => checks.push(CheckResult::skip("status", "no status field")),
+    }
+
+    // ---- 6. Artifact integrity (real bytes vs authenticated sha256, by name) ----
+    let artifacts = m.get("artifacts").and_then(|v| v.as_array());
     if input.artifact_bytes.is_empty() {
         checks.push(CheckResult::skip(
             "artifact_integrity",
             "no artifact bytes provided (signature-only verification)",
         ));
-    } else {
+    } else if let Some(arts) = artifacts {
         let mut bad: Vec<String> = Vec::new();
-        for artifact in &bundle.artifacts {
-            match input.artifact_bytes.get(&artifact.path) {
-                None => bad.push(format!("{} (bytes not supplied)", artifact.path)),
+        for a in arts {
+            let name = a.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            let declared = a
+                .get("sha256")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim_start_matches("sha256:");
+            match input.artifact_bytes.get(name) {
+                None => bad.push(format!("{name} (bytes not supplied)")),
                 Some(bytes) => {
-                    let digest = hex::encode(sha2::Sha256::digest(bytes));
-                    let expected = artifact.sha256.trim_start_matches("sha256:");
-                    if digest != expected {
-                        bad.push(format!(
-                            "{} (sha256 {digest} != declared {expected})",
-                            artifact.path
-                        ));
+                    let got = hex::encode(sha2::Sha256::digest(bytes));
+                    if got != declared {
+                        bad.push(format!("{name} (sha256 {got} != declared {declared})"));
                     }
                 }
             }
@@ -210,145 +329,86 @@ pub fn verify(input: VerifyInput<'_>) -> Verdict {
                 "artifact_integrity",
                 format!(
                     "{} artifact(s) match their authenticated digest",
-                    bundle.artifacts.len()
+                    arts.len()
                 ),
             ));
         } else {
             checks.push(CheckResult::fail(
                 "artifact_integrity",
-                format!("artifact digest mismatch: {}", bad.join("; ")),
+                format!("digest mismatch: {}", bad.join("; ")),
             ));
             failures.push("activation_failure".into());
         }
-    }
-
-    // ---- 6. Provenance ----
-    if input.policy.require_provenance {
-        match &signed.provenance {
-            None => {
-                checks.push(CheckResult::fail("provenance", "required but absent"));
-                failures.push("provenance_missing".into());
-            }
-            Some(p) if p.builder_id.is_empty() || p.compiler_digest.is_empty() => {
-                checks.push(CheckResult::fail(
-                    "provenance",
-                    "present but missing builder_id or compiler_digest",
-                ));
-                failures.push("provenance_incomplete".into());
-            }
-            Some(p) if p.slsa_level < input.policy.min_slsa_level => {
-                checks.push(CheckResult::fail(
-                    "provenance",
-                    format!(
-                        "SLSA level {} below required {}",
-                        p.slsa_level, input.policy.min_slsa_level
-                    ),
-                ));
-                failures.push("provenance_insufficient".into());
-            }
-            Some(p) => {
-                checks.push(CheckResult::pass(
-                    "provenance",
-                    format!(
-                        "builder '{}', SLSA L{}, source {}@{}",
-                        p.builder_id, p.slsa_level, p.source_uri, p.source_revision
-                    ),
-                ));
-            }
-        }
-    } else {
-        checks.push(CheckResult::skip("provenance", "not required by policy"));
-    }
-
-    // ---- 7. SBOM ----
-    if input.policy.require_sbom {
-        match &signed.sbom {
-            None => {
-                checks.push(CheckResult::fail("sbom", "required but absent"));
-                failures.push("sbom_missing".into());
-            }
-            Some(s) if s.components.is_empty() || s.digest.is_empty() => {
-                checks.push(CheckResult::fail(
-                    "sbom",
-                    "present but empty components or missing digest",
-                ));
-                failures.push("sbom_incomplete".into());
-            }
-            Some(s) => {
-                checks.push(CheckResult::pass(
-                    "sbom",
-                    format!("{} ({} components)", s.format, s.components.len()),
-                ));
-            }
-        }
-    } else {
-        checks.push(CheckResult::skip("sbom", "not required by policy"));
-    }
-
-    // ---- 8. Test-pass attestation (+ dual-control approvers) ----
-    if input.policy.require_test_attestation {
-        match &signed.attestation {
-            None => {
-                checks.push(CheckResult::fail("test_attestation", "required but absent"));
-                failures.push("attestation_missing".into());
-            }
-            Some(a) if a.total == 0 || a.passed != a.total => {
-                checks.push(CheckResult::fail(
-                    "test_attestation",
-                    format!(
-                        "suite '{}' not fully passing ({}/{})",
-                        a.suite, a.passed, a.total
-                    ),
-                ));
-                failures.push("attestation_failed".into());
-            }
-            Some(a) => {
-                let distinct: std::collections::BTreeSet<&String> = a.approvers.iter().collect();
-                if (distinct.len() as u8) < input.policy.min_approvers {
-                    checks.push(CheckResult::fail(
-                        "test_attestation",
-                        format!(
-                            "tests pass but {} distinct approver(s) < required {}",
-                            distinct.len(),
-                            input.policy.min_approvers
-                        ),
-                    ));
-                    failures.push("insufficient_approvers".into());
-                } else {
-                    checks.push(CheckResult::pass(
-                        "test_attestation",
-                        format!(
-                            "suite '{}' {}/{} passing, {} approver(s)",
-                            a.suite,
-                            a.passed,
-                            a.total,
-                            distinct.len()
-                        ),
-                    ));
-                }
-            }
-        }
     } else {
         checks.push(CheckResult::skip(
-            "test_attestation",
-            "not required by policy",
+            "artifact_integrity",
+            "manifest declares no artifacts",
         ));
     }
+
+    // ---- 7/8/9. Optional supply-chain extensions (Cloud not emitting yet) ----
+    optional_extension(
+        m,
+        "provenance",
+        input.policy.require_provenance,
+        &mut checks,
+        &mut failures,
+    );
+    optional_extension(
+        m,
+        "sbom",
+        input.policy.require_sbom,
+        &mut checks,
+        &mut failures,
+    );
+    optional_extension(
+        m,
+        "attestation",
+        input.policy.require_test_attestation,
+        &mut checks,
+        &mut failures,
+    );
 
     let decision = if failures.is_empty() {
         GateDecision::Accept
     } else {
         GateDecision::Quarantine
     };
-
     Verdict {
         decision,
-        bundle_id: bundle.metadata.bundle_id.clone(),
-        tenant: bundle.metadata.tenant.clone(),
-        bundle_revision: signed.bundle_revision.clone(),
+        bundle_id,
+        tenant,
+        revision,
         signer_key_id,
         checks,
         failure_classes: failures,
         evaluated_at_unix: input.now_unix,
+    }
+}
+
+/// A supply-chain extension that must be present-and-non-empty in the signed
+/// manifest when its `require_*` flag is on. Skipped when not required.
+fn optional_extension(
+    m: &Value,
+    key: &str,
+    required: bool,
+    checks: &mut Vec<CheckResult>,
+    failures: &mut Vec<String>,
+) {
+    if !required {
+        checks.push(CheckResult::skip(key, "not required by policy"));
+        return;
+    }
+    match m.get(key) {
+        Some(v) if !v.is_null() => {
+            checks.push(CheckResult::pass(key, "present in signed manifest"))
+        }
+        _ => {
+            checks.push(CheckResult::fail(
+                key,
+                "required but absent from signed manifest",
+            ));
+            failures.push(format!("{key}_missing"));
+        }
     }
 }

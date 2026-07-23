@@ -6,7 +6,7 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 rust-version.workspace = true
-description = "Single Trust Policy Gate: the one activation choke point every Pollek bundle must pass (signature + provenance + SBOM + test-attestation + signer-allowlist + revocation + generation-monotonicity + tenant/target match)."
+description = "Single Trust Policy Gate: the one activation choke point every Pollek bundle-manifest.v2 must pass (signature + signer-allowlist + revocation + generation-monotonicity + tenant/target match + artifact integrity, and optional provenance/SBOM/attestation)."
 
 [lints]
 workspace = true
@@ -14,12 +14,7 @@ workspace = true
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-serde_jcs = "0.2.0"
 sha2 = "0.10"
 hex = "0.4"
-dek-bundle-format = { path = "../dek-bundle-format" }
-dek-bundle-sync = { path = "../dek-bundle-sync" }
-
-[dev-dependencies]
-ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+ed25519-dalek = "2.1"
 base64 = "0.22.1"

@@ -175,7 +175,7 @@ export function TrustProvenance() {
             ) : (
               <div className="space-y-4">
                 {verdicts.map((v) => (
-                  <VerdictCard key={`${v.bundle_id}:${v.bundle_revision}`} verdict={v} />
+                  <VerdictCard key={`${v.bundle_id}:${v.revision}`} verdict={v} />
                 ))}
               </div>
             )}
@@ -203,7 +203,7 @@ function VerdictCard({ verdict }: { verdict: TrustVerdict }) {
           <div>
             <CardTitle className="text-base">{verdict.bundle_id}</CardTitle>
             <p className="font-mono text-xs text-muted-foreground">
-              {verdict.bundle_revision}
+              {verdict.revision}
             </p>
           </div>
         </div>

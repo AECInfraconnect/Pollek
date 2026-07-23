@@ -1379,7 +1379,7 @@ export interface TrustVerdict {
   decision: TrustDecision;
   bundle_id: string;
   tenant: string;
-  bundle_revision: string;
+  revision: string;
   signer_key_id?: string | null;
   checks: TrustCheck[];
   failure_classes: string[];
@@ -1408,10 +1408,10 @@ export interface TrustProvenanceView {
 
 export const TrustApi = {
   get: () => defaultClient.fetchApi<TrustProvenanceView>("/trust"),
-  verify: (envelope: unknown, artifacts?: Record<string, string>) =>
+  verify: (manifest: unknown, artifacts?: Record<string, string>) =>
     defaultClient.fetchApi<{ tenant: string; verdict: TrustVerdict }>(
       "/trust/verify",
-      { method: "POST", body: JSON.stringify({ envelope, artifacts: artifacts ?? {} }) },
+      { method: "POST", body: JSON.stringify({ manifest, artifacts: artifacts ?? {} }) },
     ),
 };
 
