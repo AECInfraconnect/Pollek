@@ -11,10 +11,10 @@ use tower_http::services::{ServeDir, ServeFile};
 
 use crate::{
     activity_api, agent_discovery_api, agent_inventory_api, auth, browser_extension_api, bundle,
-    connectors, consent_api, contract_api, correlation, deployment_api, detection_api, discovery,
-    enforcement_plan_api, entity_graph, hotreload_api, inventory_api, local_observe,
-    observation_api, observe_accuracy, pdp_cloud_api, pdp_routing_api, pdp_runtime_api,
-    pep_capabilities_api, plugin_api, policy, policy_deploy_api, policy_first_api,
+    connectors, consent_api, contract_adapter, contract_api, correlation, deployment_api,
+    detection_api, discovery, enforcement_plan_api, entity_graph, hotreload_api, inventory_api,
+    local_observe, observation_api, observe_accuracy, pdp_cloud_api, pdp_routing_api,
+    pdp_runtime_api, pep_capabilities_api, plugin_api, policy, policy_deploy_api, policy_first_api,
     policy_presets_api, policy_suggestions_api, preset_deploy_api, preset_deploy_wizard_api,
     prompt_guard_api, push, recommendation_api, registry, state::AppState, telemetry, usage_api,
 };
@@ -78,6 +78,7 @@ pub fn create_app(state: AppState, static_dir: &str, metrics_handle: PrometheusH
         .merge(observation_api::router())
         .merge(correlation::router())
         .merge(contract_api::router())
+        .merge(contract_adapter::router())
         .merge(hotreload_api::router())
         .merge(usage_api::router())
         .merge(local_observe::router())

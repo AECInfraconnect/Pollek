@@ -981,6 +981,17 @@ export class ControlPlaneClient {
     });
   }
 
+  async getAdapterInfo(): Promise<ContractAdapterInfo> {
+    return this.fetchApi<ContractAdapterInfo>("/contract/adapter");
+  }
+
+  async adaptBundle(bundle: unknown): Promise<ContractAdaptationResult> {
+    return this.fetchApi<ContractAdaptationResult>("/contract/adapt", {
+      method: "POST",
+      body: JSON.stringify({ bundle }),
+    });
+  }
+
   async getAiUsageSummary(params?: {
     from?: string;
     to?: string;
@@ -1292,10 +1303,33 @@ export interface ContractEvaluationResponse {
   verdict: CompatibilityVerdict;
 }
 
+export interface ContractAdapterInfo {
+  loaded: boolean;
+  plugin_id?: string;
+  version?: string;
+  wasm_sha256?: string;
+  wasm_bytes?: number;
+  runtime?: string;
+  error?: string;
+}
+
+export interface ContractAdaptationResult {
+  schema_version: string;
+  adapter: { plugin_id: string; version: string; wasm_sha256: string };
+  to_contract: string;
+  adapted: boolean;
+  changes: string[];
+  migrated_bundle: unknown;
+  verdict_before: CompatibilityVerdict | null;
+  verdict_after: CompatibilityVerdict | null;
+}
+
 export const ContractApi = {
   get: () => defaultClient.getDekContract(),
   evaluate: (compat: BundleCompatibility) =>
     defaultClient.evaluateContract(compat),
+  adapterInfo: () => defaultClient.getAdapterInfo(),
+  adapt: (bundle: unknown) => defaultClient.adaptBundle(bundle),
 };
 
 export interface DefinitionState {

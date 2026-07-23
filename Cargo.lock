@@ -4462,6 +4462,7 @@ dependencies = [
  "dek-recommend",
  "dek-secure-spool",
  "dek-telemetry",
+ "dek-wasm-host",
  "ed25519-dalek",
  "futures-util",
  "getrandom 0.2.17",

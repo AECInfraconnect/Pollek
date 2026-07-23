@@ -6,6 +6,7 @@ pub mod bundle;
 pub mod compiler;
 pub mod config;
 pub mod connectors;
+pub mod contract_adapter;
 pub mod contract_api;
 pub mod correlation;
 pub mod discovery;
