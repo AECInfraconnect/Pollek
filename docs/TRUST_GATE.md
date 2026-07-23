@@ -107,14 +107,21 @@ generation monotonicity.
 }
 ```
 
-## Local trust material
+## Trust anchor (single source of truth)
+
+The gate verifies against the **same key the rest of the DEK trusts** — the
+local control-plane signer (`state.signer`, a `LocalSigner`). This is the exact
+key `GET /v1/tenants/:tenant/bundle/trusted-keys` publishes and the fleet's
+bundle-sync path verifies against. There is **no separate key file**: cutover
+Local→Cloud only swaps which key populates this anchor (via `/v1/keys` rotation
+in Phase B), never the gate.
+
+## Runtime state
 
 Under `$DEK_LCP_DATA/trust/`:
 
-- `trusted-keys.json` — a `dek-bundle-sync` `TrustedKeySet` (ed25519, rotation +
-  revocation). If absent, the gate fails closed with `NoUsableKeys`.
-- `trust-policy.json` — the local `TrustPolicy` (defaults to the fail-closed
-  baseline).
+- `trust-policy.json` — optional operator override of the `TrustPolicy`; absent
+  ⇒ the fail-closed default (signature + generation monotonicity required).
 - `verdicts.json` — latest verdict per bundle (read by `GET .../trust`).
 - `activated.json` — last activated revision per bundle (the monotonicity guard).
 - `audit.log` — hash-linked verdict chain (`GENESIS` → entry → entry).

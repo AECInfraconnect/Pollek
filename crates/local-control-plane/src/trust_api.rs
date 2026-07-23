@@ -16,10 +16,15 @@
 //!   * `GET  /v1/tenants/:tenant/trust` — the effective policy, key-provisioning
 //!     status, and the latest verdict per bundle.
 //!
-//! Trust material lives under `$DEK_LCP_DATA/trust/`:
-//!   `trusted-keys.json` (dek-bundle-sync TrustedKeySet), `trust-policy.json`
-//!   (dek-trust-gate TrustPolicy; default if absent), `verdicts.json`,
-//!   `activated.json`, `audit.log` (hash chain).
+//! The gate verifies against the **single source of truth** for keys the DEK
+//! trusts: the local control-plane signer (`state.signer`) — the exact same key
+//! `GET /v1/tenants/:tenant/bundle/trusted-keys` publishes and the fleet verifies
+//! bundles against. There is no separate key file; when Cloud key rotation lands
+//! (Phase B) the rotated `/v1/keys` set extends this same anchor.
+//!
+//! Runtime state lives under `$DEK_LCP_DATA/trust/`: `trust-policy.json`
+//! (operator override of the fail-closed default `TrustPolicy`; optional),
+//! `verdicts.json`, `activated.json`, `audit.log` (hash chain).
 
 use crate::state::AppState;
 use axum::{
@@ -30,7 +35,7 @@ use axum::{
     Json, Router,
 };
 use base64::Engine;
-use dek_bundle_sync::keys::TrustedKeySet;
+use dek_bundle_sync::keys::{KeyStatus, TrustedKey, TrustedKeySet};
 use dek_secure_spool::audit::AuditEntry;
 use dek_trust_gate::{verify, SignedBundleEnvelope, TrustPolicy, Verdict, VerifyInput};
 use serde::Deserialize;
@@ -56,13 +61,20 @@ fn now_unix() -> i64 {
         .unwrap_or(0)
 }
 
-/// Load the persisted trusted-key set (empty set if none — the gate then fails
-/// closed with `NoUsableKeys`, which is the correct posture, not a crash).
-fn load_keys(dir: &std::path::Path) -> TrustedKeySet {
-    std::fs::read(dir.join("trusted-keys.json"))
-        .ok()
-        .and_then(|b| serde_json::from_slice::<TrustedKeySet>(&b).ok())
-        .unwrap_or_default()
+/// The DEK's trusted key set = the single source of truth used everywhere else:
+/// the local control-plane signer. This is the same key `get_trusted_keys`
+/// (bundle API) publishes and the fleet verifies bundles against — cutover
+/// Local→Cloud only swaps which key populates this anchor, never the gate.
+fn trusted_keys(state: &AppState) -> TrustedKeySet {
+    TrustedKeySet {
+        keys: vec![TrustedKey {
+            key_id: state.signer.key_id.clone(),
+            public_b64: state.signer.public_key_b64(),
+            status: KeyStatus::Active,
+            not_before_unix: 0,
+            not_after_unix: 0,
+        }],
+    }
 }
 
 /// Load the local trust policy, defaulting to the fail-closed baseline
@@ -129,12 +141,12 @@ struct VerifyRequest {
 }
 
 async fn verify_bundle(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Path(tenant): Path<String>,
     Json(req): Json<VerifyRequest>,
 ) -> impl IntoResponse {
     let dir = trust_dir();
-    let keys = load_keys(&dir);
+    let keys = trusted_keys(&state);
     // The URL tenant is authoritative: pin the gate's expected tenant to it so a
     // bundle minted for another tenant cannot be activated here.
     let mut policy = load_policy(&dir);
@@ -191,13 +203,10 @@ async fn verify_bundle(
     (code, Json(json!({ "tenant": tenant, "verdict": verdict })))
 }
 
-async fn get_trust(
-    State(_state): State<AppState>,
-    Path(tenant): Path<String>,
-) -> impl IntoResponse {
+async fn get_trust(State(state): State<AppState>, Path(tenant): Path<String>) -> impl IntoResponse {
     let dir = trust_dir();
     let policy = load_policy(&dir);
-    let keys = load_keys(&dir);
+    let keys = trusted_keys(&state);
     let now = now_unix();
     let usable_keys = keys.usable_keys(now).count();
 
