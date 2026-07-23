@@ -642,10 +642,10 @@ mod tests {
         // No SVID ⇒ nothing to contradict ⇒ ok (bearer/dev).
         assert!(cfg_with("acme", None).assert_tenant_binding().is_ok());
         // SPIFFE tenant != request tenant ⇒ refuse (fail closed).
-        let err = cfg_with("acme", Some("spiffe://pollek.io/tenant/evil/device/d"))
-            .assert_tenant_binding()
-            .unwrap_err()
-            .to_string();
+        let result = cfg_with("acme", Some("spiffe://pollek.io/tenant/evil/device/d"))
+            .assert_tenant_binding();
+        assert!(result.is_err(), "expected fail-closed on tenant mismatch");
+        let err = result.err().map(|e| e.to_string()).unwrap_or_default();
         assert!(err.contains("tenant binding mismatch"), "{err}");
     }
 
