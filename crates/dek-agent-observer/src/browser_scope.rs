@@ -141,6 +141,7 @@ mod tests {
 
     fn event(payload: serde_json::Value) -> AgentObservationEvent {
         AgentObservationEvent {
+            process_signal: None,
             event_id: "evt".into(),
             tenant_id: "local".into(),
             trace_id: "trace".into(),

@@ -1923,6 +1923,7 @@ async fn record_resource_observation(
     let kind = string_field("kind").unwrap_or_else(|| "resource".to_string());
     let mode = string_field("mode").unwrap_or_else(|| "read".to_string());
     let event = AgentObservationEvent {
+        process_signal: None,
         event_id: format!("obs_{event_id}"),
         tenant_id: tenant.to_string(),
         trace_id: event_id.to_string(),

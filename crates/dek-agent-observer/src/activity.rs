@@ -210,6 +210,7 @@ mod tests {
 
     fn event(id: &str, timestamp: &str, allow: bool) -> AgentObservationEvent {
         AgentObservationEvent {
+            process_signal: None,
             event_id: id.to_string(),
             tenant_id: "local".into(),
             trace_id: format!("trace_{id}"),

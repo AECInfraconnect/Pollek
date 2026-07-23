@@ -32,6 +32,28 @@ pub struct AgentObservationEvent {
     pub latency_ms: Option<i64>,
     #[serde(default)]
     pub provider: Option<String>,
+
+    /// Raw runtime signal from a kernel/ETW/EndpointSecurity sensor, carried so
+    /// the [`crate::agent_correlator`] can attribute an agent-less event to a
+    /// discovered agent before it reaches the telemetry spool.
+    #[serde(default)]
+    pub process_signal: Option<ProcessSignal>,
+}
+
+/// Runtime process/flow signal captured by a low-level sensor (eBPF ring
+/// buffer, Windows ETW, macOS EndpointSecurity) *before* agent attribution.
+/// All fields are optional because different sensors expose different keys.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct ProcessSignal {
+    pub pid: Option<u32>,
+    pub process_name: Option<String>,
+    /// sha256 of the (normalized) executable path — the stable identity key.
+    pub exe_path_hash: Option<String>,
+    /// cgroup v2 id (Linux) or equivalent scope id.
+    pub cgroup_id: Option<u64>,
+    /// Network 5-tuple peer, when the signal came from a flow event.
+    pub remote_addr: Option<String>,
+    pub remote_port: Option<u16>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

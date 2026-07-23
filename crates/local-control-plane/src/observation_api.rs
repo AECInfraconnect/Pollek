@@ -39,8 +39,17 @@ async fn ingest_observation(
     // 1. Scope browser-hosted AI events to the same candidate id discovery uses.
     dek_agent_observer::browser_scope::apply_browser_scoped_agent_id(&mut ev);
 
-    // 2. Correlate Shadow Candidates
-    dek_agent_observer::correlate::correlate_shadow_candidate(&mut ev);
+    // 2. Correlate an agent-less signal to a discovered agent via the SSOT
+    //    process-identity bindings; fall back to a shadow candidate on a miss.
+    match crate::correlation::build_correlator(&state, &tenant).await {
+        Ok(correlator) => {
+            dek_agent_observer::correlate::correlate_event(&mut ev, &correlator);
+        }
+        Err(e) => {
+            tracing::warn!("correlator build failed, shadow-only: {}", e);
+            dek_agent_observer::correlate::correlate_shadow_candidate(&mut ev);
+        }
+    }
 
     // 3. Insert to DB
     if let Err(e) = state

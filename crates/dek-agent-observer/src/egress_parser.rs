@@ -117,6 +117,7 @@ pub fn llm_call_event(
 ) -> Option<AgentObservationEvent> {
     let (provider, usage) = parse_llm_usage(host, body)?;
     Some(AgentObservationEvent {
+        process_signal: None,
         event_id: uuid::Uuid::new_v4().to_string(),
         tenant_id: tenant.into(),
         trace_id: trace_id.into(),

@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Users,
+  Workflow,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -102,6 +103,14 @@ export const NAV: NavGroup[] = [
         th: "Observe Coverage",
         href: "/observe-coverage",
         icon: ShieldCheck,
+        modes: ALL,
+      },
+      {
+        id: "signal-correlation",
+        en: "Signal Correlation",
+        th: "การเชื่อมโยงสัญญาณ",
+        href: "/signal-correlation",
+        icon: Workflow,
         modes: ALL,
       },
       {

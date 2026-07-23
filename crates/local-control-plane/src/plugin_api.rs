@@ -1031,6 +1031,7 @@ async fn record_plugin_activity(
     });
     let event_id = format!("plugin-{action}-{plugin_id}-{}", now.timestamp_millis());
     let event = AgentObservationEvent {
+        process_signal: None,
         event_id: event_id.clone(),
         tenant_id: tenant.to_string(),
         trace_id: event_id.clone(),

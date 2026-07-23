@@ -493,6 +493,7 @@ mod tests {
     #[test]
     fn legacy_observation_maps_to_canonical_usage_event() {
         let event = AgentObservationEvent {
+            process_signal: None,
             event_id: "evt_1".to_string(),
             tenant_id: "local".to_string(),
             trace_id: "trace_1".to_string(),
