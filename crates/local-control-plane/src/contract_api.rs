@@ -134,7 +134,10 @@ fn push_unique(v: &mut Vec<String>, item: &str) {
     }
 }
 
-async fn get_contract(State(state): State<AppState>, Path(_tenant): Path<String>) -> impl IntoResponse {
+async fn get_contract(
+    State(state): State<AppState>,
+    Path(_tenant): Path<String>,
+) -> impl IntoResponse {
     let contract = build_dek_contract(&state).await;
     (
         StatusCode::OK,
