@@ -660,7 +660,7 @@ async fn merge_and_persist_candidate(
     Ok(())
 }
 
-async fn registered_agent_id_for_candidate(
+pub(crate) async fn registered_agent_id_for_candidate(
     st: &AppState,
     tenant: &str,
     candidate: &dek_agent_discovery::model::DiscoveredAgentCandidateV2,

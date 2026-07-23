@@ -990,6 +990,7 @@ async fn handle_mcp_request(
             let is_resource = action == "resources/read" || action == "resources/list";
 
             let obs = dek_agent_observer::model::AgentObservationEvent {
+                process_signal: None,
                 event_id: uuid::Uuid::new_v4().to_string(),
                 tenant_id: final_tenant_id.clone(),
                 trace_id: decision_req.request_id.clone(),

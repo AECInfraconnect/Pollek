@@ -110,6 +110,7 @@ mod tests {
         };
 
         let event = AgentObservationEvent {
+            process_signal: None,
             event_id: "evt1".into(),
             tenant_id: "t1".into(),
             trace_id: "tr1".into(),

@@ -964,6 +964,10 @@ export class ControlPlaneClient {
     return this.fetchApi("/observations/costs");
   }
 
+  async getSignalCorrelation(): Promise<SignalCorrelationResponse> {
+    return this.fetchApi<SignalCorrelationResponse>("/correlation");
+  }
+
   async getAiUsageSummary(params?: {
     from?: string;
     to?: string;
@@ -1184,6 +1188,47 @@ export const PolicySuggestionApi = {
 
 export const ObservationApi = {
   getCostSummary: () => defaultClient.getCostSummary(),
+};
+
+export interface AgentProcessBinding {
+  agent_id: string;
+  pids: number[];
+  exe_path_hash: string | null;
+  process_names: string[];
+  cgroup_ids: number[];
+}
+
+export type CorrelationBasis =
+  | "pid_and_exe"
+  | "exe_hash"
+  | "cgroup"
+  | "pid"
+  | "process_name_unique";
+
+export interface CorrelationAttribution {
+  pid: number;
+  process_name: string;
+  exe_path_redacted: string | null;
+  agent_id: string;
+  basis: CorrelationBasis;
+  confidence: number;
+}
+
+export interface SignalCorrelationResponse {
+  schema_version: string;
+  tenant_id: string;
+  generated_at: string;
+  agents_indexed: number;
+  bindings: AgentProcessBinding[];
+  live_scan: {
+    processes_scanned: number;
+    attributed: number;
+    attributions: CorrelationAttribution[];
+  };
+}
+
+export const CorrelationApi = {
+  get: () => defaultClient.getSignalCorrelation(),
 };
 
 export const UsageApi = {

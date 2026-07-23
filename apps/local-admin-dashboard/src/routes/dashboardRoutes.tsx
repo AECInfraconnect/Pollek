@@ -32,6 +32,7 @@ import { HistoryReportsPage } from "@/pages/HistoryReportsPage";
 import { MyAiAppsPage } from "@/pages/MyAiAppsPage";
 import { SetupCapabilitiesPage } from "@/pages/SetupCapabilitiesPage";
 import { DetectionCoveragePage } from "@/pages/DetectionCoveragePage";
+import { SignalCorrelation } from "@/pages/SignalCorrelation";
 import AgentsV2 from "@/pages/AgentsV2";
 import ToolsResourcesV2 from "@/pages/ToolsResourcesV2";
 import PoliciesV2 from "@/pages/PoliciesV2";
@@ -113,6 +114,11 @@ export const dashboardRoutes: DashboardRoute[] = [
     key: "observe-coverage",
     path: "observe-coverage",
     element: <DetectionCoveragePage />,
+  },
+  {
+    key: "signal-correlation",
+    path: "signal-correlation",
+    element: <SignalCorrelation />,
   },
   {
     key: "activity-timeline",

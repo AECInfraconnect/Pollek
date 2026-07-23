@@ -6,6 +6,7 @@ pub mod bundle;
 pub mod compiler;
 pub mod config;
 pub mod connectors;
+pub mod correlation;
 pub mod discovery;
 pub mod error;
 pub mod governance;

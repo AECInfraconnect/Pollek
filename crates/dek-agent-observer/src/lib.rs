@@ -1,6 +1,7 @@
 #![deny(clippy::unwrap_used)]
 
 pub mod activity;
+pub mod agent_correlator;
 pub mod aggregate;
 pub mod binding_store;
 pub mod browser_scope;

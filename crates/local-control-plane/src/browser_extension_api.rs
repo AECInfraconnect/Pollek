@@ -222,6 +222,7 @@ fn build_observation_event(
         "metadata": event.metadata
     });
     AgentObservationEvent {
+        process_signal: None,
         event_id: event_id.clone(),
         tenant_id: tenant.to_string(),
         trace_id: event.session_id.clone().unwrap_or_else(|| event_id.clone()),
