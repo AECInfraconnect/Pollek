@@ -1,135 +1,100 @@
 # Trust Policy Gate (`dek-trust-gate`)
 
-The single activation choke point every Pollek bundle must pass before it can
-take effect. It is the runtime half of the founding security principle:
+The single activation choke point every Pollek policy bundle must pass before it
+can take effect. It is the runtime half of the founding security principle:
 
 > **Runtime trusts evidence, not location.** A bundle activates only after the
-> full gate passes, regardless of whether it came from SaaS, a Relay, a local
-> registry, `file://`, or an air-gapped import. The registry is storage, not the
-> root of trust.
+> full gate passes, regardless of where it came from. The registry is storage,
+> not the root of trust.
 
-This document is the contract the Pollek Cloud team codes against when emitting
-signed bundles (provenance, SBOM, attestation, signatures, revocation).
+The gate is aligned to the **real Pollek Cloud wire contract `bundle-manifest.v2`**
+(AECInfraconnect/Pollek-Cloud `apps/api/server.mjs`), so it verifies bundles
+exactly as Cloud signs them.
 
 ## Where it runs
 
 - Crate: `crates/dek-trust-gate` — a pure library (`verify()` does no I/O).
 - LCP surface: `crates/local-control-plane/src/trust_api.rs`
-  - `POST /v1/tenants/:tenant/trust/verify` — submit a signed envelope (+ optional
-    artifact bytes); the gate runs, the verdict is persisted, a tamper-evident
-    audit entry is appended, and on `accept` the activated revision advances.
-  - `GET  /v1/tenants/:tenant/trust` — the effective policy, key-provisioning
+  - `POST /v1/tenants/:tenant/trust/verify` — submit a `bundle-manifest.v2`
+    (+ optional artifact bytes by name); the gate runs, the verdict is persisted,
+    a tamper-evident audit entry is appended, and on `accept` the activated
+    revision advances.
+  - `GET  /v1/tenants/:tenant/trust` — the effective policy, trusted-signer
     status, and the latest verdict per bundle.
-- Dashboard: **Trust & Provenance** page (`/trust-provenance`) renders, per
-  bundle, exactly which checks passed or failed.
+- Dashboard: **Trust & Provenance** page (`/trust-provenance`).
+
+## The manifest and its signature
+
+Cloud emits a `bundle-manifest.v2` (a JSON object) with a `signatures[]` array.
+The **signed payload** is the manifest with the Cloud-added fields removed
+(`payload_hash`, `signatures`, `verification`, `signing_action`), canonicalized
+with `stable_json` — a recursive sorted-key, no-whitespace encoding **identical**
+to the Cloud's `stableJson`. Each signature is:
+
+```json
+{
+  "key_id": "local-dev-ed25519",
+  "alg": "Ed25519",
+  "sig": "<base64url Ed25519 over stable_json(unsigned manifest)>",
+  "payload_hash": "<sha256 hex of that payload>",
+  "public_key_pem": "<signer SPKI PEM (informational)>"
+}
+```
+
+The gate recomputes the canonical payload, checks the declared `payload_hash`
+matches, and verifies the Ed25519 signature against the DEK's **pinned** trusted
+signer keys (never the embedded `public_key_pem`).
 
 ## What the gate verifies
 
-Every field it checks lives **inside the signed content**, so tampering with any
-of it breaks the ed25519 signature.
-
 | Check | Source of truth | Fail class |
 |---|---|---|
-| signature | `dek-bundle-sync::keys::TrustedKeySet` (ed25519 over RFC-8785 canonical bytes) | `signature_failure` |
-| signer allowlist | `key_id` ∈ policy allowlist | `signer_not_allowlisted` |
-| revocation | `KeyStatus::Revoked` in the trusted key set | `signature_failure` |
-| tenant / target match | `bundle.metadata.tenant` == expected tenant | `tenant_mismatch` |
-| generation monotonicity | `bundle_revision` newer than last activated | `revision_mismatch` |
-| artifact integrity | real bytes vs authenticated `sha256` | `activation_failure` |
-| provenance | SLSA-style builder + compiler digest, level-gated | `provenance_*` |
-| SBOM | CycloneDX component list + digest | `sbom_*` |
-| test attestation | full pass + dual-control approvers | `attestation_*` / `insufficient_approvers` |
+| signature | Ed25519 (base64url) over `stable_json(unsigned manifest)`, against pinned signers; `payload_hash` must match | `signature_failure` |
+| signer allowlist | verifying `key_id` ∈ policy allowlist | `signer_not_allowlisted` |
+| tenant / target match | `manifest.tenant_id` == expected tenant | `tenant_mismatch` |
+| generation monotonicity | `manifest.revision` newer than last activated | `revision_mismatch` |
+| status (revocation) | `manifest.status` != `revoked` | `revoked` |
+| artifact integrity | real bytes vs authenticated `sha256` (by `name`) | `activation_failure` |
+| provenance / SBOM / attestation | optional signed-manifest extensions, level/approver-gated | `*_missing` |
 
-Any required-check failure yields `Quarantine`: the caller keeps the previous
-artifact and appends a CRITICAL entry to the tamper-evident audit chain
-(`dek-secure-spool::audit`). On success the verdict is INFO.
-
-## Wire shape (what Cloud emits)
-
-The envelope is a `signed` payload plus detached TUF-style signatures. The
-`signed` bytes are canonicalized with RFC 8785 (`serde_jcs`), so DEK verification
-is byte-identical to Cloud signing.
-
-```json
-{
-  "signed": {
-    "bundle": { "...": "PollekPolicyBundle (metadata.tenant, artifacts[].sha256, ...)" },
-    "bundle_revision": "bundle-prod-2026.04.03.0012",
-    "provenance": {
-      "builder_id": "https://cloud.pollek.io/builder@v2",
-      "build_type": "hermetic-wasm",
-      "source_uri": "git+https://github.com/AECInfraconnect/pollek-policies",
-      "source_revision": "abc123",
-      "compiler_digest": "sha256:...",
-      "slsa_level": 3,
-      "materials": []
-    },
-    "sbom": {
-      "format": "CycloneDX",
-      "spec_version": "1.5",
-      "components": [{ "name": "cedar-policy", "version": "4.0.0", "purl": "pkg:cargo/cedar-policy@4.0.0" }],
-      "digest": "sha256:..."
-    },
-    "attestation": {
-      "suite": "policy-conformance",
-      "passed": 128,
-      "total": 128,
-      "attested_at": "2026-04-03T11:00:00Z",
-      "attestor": "ci-runner",
-      "approvers": ["alice", "bob"]
-    }
-  },
-  "signatures": [{ "keyid": "release-key", "sig": "<base64 ed25519>" }]
-}
-```
-
-`provenance`, `sbom`, and `attestation` are optional on the wire and only
-required when the active `trust-policy.yaml` sets the matching `require_*` flag.
-
-## Trust policy
-
-Authored and distributed by Cloud as `trust-policy.yaml`; a DEK-local copy may
-only make it **stricter** (effective = `max(cloud, local)`), never weaker. The
-fail-closed baseline (used when no policy is present) requires signature and
-generation monotonicity.
-
-```json
-{
-  "require_signature": true,
-  "require_provenance": false,
-  "require_sbom": false,
-  "require_test_attestation": false,
-  "require_generation_monotonicity": true,
-  "signer_allowlist": [],
-  "expected_tenant": null,
-  "min_slsa_level": 0,
-  "min_approvers": 0
-}
-```
+Any required-check failure yields `GateDecision::Quarantine`: the caller keeps the
+previous artifact and appends `Verdict::audit_payload()` (CRITICAL) to the
+`dek-secure-spool::audit` hash chain.
 
 ## Trust anchor (single source of truth)
 
-The gate verifies against the **same key the rest of the DEK trusts** — the
-local control-plane signer (`state.signer`, a `LocalSigner`). This is the exact
-key `GET /v1/tenants/:tenant/bundle/trusted-keys` publishes and the fleet's
-bundle-sync path verifies against. There is **no separate key file**: cutover
-Local→Cloud only swaps which key populates this anchor (via `/v1/keys` rotation
-in Phase B), never the gate.
+The gate verifies against the DEK's **pinned** bundle-signing keys, provided by
+the caller. In the LCP those are the local control-plane signer (`state.signer`,
+for Local-mode bundles) plus any Cloud signer public keys pinned at
+`$DEK_LCP_DATA/trust/cloud-signers.json` (obtained at enrollment / `/v1/keys`
+rotation). With no trusted signer the gate fails closed.
 
 ## Runtime state
 
 Under `$DEK_LCP_DATA/trust/`:
 
+- `cloud-signers.json` — pinned Cloud bundle-signing keys (`[{ key_id, public_key_pem }]`).
 - `trust-policy.json` — optional operator override of the `TrustPolicy`; absent
   ⇒ the fail-closed default (signature + generation monotonicity required).
 - `verdicts.json` — latest verdict per bundle (read by `GET .../trust`).
 - `activated.json` — last activated revision per bundle (the monotonicity guard).
 - `audit.log` — hash-linked verdict chain (`GENESIS` → entry → entry).
 
-## Cloud responsibilities (Phase A dependency)
+## Cross-repo verification
 
-To light up the richer checks, Cloud emits, alongside each bundle publication:
-SLSA-style provenance, a CycloneDX SBOM, a test-pass attestation with approver
-signatures, the detached ed25519 `signatures[]`, a signer allowlist, and a
-revocation list — plus the `trust-policy.yaml` that turns the `require_*` flags
-on. The bundle must be signed **including `data.json`**, not just `policy.wasm`.
+`tests/manifest_v2.rs` verifies a **ground-truth Cloud-signed manifest**
+(`tests/fixtures/cloud_signed_manifest.json`) produced by
+`tests/fixtures/gen_cloud_manifest.mjs`, which mirrors Pollek-Cloud
+`apps/api/server.mjs` exactly (`stableJson` + Ed25519 base64url + SPKI PEM,
+Node crypto builtins). This proves the Rust verifier interops byte-for-byte with
+real Cloud signing; the same test proves each SRS §26 tamper vector is
+quarantined.
+
+## Cloud dependencies (hand-off)
+
+Provenance / SBOM / test-attestation are **not yet in the signed
+`bundle-manifest.v2`** — the gate treats them as optional extensions and enforces
+them only when the policy requires them *and* Cloud emits them inside the signed
+manifest. Adding them to the signed manifest (for poisoning resistance) is a
+Cloud-side task, tracked in the DEK→Cloud hand-off, along with reconciling the
+`bundle-manifest.schema.json` (`v1`) with what the server emits (`v2`).

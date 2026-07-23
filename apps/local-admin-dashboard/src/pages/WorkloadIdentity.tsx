@@ -64,6 +64,7 @@ export function WorkloadIdentity() {
   const wl = data?.workload_identity;
   const tr = data?.transport;
   const ui = data?.user_identity;
+  const tb = data?.tenant_binding;
 
   return (
     <div className="space-y-6">
@@ -206,6 +207,60 @@ export function WorkloadIdentity() {
               <Row label="Tenant">
                 <span className="font-mono text-xs">{data.tenant_id}</span>
               </Row>
+            </CardContent>
+          </Card>
+
+          {/* Tenant binding — how Cloud ties this DEK's traffic to its tenant */}
+          <Card className="lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <ShieldCheck className="h-5 w-5" />
+                </span>
+                <div>
+                  <CardTitle className="text-base">Tenant binding</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Cloud enforces <span className="font-mono">tenant/&lt;id&gt; == request tenant</span> from the
+                    presented SPIFFE ID; the OIDC bearer's <span className="font-mono">tenant_id</span> claim must match too.
+                  </p>
+                </div>
+              </div>
+              {tb?.consistent ? (
+                <Badge variant="ok">
+                  <ShieldCheck className="mr-1 inline h-3.5 w-3.5" />
+                  consistent
+                </Badge>
+              ) : (
+                <Badge variant="failed">
+                  <ShieldX className="mr-1 inline h-3.5 w-3.5" />
+                  fail closed
+                </Badge>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Row label="Presented">
+                <span className="break-all font-mono text-xs">
+                  {tb?.presented_spiffe_id ?? "— (no SVID; bearer/dev)"}
+                </span>
+              </Row>
+              <Row label="Via header">
+                <span className="font-mono text-xs">{tb?.presented_via ?? "x-pollek-spiffe-id"}</span>
+              </Row>
+              <Row label="SPIFFE tenant">
+                <span className="font-mono text-xs">{tb?.spiffe_tenant ?? "—"}</span>
+              </Row>
+              <Row label="Request tenant">
+                <span className="font-mono text-xs">{tb?.request_tenant ?? data.tenant_id}</span>
+              </Row>
+              <Row label="Token claim">
+                <span className="font-mono text-xs">{tb?.token_claim_enforced ?? "tenant_id"}</span>
+              </Row>
+              {tb?.fail_closed && (
+                <p className="text-xs text-destructive">
+                  The SVID's tenant does not match this tenant — the sync client refuses to present an
+                  unprovable tenant and fails closed.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

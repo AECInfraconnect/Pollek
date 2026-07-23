@@ -56,23 +56,55 @@ async fn get_identity(
     // mTLS is only usable when the full triple is present.
     let mtls_ready = svid_present && key_present && trust_bundle_present;
 
+    let mut svid_spiffe_id: Option<String> = None;
     let workload = match std::fs::read_to_string(&svid_path) {
         Ok(pem) => match dek_spire_node::describe_svid(&pem, now_unix()) {
-            Ok(info) => json!({
-                "provisioned": true,
-                "spiffe_id": info.spiffe_id,
-                "subject": info.subject,
-                "issuer": info.issuer,
-                "serial": info.serial,
-                "not_before_unix": info.not_before_unix,
-                "not_after_unix": info.not_after_unix,
-                "seconds_until_expiry": info.seconds_until_expiry,
-                "expired": info.expired,
-            }),
+            Ok(info) => {
+                svid_spiffe_id = info.spiffe_id.clone();
+                json!({
+                    "provisioned": true,
+                    "spiffe_id": info.spiffe_id,
+                    "subject": info.subject,
+                    "issuer": info.issuer,
+                    "serial": info.serial,
+                    "not_before_unix": info.not_before_unix,
+                    "not_after_unix": info.not_after_unix,
+                    "seconds_until_expiry": info.seconds_until_expiry,
+                    "expired": info.expired,
+                })
+            }
             Err(e) => json!({ "provisioned": true, "error": format!("unparsable SVID: {e}") }),
         },
         Err(_) => json!({ "provisioned": false }),
     };
+
+    // ---- Tenant binding (Cloud hand-off asks #2 + #3) ---------------------
+    // The DEK presents its verified SPIFFE ID via `x-pollek-spiffe-id`; Cloud's
+    // trusted ingress enforces `tenant/<id> == request tenant`, and (when JWT
+    // enforcement is on) the bearer's `tenant_id` claim must equal it too. When
+    // an SVID is present its tenant segment MUST match the request tenant or the
+    // sync client fails closed rather than assert an unprovable tenant.
+    let presented_spiffe_id = svid_spiffe_id.clone().or_else(|| {
+        std::env::var("POLLEK_SPIFFE_ID")
+            .ok()
+            .filter(|v| !v.is_empty())
+    });
+    let spiffe_tenant = presented_spiffe_id
+        .as_deref()
+        .and_then(crate::cloud_sync_client::tenant_from_spiffe_id);
+    let binding_consistent = match &spiffe_tenant {
+        Some(t) => *t == tenant,
+        None => true, // no SVID ⇒ nothing to contradict (bearer/dev)
+    };
+    let tenant_binding = json!({
+        "request_tenant": tenant,
+        "presented_via": "x-pollek-spiffe-id",
+        "presented_spiffe_id": presented_spiffe_id,
+        "spiffe_tenant": spiffe_tenant,
+        "token_claim_enforced": "tenant_id",
+        "consistent": binding_consistent,
+        "fail_closed": !binding_consistent,
+    });
 
     // ---- User / tenant identity plane (OAuth/OIDC) ------------------------
     let oidc_issuer = std::env::var("POLLEK_OIDC_ISSUER").ok();
@@ -124,6 +156,7 @@ async fn get_identity(
                 "trust_bundle_present": trust_bundle_present,
             },
             "workload_identity": workload,
+            "tenant_binding": tenant_binding,
             "user_identity": {
                 "oauth_configured": oauth_configured,
                 "auth_mechanism": auth_mechanism,

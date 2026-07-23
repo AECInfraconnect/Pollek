@@ -1,0 +1,68 @@
+{
+  "manifest_version": "1.0",
+  "schema_version": "bundle-manifest.v2",
+  "bundle_id": "bnd_eu_ai_act_high_risk_ab12cd34",
+  "tenant_id": "local",
+  "revision": "2026.07.23.001",
+  "created_at": "2026-07-23T00:00:00.000Z",
+  "target": {
+    "control_level": "Enforce",
+    "pep_capabilities": [
+      "mcp-stdio",
+      "http-proxy"
+    ],
+    "agent_selectors": [
+      {
+        "kind": "label",
+        "value": "managed=true"
+      }
+    ]
+  },
+  "policies": [
+    {
+      "control": "AC-2",
+      "engines": [
+        "cedar",
+        "wasm"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "policy.wasm",
+      "media_type": "application/wasm",
+      "sha256": "dbb78a13011f6d357354fa5ea999766f74c542480990aebce4194b64d7d63b89",
+      "size_bytes": 17
+    }
+  ],
+  "compliance_bundle_id": "cmp_eu_ai_act_high_risk",
+  "hot_reload": true,
+  "approval": {
+    "approval_id": "approval_eu_ai_act_1",
+    "status": "approved",
+    "approved_by": "local-dev-compliance-admin",
+    "approved_at": "2026-07-23T00:00:00.000Z",
+    "source": "enterprise_compliance_bundle"
+  },
+  "source_hashes": {
+    "policies_sha256": "a70c1ffe7794c78bcf0c1bc94c7ad68e61973829474400706920b7db2bcf9089",
+    "artifacts_sha256": "89f8a19c3f49d8731d5df81573cc3787441e14450067d43c62a96f86cb3d6d6c"
+  },
+  "payload_hash": "45071777ab2a61b09c79762af393ca9b233a87126771aedaadbf99ada00b8375",
+  "signatures": [
+    {
+      "id": "sig_fixture_1",
+      "schema_version": "pollek.cloud.policy-bundle-signature.v1",
+      "tenant_id": "local",
+      "bundle_id": "bnd_eu_ai_act_high_risk_ab12cd34",
+      "revision": "2026.07.23.001",
+      "alg": "Ed25519",
+      "key_id": "local-dev-ed25519",
+      "sig": "6H9KOSVzrTpyQHnrM3AyRd8Emm9NNHbx2siondLmpRWK5-yIuVHIuIyLqi6P3M1XRd6K0vCHeH4Gqgn6_-9kCw",
+      "payload_hash": "45071777ab2a61b09c79762af393ca9b233a87126771aedaadbf99ada00b8375",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEANVfEo2/aa+t14ZvVa5XTxD29zgbRU6oSBtro97xNTPM=\n-----END PUBLIC KEY-----\n",
+      "signed_by": "local-dev-compliance-admin",
+      "signed_at": "2026-07-23T00:00:00.000Z"
+    }
+  ]
+}

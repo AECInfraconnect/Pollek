@@ -1,54 +1,36 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
-//! `dek-trust-gate` — the single Trust Policy Gate for Pollek.
+//! `dek-trust-gate` — the single Trust Policy Gate for Pollek, aligned to the
+//! real Cloud wire contract **`bundle-manifest.v2`**.
 //!
-//! One choke point every bundle activation routes through. It composes the SRS
-//! trust requirements into a single verdict:
+//! One choke point every bundle activation routes through. It verifies a policy
+//! bundle manifest exactly as Pollek Cloud signs it
+//! (AECInfraconnect/Pollek-Cloud `apps/api/server.mjs`):
 //!
-//! * **signature** — ed25519 over RFC-8785 canonical bytes, via the fleet's
-//!   `dek-bundle-sync::keys::TrustedKeySet` (which also gives **signer allowlist**
-//!   by `key_id` and **revocation** by `KeyStatus`).
-//! * **signer allowlist** — explicit `key_id` allowlist on top of the keyset.
-//! * **tenant/target match** — bundle tenant must equal the expected tenant.
-//! * **generation monotonicity** — `bundle_revision` must be newer than the last
-//!   activated one (downgrade / replay guard).
+//! * **signature** — Ed25519 (base64url) over the canonical (`stable_json`)
+//!   bytes of the manifest **minus** the Cloud-added fields, verified against the
+//!   DEK's pinned trusted signer keys; the declared `payload_hash` must match.
+//! * **signer allowlist** — the verifying `key_id` must be allowlisted.
+//! * **tenant/target match** — `manifest.tenant_id` must equal the expected tenant.
+//! * **generation monotonicity** — `manifest.revision` must be newer than the
+//!   last activated one.
+//! * **status** — a `revoked` bundle is rejected.
 //! * **artifact integrity** — real artifact bytes must match their authenticated
-//!   sha256.
-//! * **provenance** — SLSA-style build provenance, level-gated.
-//! * **SBOM** — CycloneDX-style component list.
-//! * **test-pass attestation** — full pass + dual-control approvers.
+//!   `sha256` (by `name`).
+//! * **provenance / SBOM / attestation** — optional supply-chain extensions,
+//!   enforced only when the policy requires them and Cloud emits them in the
+//!   signed manifest.
 //!
 //! Any required-check failure yields `GateDecision::Quarantine`: the caller keeps
 //! the previous artifact and appends `Verdict::audit_payload()` (CRITICAL) to the
-//! tamper-evident audit chain. Everything verified lives *inside* the signed
-//! content, so tampering breaks the signature ("runtime trusts evidence, not
-//! location").
-//!
-//! ```
-//! use dek_trust_gate::{verify, VerifyInput, TrustPolicy};
-//! use std::collections::HashMap;
-//! # use dek_trust_gate::SignedBundleEnvelope;
-//! # fn run(envelope: &SignedBundleEnvelope, keys: &dek_bundle_sync::keys::TrustedKeySet) {
-//! let policy = TrustPolicy::default();
-//! let no_bytes = HashMap::new();
-//! let verdict = verify(VerifyInput {
-//!     envelope,
-//!     policy: &policy,
-//!     trusted_keys: keys,
-//!     now_unix: 1_700_000_000,
-//!     last_activated_revision: None,
-//!     artifact_bytes: &no_bytes,
-//! });
-//! if verdict.accepted() { /* activate */ } else { /* quarantine + keep previous */ }
-//! # }
-//! ```
+//! tamper-evident audit chain. Everything verified lives *inside the signed
+//! manifest*, so tampering breaks the signature.
 
 mod gate;
 mod model;
 
-pub use gate::{canonical_bytes, verify, VerifyInput};
+pub use gate::{stable_json, unsigned_payload, verify, VerifyInput};
 pub use model::{
-    CheckResult, CheckStatus, GateDecision, Material, Provenance, Sbom, SbomComponent, Signature,
-    SignedBundleEnvelope, SignedContent, TestAttestation, TrustPolicy, Verdict,
+    CheckResult, CheckStatus, GateDecision, ManifestSignature, TrustPolicy, TrustedSigner, Verdict,
 };

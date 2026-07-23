@@ -2724,12 +2724,9 @@ name = "dek-trust-gate"
 version = "1.0.0-beta.10"
 dependencies = [
  "base64 0.22.1",
- "dek-bundle-format",
- "dek-bundle-sync",
  "ed25519-dalek",
  "hex",
  "serde",
- "serde_jcs",
  "serde_json",
  "sha2 0.10.9",
 ]
@@ -4458,7 +4455,6 @@ dependencies = [
  "dek-agent-discovery",
  "dek-agent-observer",
  "dek-bundle-format",
- "dek-bundle-sync",
  "dek-capability",
  "dek-capability-registry",
  "dek-cedar",

@@ -1,61 +1,64 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 AEC Infraconnect
 
-//! Types for the Trust Policy Gate.
+//! Types for the Trust Policy Gate, aligned to the **real** Pollek Cloud wire
+//! contract `bundle-manifest.v2` (AECInfraconnect/Pollek-Cloud
+//! `apps/api/server.mjs`): a policy-bundle manifest carrying a `signatures[]`
+//! array, each an Ed25519 signature over the canonical (`stableJson`) bytes of
+//! the manifest **minus** the Cloud-added fields (`payload_hash`, `signatures`,
+//! `verification`, `signing_action`).
 //!
-//! The gate is the single activation choke point. Everything it verifies lives
-//! **inside the signed content** (`SignedContent`), so tampering with any of it
-//! breaks the ed25519 signature — the "runtime trusts evidence, not location"
-//! principle. The detached `signatures[]` sit outside, TUF-style, matching the
-//! `dek-bundle-sync::keys` verifier the fleet already uses.
+//! The gate consumes the raw manifest as a `serde_json::Value` so it never drifts
+//! when Cloud adds manifest fields: the signed payload is reconstructed by
+//! *removing* the added keys, not by re-modelling every field.
 
-use dek_bundle_format::PollekPolicyBundle;
+use ed25519_dalek::VerifyingKey;
 use serde::{Deserialize, Serialize};
 
 fn default_true() -> bool {
     true
 }
 
-/// The `require_*` policy the gate enforces. Authored & distributed by Cloud as
-/// `trust-policy.yaml`; a DEK-local copy may only make it *stricter*
-/// (effective = `max(cloud, local)`), never weaker.
+/// The `require_*` policy the gate enforces. Cloud-authored & distributed as
+/// `trust-policy.yaml`; a DEK-local copy may only make it *stricter*.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub struct TrustPolicy {
     #[serde(default = "default_true")]
     pub require_signature: bool,
+    #[serde(default = "default_true")]
+    pub require_generation_monotonicity: bool,
+    /// Optional supply-chain extensions — Cloud does not emit these in
+    /// `bundle-manifest.v2` yet (tracked in the Cloud hand-off); when it does,
+    /// flip these on and the gate enforces their presence inside the signed
+    /// manifest.
     #[serde(default)]
     pub require_provenance: bool,
     #[serde(default)]
     pub require_sbom: bool,
     #[serde(default)]
     pub require_test_attestation: bool,
-    #[serde(default = "default_true")]
-    pub require_generation_monotonicity: bool,
     /// If non-empty, the verifying signer `key_id` must be one of these.
     #[serde(default)]
     pub signer_allowlist: Vec<String>,
-    /// If set, `bundle.metadata.tenant` must equal this.
+    /// If set, `manifest.tenant_id` must equal this.
     #[serde(default)]
     pub expected_tenant: Option<String>,
-    /// Minimum acceptable SLSA build level for provenance (0 = any).
     #[serde(default)]
     pub min_slsa_level: u8,
-    /// Dual-control: minimum distinct approver signatures required (0 = none).
     #[serde(default)]
     pub min_approvers: u8,
 }
 
 impl Default for TrustPolicy {
-    /// Signature + generation-monotonicity are on by default (fail-closed baseline);
-    /// the richer supply-chain checks are opt-in until Cloud emits them.
+    /// Fail-closed baseline: signature + generation monotonicity required.
     fn default() -> Self {
         Self {
             require_signature: true,
+            require_generation_monotonicity: true,
             require_provenance: false,
             require_sbom: false,
             require_test_attestation: false,
-            require_generation_monotonicity: true,
             signer_allowlist: Vec::new(),
             expected_tenant: None,
             min_slsa_level: 0,
@@ -64,99 +67,35 @@ impl Default for TrustPolicy {
     }
 }
 
-/// SLSA-style build provenance (inside the signed content).
+/// One entry of the manifest's `signatures[]` array (Cloud `bundle-manifest.v2`).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Provenance {
-    pub builder_id: String,
-    pub build_type: String,
-    pub source_uri: String,
-    pub source_revision: String,
-    /// Digest of the hermetic compiler/build image — the "compiler never holds
-    /// signing keys" evidence: build identity is distinct from the release signer.
-    pub compiler_digest: String,
+pub struct ManifestSignature {
     #[serde(default)]
-    pub slsa_level: u8,
+    pub key_id: Option<String>,
     #[serde(default)]
-    pub materials: Vec<Material>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Material {
-    pub uri: String,
-    pub digest: String,
-}
-
-/// CycloneDX-style SBOM (inside the signed content).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Sbom {
-    /// "CycloneDX" | "SPDX".
-    pub format: String,
-    pub spec_version: String,
-    pub components: Vec<SbomComponent>,
-    /// sha256 hex over the canonical SBOM document (Cloud-computed).
-    pub digest: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct SbomComponent {
-    pub name: String,
-    pub version: String,
-    #[serde(default)]
-    pub purl: String,
-}
-
-/// Test-pass attestation + dual-control approvers (inside the signed content).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct TestAttestation {
-    pub suite: String,
-    pub passed: u32,
-    pub total: u32,
-    pub attested_at: String,
-    pub attestor: String,
-    /// Distinct approver identities that signed off (dual-control evidence).
-    #[serde(default)]
-    pub approvers: Vec<String>,
-}
-
-/// The canonical, signed payload. ed25519 signatures cover the RFC-8785
-/// canonicalization (`serde_jcs`) of this struct.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct SignedContent {
-    pub bundle: PollekPolicyBundle,
-    /// Monotonic revision string, e.g. `bundle-prod-2026.04.03.0012`.
-    pub bundle_revision: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub provenance: Option<Provenance>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub sbom: Option<Sbom>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub attestation: Option<TestAttestation>,
-}
-
-/// One TUF-style detached signature (matches `dek-bundle-sync` `parse_signatures`).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Signature {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub keyid: Option<String>,
-    /// base64 ed25519 signature.
+    pub alg: Option<String>,
+    /// base64url Ed25519 signature over the canonical unsigned-manifest bytes.
     pub sig: String,
-}
-
-/// The wire envelope: signed content + detached signatures.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct SignedBundleEnvelope {
-    pub signed: SignedContent,
+    /// sha256 (hex) of the canonical unsigned-manifest payload.
     #[serde(default)]
-    pub signatures: Vec<Signature>,
+    pub payload_hash: Option<String>,
+    /// SPKI PEM of the signer (informational; the DEK verifies against its
+    /// pinned trust anchor, not this embedded key).
+    #[serde(default)]
+    pub public_key_pem: Option<String>,
 }
 
-/// Terminal decision from the gate.
+/// A trusted bundle-signing key the DEK pins (from enrollment / `/v1/keys`).
+#[derive(Debug, Clone)]
+pub struct TrustedSigner {
+    pub key_id: String,
+    pub verifying_key: VerifyingKey,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GateDecision {
-    /// All required checks passed — safe to activate.
     Accept,
-    /// A required check failed — quarantine, keep previous, raise CRITICAL audit.
     Quarantine,
 }
 
@@ -165,11 +104,9 @@ pub enum GateDecision {
 pub enum CheckStatus {
     Pass,
     Fail,
-    /// Not required by the active policy (or not applicable) — recorded, not failing.
     Skipped,
 }
 
-/// Per-check result — the visible proof each gate step ran.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CheckResult {
     pub name: String,
@@ -208,12 +145,10 @@ pub struct Verdict {
     pub decision: GateDecision,
     pub bundle_id: String,
     pub tenant: String,
-    pub bundle_revision: String,
+    pub revision: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub signer_key_id: Option<String>,
     pub checks: Vec<CheckResult>,
-    /// Named failure classes for the audit event, e.g. `signature_failure`,
-    /// `activation_failure`, `revision_mismatch` (SRS §26 taxonomy).
     #[serde(default)]
     pub failure_classes: Vec<String>,
     pub evaluated_at_unix: i64,
@@ -224,8 +159,8 @@ impl Verdict {
         self.decision == GateDecision::Accept
     }
 
-    /// Canonical JSON payload for the tamper-evident audit chain. Severity is
-    /// CRITICAL on quarantine, INFO on accept.
+    /// Canonical JSON payload for the tamper-evident audit chain. CRITICAL on
+    /// quarantine, INFO on accept.
     pub fn audit_payload(&self) -> String {
         let severity = if self.accepted() { "info" } else { "critical" };
         let value = serde_json::json!({
@@ -234,13 +169,12 @@ impl Verdict {
             "decision": self.decision,
             "bundle_id": self.bundle_id,
             "tenant": self.tenant,
-            "bundle_revision": self.bundle_revision,
+            "revision": self.revision,
             "signer_key_id": self.signer_key_id,
             "failure_classes": self.failure_classes,
             "checks": self.checks,
             "evaluated_at_unix": self.evaluated_at_unix,
         });
-        // Canonical form keeps the audit hash chain stable across serializations.
-        serde_jcs::to_string(&value).unwrap_or_else(|_| value.to_string())
+        value.to_string()
     }
 }

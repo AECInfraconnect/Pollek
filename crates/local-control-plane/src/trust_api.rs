@@ -1,30 +1,26 @@
-//! Trust & Provenance surface (roadmap Phase A1) — the LCP face of the single
-//! **Trust Policy Gate** (`dek-trust-gate`).
+//! Trust & Provenance surface (roadmap Phase A1, aligned to Cloud
+//! `bundle-manifest.v2`) — the LCP face of the single **Trust Policy Gate**
+//! (`dek-trust-gate`).
 //!
-//! Every bundle activation should route through one choke point that proves,
-//! per the SRS, that the artifact is trustworthy *by evidence, not by where it
-//! came from*: signature + signer-allowlist + revocation + tenant match +
-//! generation monotonicity + artifact integrity + provenance + SBOM +
-//! test-attestation. This module runs that gate for real and records the verdict
-//! so the dashboard can show — per bundle — exactly which checks passed.
+//! Every bundle activation routes through one choke point that verifies a policy
+//! bundle manifest exactly as Pollek Cloud signs it (Ed25519 base64url over the
+//! canonical unsigned manifest) and enforces tenant match, generation
+//! monotonicity, revocation status, artifact integrity, and — when present —
+//! provenance/SBOM/attestation. This module runs that gate for real and records
+//! the verdict so the dashboard shows, per bundle, which checks passed.
 //!
 //! Endpoints:
-//!   * `POST /v1/tenants/:tenant/trust/verify` — submit a signed bundle envelope
-//!     (+ optional artifact bytes); the gate runs, the verdict is persisted, a
-//!     tamper-evident audit entry is appended, and on `accept` the activated
-//!     revision advances (so a later downgrade is rejected).
-//!   * `GET  /v1/tenants/:tenant/trust` — the effective policy, key-provisioning
+//!   * `POST /v1/tenants/:tenant/trust/verify` — submit a `bundle-manifest.v2`
+//!     (+ optional artifact bytes by name); the gate runs, the verdict is
+//!     persisted, a tamper-evident audit entry is appended, and on `accept` the
+//!     activated revision advances (so a later downgrade is rejected).
+//!   * `GET  /v1/tenants/:tenant/trust` — the effective policy, trusted-signer
 //!     status, and the latest verdict per bundle.
 //!
-//! The gate verifies against the **single source of truth** for keys the DEK
-//! trusts: the local control-plane signer (`state.signer`) — the exact same key
-//! `GET /v1/tenants/:tenant/bundle/trusted-keys` publishes and the fleet verifies
-//! bundles against. There is no separate key file; when Cloud key rotation lands
-//! (Phase B) the rotated `/v1/keys` set extends this same anchor.
-//!
-//! Runtime state lives under `$DEK_LCP_DATA/trust/`: `trust-policy.json`
-//! (operator override of the fail-closed default `TrustPolicy`; optional),
-//! `verdicts.json`, `activated.json`, `audit.log` (hash chain).
+//! Trust anchor: the DEK's pinned bundle-signing keys — the local control-plane
+//! signer (`state.signer`, for Local-mode bundles) plus any Cloud signer public
+//! keys pinned at `$DEK_LCP_DATA/trust/cloud-signers.json`. No key is fabricated;
+//! with no trusted signer the gate fails closed.
 
 use crate::state::AppState;
 use axum::{
@@ -35,9 +31,8 @@ use axum::{
     Json, Router,
 };
 use base64::Engine;
-use dek_bundle_sync::keys::{KeyStatus, TrustedKey, TrustedKeySet};
 use dek_secure_spool::audit::AuditEntry;
-use dek_trust_gate::{verify, SignedBundleEnvelope, TrustPolicy, Verdict, VerifyInput};
+use dek_trust_gate::{verify, TrustPolicy, TrustedSigner, Verdict, VerifyInput};
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
@@ -61,24 +56,35 @@ fn now_unix() -> i64 {
         .unwrap_or(0)
 }
 
-/// The DEK's trusted key set = the single source of truth used everywhere else:
-/// the local control-plane signer. This is the same key `get_trusted_keys`
-/// (bundle API) publishes and the fleet verifies bundles against — cutover
-/// Local→Cloud only swaps which key populates this anchor, never the gate.
-fn trusted_keys(state: &AppState) -> TrustedKeySet {
-    TrustedKeySet {
-        keys: vec![TrustedKey {
-            key_id: state.signer.key_id.clone(),
-            public_b64: state.signer.public_key_b64(),
-            status: KeyStatus::Active,
-            not_before_unix: 0,
-            not_after_unix: 0,
-        }],
-    }
+/// Serializable pin of a Cloud bundle-signing key (SPKI PEM), stored in
+/// `$DEK_LCP_DATA/trust/cloud-signers.json`.
+#[derive(Debug, Deserialize)]
+struct CloudSignerPin {
+    key_id: String,
+    public_key_pem: String,
 }
 
-/// Load the local trust policy, defaulting to the fail-closed baseline
-/// (signature + generation-monotonicity required).
+/// The DEK's trusted bundle-signing keys = single source of truth:
+/// the local control-plane signer (Local mode) + any pinned Cloud signers.
+fn trusted_signers(state: &AppState, dir: &std::path::Path) -> Vec<TrustedSigner> {
+    let mut signers = Vec::new();
+    if let Some(s) =
+        TrustedSigner::from_base64(state.signer.key_id.clone(), &state.signer.public_key_b64())
+    {
+        signers.push(s);
+    }
+    if let Ok(bytes) = std::fs::read(dir.join("cloud-signers.json")) {
+        if let Ok(pins) = serde_json::from_slice::<Vec<CloudSignerPin>>(&bytes) {
+            for p in pins {
+                if let Some(s) = TrustedSigner::from_pem(p.key_id, &p.public_key_pem) {
+                    signers.push(s);
+                }
+            }
+        }
+    }
+    signers
+}
+
 fn load_policy(dir: &std::path::Path) -> TrustPolicy {
     std::fs::read(dir.join("trust-policy.json"))
         .ok()
@@ -133,9 +139,9 @@ fn append_audit(dir: &std::path::Path, verdict: &Verdict) {
 
 #[derive(Debug, Deserialize)]
 struct VerifyRequest {
-    envelope: SignedBundleEnvelope,
-    /// Optional artifact bytes, base64 by `BundleArtifact.path`. When present, the
-    /// gate verifies each declared artifact against its authenticated sha256.
+    /// The Cloud `bundle-manifest.v2` (raw), including its `signatures[]`.
+    manifest: serde_json::Value,
+    /// Optional artifact bytes, base64 by `artifact.name`.
     #[serde(default)]
     artifacts: HashMap<String, String>,
 }
@@ -146,35 +152,36 @@ async fn verify_bundle(
     Json(req): Json<VerifyRequest>,
 ) -> impl IntoResponse {
     let dir = trust_dir();
-    let keys = trusted_keys(&state);
-    // The URL tenant is authoritative: pin the gate's expected tenant to it so a
-    // bundle minted for another tenant cannot be activated here.
+    let signers = trusted_signers(&state, &dir);
+    // The URL tenant is authoritative.
     let mut policy = load_policy(&dir);
     policy.expected_tenant = Some(tenant.clone());
 
-    // Decode any provided artifact bytes (skip malformed entries — integrity will
-    // then flag the missing artifact rather than trusting it).
     let mut artifact_bytes: HashMap<String, Vec<u8>> = HashMap::new();
-    for (p, b64) in &req.artifacts {
+    for (name, b64) in &req.artifacts {
         if let Ok(bytes) = base64::prelude::BASE64_STANDARD.decode(b64) {
-            artifact_bytes.insert(p.clone(), bytes);
+            artifact_bytes.insert(name.clone(), bytes);
         }
     }
 
     let activated = load_map(&dir.join("activated.json"));
-    let bundle_id = req.envelope.signed.bundle.metadata.bundle_id.clone();
+    let bundle_id = req
+        .manifest
+        .get("bundle_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
     let last_rev = activated.get(&bundle_id).and_then(|v| v.as_str());
 
     let verdict = verify(VerifyInput {
-        envelope: &req.envelope,
+        manifest: &req.manifest,
         policy: &policy,
-        trusted_keys: &keys,
+        trusted_signers: &signers,
         now_unix: now_unix(),
         last_activated_revision: last_rev,
         artifact_bytes: &artifact_bytes,
     });
 
-    // Persist the latest verdict per bundle.
     let verdicts_path = dir.join("verdicts.json");
     let mut verdicts = load_map(&verdicts_path);
     if let Ok(v) = serde_json::to_value(&verdict) {
@@ -182,12 +189,11 @@ async fn verify_bundle(
         let _ = write_json(&verdicts_path, &verdicts);
     }
 
-    // On accept, advance the activated revision (keeps the downgrade guard honest).
     if verdict.accepted() {
         let mut activated = activated;
         activated.insert(
             bundle_id,
-            serde_json::Value::String(verdict.bundle_revision.clone()),
+            serde_json::Value::String(verdict.revision.clone()),
         );
         let _ = write_json(&dir.join("activated.json"), &activated);
     }
@@ -197,7 +203,6 @@ async fn verify_bundle(
     let code = if verdict.accepted() {
         StatusCode::OK
     } else {
-        // 422: the request was well-formed but failed the trust gate (quarantined).
         StatusCode::UNPROCESSABLE_ENTITY
     };
     (code, Json(json!({ "tenant": tenant, "verdict": verdict })))
@@ -206,13 +211,10 @@ async fn verify_bundle(
 async fn get_trust(State(state): State<AppState>, Path(tenant): Path<String>) -> impl IntoResponse {
     let dir = trust_dir();
     let policy = load_policy(&dir);
-    let keys = trusted_keys(&state);
-    let now = now_unix();
-    let usable_keys = keys.usable_keys(now).count();
+    let signers = trusted_signers(&state, &dir);
 
     let verdicts = load_map(&dir.join("verdicts.json"));
     let mut list: Vec<serde_json::Value> = verdicts.into_values().collect();
-    // Newest evaluation first.
     list.sort_by(|a, b| {
         let ta = a
             .get("evaluated_at_unix")
@@ -228,12 +230,13 @@ async fn get_trust(State(state): State<AppState>, Path(tenant): Path<String>) ->
     (
         StatusCode::OK,
         Json(json!({
-            "schema_version": "trust-provenance.v1",
+            "schema_version": "trust-provenance.v2",
             "tenant": tenant,
+            "manifest_contract": "bundle-manifest.v2",
             "policy": policy,
             "keys": {
-                "provisioned": !keys.keys.is_empty(),
-                "usable_now": usable_keys,
+                "provisioned": !signers.is_empty(),
+                "usable_now": signers.len(),
             },
             "verdicts": list,
         })),
