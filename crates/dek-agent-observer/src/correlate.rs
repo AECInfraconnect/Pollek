@@ -70,7 +70,7 @@ mod tests {
             ..ProcessSignal::default()
         }));
         let r = correlate_event(&mut ev, &correlator);
-        assert_eq!(r.unwrap().agent_id, "agent_a");
+        assert_eq!(r.map(|x| x.agent_id), Some("agent_a".to_string()));
         assert_eq!(ev.agent_id.as_deref(), Some("agent_a"));
         assert!(ev.shadow_candidate_id.is_none());
     }

@@ -182,7 +182,6 @@ fn res(agent_id: &str, basis: MatchBasis) -> AgentResolution {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -204,16 +203,18 @@ mod tests {
             exe_path_hash: Some("hashA".into()),
             ..binding("agent_claude_code")
         }]);
-        let r = c
-            .resolve(&ProcessSignal {
+        assert_eq!(
+            c.resolve(&ProcessSignal {
                 pid: Some(4242),
                 exe_path_hash: Some("hashA".into()),
                 ..sig()
+            }),
+            Some(AgentResolution {
+                agent_id: "agent_claude_code".into(),
+                basis: MatchBasis::PidAndExe,
+                confidence: 100,
             })
-            .unwrap();
-        assert_eq!(r.agent_id, "agent_claude_code");
-        assert_eq!(r.basis, MatchBasis::PidAndExe);
-        assert_eq!(r.confidence, 100);
+        );
     }
 
     #[test]
@@ -230,15 +231,18 @@ mod tests {
                 ..binding("agent_b")
             },
         ]);
-        let r = c
-            .resolve(&ProcessSignal {
+        assert_eq!(
+            c.resolve(&ProcessSignal {
                 pid: Some(4242),
                 exe_path_hash: Some("hashA".into()),
                 ..sig()
+            }),
+            Some(AgentResolution {
+                agent_id: "agent_a".into(),
+                basis: MatchBasis::ExeHash,
+                confidence: 90,
             })
-            .unwrap();
-        assert_eq!(r.agent_id, "agent_a");
-        assert_eq!(r.basis, MatchBasis::ExeHash);
+        );
     }
 
     #[test]
@@ -256,9 +260,8 @@ mod tests {
                 cgroup_id: Some(999),
                 ..sig()
             })
-            .unwrap()
-            .basis,
-            MatchBasis::Cgroup
+            .map(|r| r.basis),
+            Some(MatchBasis::Cgroup)
         );
         // pid-only when no stronger key
         assert_eq!(
@@ -266,9 +269,8 @@ mod tests {
                 pid: Some(10),
                 ..sig()
             })
-            .unwrap()
-            .basis,
-            MatchBasis::Pid
+            .map(|r| r.basis),
+            Some(MatchBasis::Pid)
         );
         // name-only, unambiguous
         assert_eq!(
@@ -276,9 +278,8 @@ mod tests {
                 process_name: Some("Claude".into()),
                 ..sig()
             })
-            .unwrap()
-            .basis,
-            MatchBasis::ProcessNameUnique
+            .map(|r| r.basis),
+            Some(MatchBasis::ProcessNameUnique)
         );
     }
 
@@ -350,8 +351,10 @@ mod tests {
                 ..ProcessSignal::default()
             }),
         };
-        let applied = c.enrich_event(&mut ev).unwrap();
-        assert_eq!(applied.agent_id, "agent_a");
+        assert_eq!(
+            c.enrich_event(&mut ev).map(|r| r.agent_id),
+            Some("agent_a".to_string())
+        );
         assert_eq!(ev.agent_id.as_deref(), Some("agent_a"));
 
         // Already attributed → never overwritten.
