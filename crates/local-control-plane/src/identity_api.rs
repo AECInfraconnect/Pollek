@@ -79,6 +79,33 @@ async fn get_identity(
     let oidc_client_id = std::env::var("POLLEK_OIDC_CLIENT_ID").ok();
     let oauth_configured = oidc_issuer.is_some() || oidc_client_id.is_some();
 
+    // Which credential the DEK↔Cloud token exchange will use, most→least
+    // preferred. private_key_jwt (JWT-SVID) proves workload identity with no
+    // shared secret; client_credentials is the shared-secret fallback.
+    let auth_mechanism = if std::env::var("POLLEK_OIDC_CLIENT_ASSERTION")
+        .ok()
+        .filter(|v| !v.is_empty())
+        .is_some()
+    {
+        "private_key_jwt"
+    } else if std::env::var("POLLEK_OIDC_CLIENT_SECRET")
+        .ok()
+        .filter(|v| !v.is_empty())
+        .is_some()
+    {
+        "client_credentials"
+    } else if std::env::var("DEK_CLOUD_API_KEY")
+        .ok()
+        .filter(|v| !v.is_empty())
+        .is_some()
+    {
+        "static_bearer"
+    } else {
+        "none"
+    };
+    // Transport is mutual-TLS the moment the SVID triple is present.
+    let transport_mode = if mtls_ready { "mtls" } else { "bearer" };
+
     (
         StatusCode::OK,
         Json(json!({
@@ -90,6 +117,7 @@ async fn get_identity(
                 "environment_id": state.identity.environment_id,
             },
             "transport": {
+                "mode": transport_mode,
                 "mtls_ready": mtls_ready,
                 "svid_present": svid_present,
                 "private_key_present": key_present,
@@ -98,6 +126,7 @@ async fn get_identity(
             "workload_identity": workload,
             "user_identity": {
                 "oauth_configured": oauth_configured,
+                "auth_mechanism": auth_mechanism,
                 "oidc_issuer": oidc_issuer,
                 "oidc_client_id": oidc_client_id,
                 "auth_subject": state.identity.auth_subject,

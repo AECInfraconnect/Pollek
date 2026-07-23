@@ -17,7 +17,7 @@ use crate::{
     pdp_routing_api, pdp_runtime_api, pep_capabilities_api, plugin_api, policy, policy_deploy_api,
     policy_first_api, policy_presets_api, policy_suggestions_api, preset_deploy_api,
     preset_deploy_wizard_api, prompt_guard_api, push, recommendation_api, registry,
-    state::AppState, telemetry, usage_api,
+    state::AppState, telemetry, trust_api, usage_api,
 };
 
 pub async fn local_tenant_guard(
@@ -82,6 +82,7 @@ pub fn create_app(state: AppState, static_dir: &str, metrics_handle: PrometheusH
         .merge(contract_adapter::router())
         .merge(hotreload_api::router())
         .merge(identity_api::router())
+        .merge(trust_api::router())
         .merge(usage_api::router())
         .merge(local_observe::router())
         .merge(observe_accuracy::router())

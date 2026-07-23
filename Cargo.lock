@@ -2671,9 +2671,11 @@ dependencies = [
  "jsonwebtoken 10.4.0",
  "rcgen",
  "reqwest 0.12.28",
+ "rustls",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-rustls",
  "tokio-util",
  "tracing",
  "x509-parser",
@@ -2715,6 +2717,21 @@ dependencies = [
  "tokio-retry",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "dek-trust-gate"
+version = "1.0.0-beta.10"
+dependencies = [
+ "base64 0.22.1",
+ "dek-bundle-format",
+ "dek-bundle-sync",
+ "ed25519-dalek",
+ "hex",
+ "serde",
+ "serde_jcs",
+ "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -4441,6 +4458,7 @@ dependencies = [
  "dek-agent-discovery",
  "dek-agent-observer",
  "dek-bundle-format",
+ "dek-bundle-sync",
  "dek-capability",
  "dek-capability-registry",
  "dek-cedar",
@@ -4464,6 +4482,7 @@ dependencies = [
  "dek-secure-spool",
  "dek-spire-node",
  "dek-telemetry",
+ "dek-trust-gate",
  "dek-wasm-host",
  "ed25519-dalek",
  "futures-util",

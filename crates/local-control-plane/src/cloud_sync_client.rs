@@ -57,6 +57,12 @@ pub struct SyncConfig {
     pub oidc_client_id: Option<String>,
     pub oidc_client_secret: Option<String>,
     pub oidc_scope: Option<String>,
+    /// JWT-SVID presented as an OAuth `private_key_jwt` client assertion
+    /// (RFC 7523). When set it is preferred over `client_secret`: the token
+    /// exchange proves *which workload* is asking via its SPIFFE identity rather
+    /// than a shared secret. Populated at runtime from the SPIRE JWT-SVID
+    /// (`dek-spire-node::jwt_svid`) or `POLLEK_OIDC_CLIENT_ASSERTION`.
+    pub oidc_client_assertion: Option<String>,
 }
 
 /// Keycloak/OIDC token endpoint path appended to a realm issuer URL.
@@ -73,9 +79,72 @@ fn resolve_oidc_token_url(token_url: Option<String>, issuer: Option<String>) -> 
         .map(|iss| format!("{}{}", iss.trim_end_matches('/'), OIDC_TOKEN_PATH))
 }
 
+/// RFC 7523 client-assertion type for `private_key_jwt` (JWT-SVID).
+const JWT_BEARER_ASSERTION_TYPE: &str = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+
 #[derive(serde::Deserialize)]
 struct TokenResponse {
     access_token: String,
+}
+
+/// Build the `private_key_jwt` token-request form. Pure + testable: the assertion
+/// (a JWT-SVID) proves the workload's SPIFFE identity instead of a shared secret.
+fn assertion_form<'a>(
+    client_id: &'a str,
+    assertion: &'a str,
+    scope: Option<&'a str>,
+) -> Vec<(&'a str, &'a str)> {
+    let mut form = vec![
+        ("grant_type", "client_credentials"),
+        ("client_id", client_id),
+        ("client_assertion_type", JWT_BEARER_ASSERTION_TYPE),
+        ("client_assertion", assertion),
+    ];
+    if let Some(scope) = scope {
+        form.push(("scope", scope));
+    }
+    form
+}
+
+/// Exchange a JWT-SVID (OAuth `private_key_jwt` client assertion) for a bearer
+/// token at the OIDC token endpoint (Keycloak). No shared secret leaves the DEK.
+pub async fn client_assertion_token(
+    client: &Client,
+    token_url: &str,
+    client_id: &str,
+    assertion: &str,
+    scope: Option<&str>,
+) -> Result<String> {
+    let form = assertion_form(client_id, assertion, scope);
+    let resp = client
+        .post(token_url)
+        .form(&form)
+        .send()
+        .await
+        .with_context(|| format!("POST {token_url} (private_key_jwt)"))?;
+    let status = resp.status();
+    let text = resp.text().await.unwrap_or_default();
+    if !status.is_success() {
+        anyhow::bail!("OIDC token endpoint returned {status}: {text}");
+    }
+    let parsed: TokenResponse =
+        serde_json::from_str(&text).with_context(|| format!("parse token response: {text}"))?;
+    Ok(parsed.access_token)
+}
+
+/// Build the DEK↔Cloud transport client. When the device has a provisioned SVID
+/// (the full triple under `identity_dir`), the transport is **mutual TLS** —
+/// presenting the X.509-SVID as the client certificate. Otherwise a plain client
+/// (bearer/dev). Never fabricates an identity; the presence of the SVID triple is
+/// the single, honest signal.
+pub fn build_transport(identity_dir: &std::path::Path) -> Result<Client> {
+    if dek_spire_node::identity_present(identity_dir) {
+        dek_spire_node::client_from_identity_dir(identity_dir)
+    } else {
+        Client::builder()
+            .build()
+            .map_err(|e| anyhow::anyhow!("build plain transport: {e}"))
+    }
 }
 
 /// Fetch a bearer token via the OAuth2 client-credentials grant (Keycloak).
@@ -158,6 +227,7 @@ impl SyncConfig {
             oidc_client_id: get("POLLEK_OIDC_CLIENT_ID").filter(|v| !v.is_empty()),
             oidc_client_secret: get("POLLEK_OIDC_CLIENT_SECRET").filter(|v| !v.is_empty()),
             oidc_scope: get("POLLEK_OIDC_SCOPE").filter(|v| !v.is_empty()),
+            oidc_client_assertion: get("POLLEK_OIDC_CLIENT_ASSERTION").filter(|v| !v.is_empty()),
         })
     }
 
@@ -198,6 +268,7 @@ impl SyncConfig {
             oidc_client_id: get("POLLEK_OIDC_CLIENT_ID"),
             oidc_client_secret: get("POLLEK_OIDC_CLIENT_SECRET"),
             oidc_scope: get("POLLEK_OIDC_SCOPE"),
+            oidc_client_assertion: get("POLLEK_OIDC_CLIENT_ASSERTION"),
         }
     }
 
@@ -214,6 +285,20 @@ impl SyncConfig {
         if !self.api_key.is_empty() {
             return Ok(true);
         }
+        // Prefer private_key_jwt (JWT-SVID) — proves workload identity, no shared
+        // secret — when both a token endpoint, client id, and assertion are set.
+        if let (Some(url), Some(id), Some(assertion)) = (
+            self.oidc_token_url.clone(),
+            self.oidc_client_id.clone(),
+            self.oidc_client_assertion.clone(),
+        ) {
+            let token =
+                client_assertion_token(client, &url, &id, &assertion, self.oidc_scope.as_deref())
+                    .await?;
+            self.api_key = token;
+            return Ok(true);
+        }
+        // Fall back to the client-credentials (shared-secret) grant.
         match (
             self.oidc_token_url.clone(),
             self.oidc_client_id.clone(),
@@ -420,6 +505,27 @@ pub async fn run_full_sync_once(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn private_key_jwt_form_is_rfc7523_shaped() {
+        let form = assertion_form("dek-lcp", "eyJ.JWT.SVID", Some("pollek"));
+        assert!(form.contains(&("grant_type", "client_credentials")));
+        assert!(form.contains(&("client_id", "dek-lcp")));
+        assert!(form.contains(&(
+            "client_assertion_type",
+            "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+        )));
+        assert!(form.contains(&("client_assertion", "eyJ.JWT.SVID")));
+        assert!(form.contains(&("scope", "pollek")));
+        // No shared secret is ever present in the private_key_jwt exchange.
+        assert!(!form.iter().any(|(k, _)| *k == "client_secret"));
+    }
+
+    #[test]
+    fn assertion_form_omits_scope_when_absent() {
+        let form = assertion_form("dek-lcp", "jwt", None);
+        assert!(!form.iter().any(|(k, _)| *k == "scope"));
+    }
 
     #[test]
     fn detects_secret_markers_case_insensitively() {

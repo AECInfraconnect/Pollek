@@ -141,6 +141,14 @@ export const NAV: NavGroup[] = [
         modes: ALL,
       },
       {
+        id: "trust-provenance",
+        en: "Trust & Provenance",
+        th: "ความน่าเชื่อถือและที่มา",
+        href: "/trust-provenance",
+        icon: ShieldCheck,
+        modes: ALL,
+      },
+      {
         id: "prompt-guard",
         en: "Prompt Guard",
         th: "Prompt Guard",

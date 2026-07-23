@@ -1333,6 +1333,7 @@ export interface WorkloadIdentity {
     environment_id: string;
   };
   transport: {
+    mode?: "mtls" | "bearer";
     mtls_ready: boolean;
     svid_present: boolean;
     private_key_present: boolean;
@@ -1352,6 +1353,7 @@ export interface WorkloadIdentity {
   };
   user_identity: {
     oauth_configured: boolean;
+    auth_mechanism?: "private_key_jwt" | "client_credentials" | "static_bearer" | "none";
     oidc_issuer?: string | null;
     oidc_client_id?: string | null;
     auth_subject?: string | null;
@@ -1360,6 +1362,57 @@ export interface WorkloadIdentity {
 
 export const IdentityApi = {
   get: () => defaultClient.fetchApi<WorkloadIdentity>("/identity"),
+};
+
+// ---- Trust & Provenance (Trust Policy Gate) --------------------------------
+
+export type TrustCheckStatus = "pass" | "fail" | "skipped";
+export type TrustDecision = "accept" | "quarantine";
+
+export interface TrustCheck {
+  name: string;
+  status: TrustCheckStatus;
+  detail: string;
+}
+
+export interface TrustVerdict {
+  decision: TrustDecision;
+  bundle_id: string;
+  tenant: string;
+  bundle_revision: string;
+  signer_key_id?: string | null;
+  checks: TrustCheck[];
+  failure_classes: string[];
+  evaluated_at_unix: number;
+}
+
+export interface TrustPolicyView {
+  require_signature: boolean;
+  require_provenance: boolean;
+  require_sbom: boolean;
+  require_test_attestation: boolean;
+  require_generation_monotonicity: boolean;
+  signer_allowlist: string[];
+  expected_tenant?: string | null;
+  min_slsa_level: number;
+  min_approvers: number;
+}
+
+export interface TrustProvenanceView {
+  schema_version: string;
+  tenant: string;
+  policy: TrustPolicyView;
+  keys: { provisioned: boolean; usable_now: number };
+  verdicts: TrustVerdict[];
+}
+
+export const TrustApi = {
+  get: () => defaultClient.fetchApi<TrustProvenanceView>("/trust"),
+  verify: (envelope: unknown, artifacts?: Record<string, string>) =>
+    defaultClient.fetchApi<{ tenant: string; verdict: TrustVerdict }>(
+      "/trust/verify",
+      { method: "POST", body: JSON.stringify({ envelope, artifacts: artifacts ?? {} }) },
+    ),
 };
 
 export const ContractApi = {
