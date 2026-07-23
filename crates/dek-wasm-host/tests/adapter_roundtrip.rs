@@ -13,7 +13,13 @@ async fn migrates_bundle_via_real_wasm_adapter() {
         "/../local-control-plane/assets/contract-adapter.wasm"
     ))
     .expect("committed adapter wasm");
-    let host = WasmPluginHost::new(WasmHostConfig::default()).unwrap();
+    // Disable copy-on-write memory init so instantiation runs the data-segment
+    // init as wasm (the macOS path), exercising the instantiation fuel budget.
+    let cfg = WasmHostConfig {
+        enable_memory_init_cow: false,
+        ..WasmHostConfig::default()
+    };
+    let host = WasmPluginHost::new(cfg).unwrap();
     let sha = sha256_hex(&wasm);
     let key = PluginKey {
         tenant_id: "local".into(),

@@ -3,6 +3,11 @@ use anyhow::{bail, Result};
 use std::time::{Duration, Instant};
 use wasmtime::{Engine, Instance, Memory, Store, TypedFunc};
 
+/// Bounded fuel granted for instantiation (memory-segment init runs as wasm on
+/// hosts without copy-on-write init, e.g. macOS). Ample for a plugin's
+/// initialization while still capping a pathological module.
+const INSTANTIATION_FUEL: u64 = 100_000_000;
+
 pub struct PluginWorker {
     pub generation: u64,
     pub uses: u64,
@@ -43,6 +48,15 @@ impl PluginWorker {
 
         let mut store = Store::new(engine, state);
         store.limiter(|state| &mut state.limits);
+
+        // Fuel is consumed during instantiation on hosts where wasmtime cannot
+        // use copy-on-write memory init (e.g. macOS): the module's data-segment
+        // initialization runs as wasm. With a 0-fuel store this traps with "all
+        // fuel consumed" before the worker is ever invoked. Grant a bounded
+        // instantiation budget; the per-call budget is set fresh in `invoke_json`.
+        store
+            .set_fuel(INSTANTIATION_FUEL)
+            .map_err(|e| anyhow::anyhow!("failed to set instantiation fuel: {e:#}"))?;
 
         let instance = compiled
             .instance_pre
