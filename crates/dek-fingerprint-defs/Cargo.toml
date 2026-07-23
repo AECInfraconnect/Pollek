@@ -11,7 +11,7 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
 arc-swap = "1.7.1"
-ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+ed25519-dalek = { version = "3.0", features = ["rand_core"] }
 base64 = "0.22.1"
 uuid = { version = "1.8", features = ["v4"] }
 semver = "1.0"
