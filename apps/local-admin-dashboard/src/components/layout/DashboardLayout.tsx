@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
@@ -36,7 +36,19 @@ export function DashboardLayout() {
         <main className="relative z-10 flex-1 overflow-y-auto p-4 md:p-6">
           <div className="mx-auto w-full max-w-[1600px] [&>div:first-of-type]:pt-0">
             <Breadcrumbs />
-            <Outlet />
+            <Suspense
+              fallback={
+                <div
+                  className="flex items-center justify-center py-24 text-sm text-muted-foreground"
+                  role="status"
+                  aria-live="polite"
+                >
+                  Loading…
+                </div>
+              }
+            >
+              <Outlet />
+            </Suspense>
           </div>
         </main>
         <CommandPalette

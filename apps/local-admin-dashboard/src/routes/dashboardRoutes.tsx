@@ -1,45 +1,145 @@
 import { Navigate } from "react-router-dom";
-import type { ReactNode } from "react";
-import { Overview } from "@/pages/Overview";
-import { SimpleOverviewPage } from "@/pages/SimpleOverviewPage";
-import { Resources } from "@/pages/Resources";
-import { Simulator } from "@/pages/Simulator";
-import { Bundles } from "@/pages/Bundles";
-import { Settings } from "@/pages/Settings";
-import { PdpRoutingPage } from "@/pages/PdpRoutingPage";
-import { AutoDiscovery } from "@/pages/AutoDiscovery";
-import { PolicySuggestions } from "@/pages/PolicySuggestions";
-import { CostLedger } from "@/pages/CostLedger";
-import { PolicyPresets } from "@/pages/PolicyPresets";
-import { Protect } from "@/pages/Protect";
+import { lazy, type ComponentType, type ReactNode } from "react";
 import { useMode } from "@/context/ModeContext";
-import { Integrations } from "@/pages/Ecosystem/Integrations";
-import { PluginMarketplace } from "@/pages/Ecosystem/PluginMarketplace";
-import { IdentityNetwork } from "@/pages/Data/IdentityNetwork";
-import { AlertsAndShadowAI } from "@/pages/Monitoring/AlertsAndShadowAI";
-import { Entities } from "@/pages/Entities";
-import { ActivityTimelineV2 } from "@/features/activity/ActivityTimelineV2";
-import { EntityGraphPage } from "@/features/entity-graph/EntityGraphPage";
-import { Deployments } from "@/pages/Deployments";
-import { LocalEvidence } from "@/pages/LocalEvidence";
-import { ControlMethods } from "@/pages/ControlMethods";
-import { Capabilities } from "@/pages/Capabilities";
-import { Health } from "@/pages/Health";
-import { AiActivityPage } from "@/pages/AiActivityPage";
-import { AllowedBlockedPage } from "@/pages/AllowedBlockedPage";
-import { DataAndAppsPage } from "@/pages/DataAndAppsPage";
-import { HistoryReportsPage } from "@/pages/HistoryReportsPage";
-import { MyAiAppsPage } from "@/pages/MyAiAppsPage";
-import { SetupCapabilitiesPage } from "@/pages/SetupCapabilitiesPage";
-import { DetectionCoveragePage } from "@/pages/DetectionCoveragePage";
-import { SignalCorrelation } from "@/pages/SignalCorrelation";
-import { CloudContract } from "@/pages/CloudContract";
-import { DefinitionsHotReload } from "@/pages/DefinitionsHotReload";
-import { WorkloadIdentity } from "@/pages/WorkloadIdentity";
-import { TrustProvenance } from "@/pages/TrustProvenance";
-import AgentsV2 from "@/pages/AgentsV2";
-import ToolsResourcesV2 from "@/pages/ToolsResourcesV2";
-import PoliciesV2 from "@/pages/PoliciesV2";
+
+/**
+ * Route-based code splitting: each page is loaded on demand as its own chunk
+ * instead of being bundled into the initial download. A `<Suspense>` boundary
+ * in `DashboardLayout` renders a fallback while a page chunk loads.
+ *
+ * `lazyNamed` adapts our named page exports to the default-export shape that
+ * `React.lazy` requires.
+ */
+function lazyNamed<M extends Record<string, unknown>, K extends keyof M>(
+  loader: () => Promise<M>,
+  name: K,
+) {
+  return lazy(async () => {
+    const module = await loader();
+    return { default: module[name] as ComponentType };
+  });
+}
+
+const Overview = lazyNamed(() => import("@/pages/Overview"), "Overview");
+const SimpleOverviewPage = lazyNamed(
+  () => import("@/pages/SimpleOverviewPage"),
+  "SimpleOverviewPage",
+);
+const Resources = lazyNamed(() => import("@/pages/Resources"), "Resources");
+const Simulator = lazyNamed(() => import("@/pages/Simulator"), "Simulator");
+const Bundles = lazyNamed(() => import("@/pages/Bundles"), "Bundles");
+const Settings = lazyNamed(() => import("@/pages/Settings"), "Settings");
+const PdpRoutingPage = lazyNamed(
+  () => import("@/pages/PdpRoutingPage"),
+  "PdpRoutingPage",
+);
+const AutoDiscovery = lazyNamed(
+  () => import("@/pages/AutoDiscovery"),
+  "AutoDiscovery",
+);
+const PolicySuggestions = lazyNamed(
+  () => import("@/pages/PolicySuggestions"),
+  "PolicySuggestions",
+);
+const CostLedger = lazyNamed(() => import("@/pages/CostLedger"), "CostLedger");
+const PolicyPresets = lazyNamed(
+  () => import("@/pages/PolicyPresets"),
+  "PolicyPresets",
+);
+const Protect = lazyNamed(() => import("@/pages/Protect"), "Protect");
+const Integrations = lazyNamed(
+  () => import("@/pages/Ecosystem/Integrations"),
+  "Integrations",
+);
+const PluginMarketplace = lazyNamed(
+  () => import("@/pages/Ecosystem/PluginMarketplace"),
+  "PluginMarketplace",
+);
+const IdentityNetwork = lazyNamed(
+  () => import("@/pages/Data/IdentityNetwork"),
+  "IdentityNetwork",
+);
+const AlertsAndShadowAI = lazyNamed(
+  () => import("@/pages/Monitoring/AlertsAndShadowAI"),
+  "AlertsAndShadowAI",
+);
+const Entities = lazyNamed(() => import("@/pages/Entities"), "Entities");
+const ActivityTimelineV2 = lazyNamed(
+  () => import("@/features/activity/ActivityTimelineV2"),
+  "ActivityTimelineV2",
+);
+const EntityGraphPage = lazyNamed(
+  () => import("@/features/entity-graph/EntityGraphPage"),
+  "EntityGraphPage",
+);
+const Deployments = lazyNamed(
+  () => import("@/pages/Deployments"),
+  "Deployments",
+);
+const LocalEvidence = lazyNamed(
+  () => import("@/pages/LocalEvidence"),
+  "LocalEvidence",
+);
+const ControlMethods = lazyNamed(
+  () => import("@/pages/ControlMethods"),
+  "ControlMethods",
+);
+const Capabilities = lazyNamed(
+  () => import("@/pages/Capabilities"),
+  "Capabilities",
+);
+const Health = lazyNamed(() => import("@/pages/Health"), "Health");
+const AiActivityPage = lazyNamed(
+  () => import("@/pages/AiActivityPage"),
+  "AiActivityPage",
+);
+const AllowedBlockedPage = lazyNamed(
+  () => import("@/pages/AllowedBlockedPage"),
+  "AllowedBlockedPage",
+);
+const DataAndAppsPage = lazyNamed(
+  () => import("@/pages/DataAndAppsPage"),
+  "DataAndAppsPage",
+);
+const HistoryReportsPage = lazyNamed(
+  () => import("@/pages/HistoryReportsPage"),
+  "HistoryReportsPage",
+);
+const MyAiAppsPage = lazyNamed(
+  () => import("@/pages/MyAiAppsPage"),
+  "MyAiAppsPage",
+);
+const SetupCapabilitiesPage = lazyNamed(
+  () => import("@/pages/SetupCapabilitiesPage"),
+  "SetupCapabilitiesPage",
+);
+const DetectionCoveragePage = lazyNamed(
+  () => import("@/pages/DetectionCoveragePage"),
+  "DetectionCoveragePage",
+);
+const SignalCorrelation = lazyNamed(
+  () => import("@/pages/SignalCorrelation"),
+  "SignalCorrelation",
+);
+const CloudContract = lazyNamed(
+  () => import("@/pages/CloudContract"),
+  "CloudContract",
+);
+const DefinitionsHotReload = lazyNamed(
+  () => import("@/pages/DefinitionsHotReload"),
+  "DefinitionsHotReload",
+);
+const WorkloadIdentity = lazyNamed(
+  () => import("@/pages/WorkloadIdentity"),
+  "WorkloadIdentity",
+);
+const TrustProvenance = lazyNamed(
+  () => import("@/pages/TrustProvenance"),
+  "TrustProvenance",
+);
+const AgentsV2 = lazy(() => import("@/pages/AgentsV2"));
+const ToolsResourcesV2 = lazy(() => import("@/pages/ToolsResourcesV2"));
+const PoliciesV2 = lazy(() => import("@/pages/PoliciesV2"));
 
 export interface DashboardRoute {
   key: string;
