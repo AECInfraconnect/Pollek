@@ -34,7 +34,7 @@ reqwest.workspace = true
 rcgen = "0.13"
 
 [dev-dependencies]
-axum = "0.7"
+axum = "0.8"
 rcgen = { version = "0.13", features = ["pem", "x509-parser"] }
 serde_json = { workspace = true }
 x509-parser = "0.16"

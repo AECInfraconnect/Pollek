@@ -12,7 +12,7 @@ tokio.workspace = true
 reqwest.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
-axum = "0.7"
+axum = "0.8"
 jsonschema.workspace = true
 
 [lints]
