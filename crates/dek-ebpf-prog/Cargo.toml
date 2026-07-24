@@ -1,17 +1,14 @@
 [package]
-license = {workspace = true}
+license = "Apache-2.0"
 name = "dek-ebpf-prog"
 version = "0.1.0"
-edition = {workspace = true}
+edition = "2021"
 
 # IMPORTANT: this crate compiles to BPF bytecode, NOT a normal host binary.
 # Build with:
 #   cargo +nightly build -p dek-ebpf-prog \
 #     --target bpfel-unknown-none -Z build-std=core --release
 # Requires: rustup component add rust-src (nightly) + `cargo install bpf-linker`.
-repository = {workspace = true}
-rust-version = {workspace = true}
-authors = {workspace = true}
 
 [dependencies]
 # aya 0.13's BPF-side crate is `aya-ebpf` (renamed from `aya-bpf`). This fixes
