@@ -1,5 +1,5 @@
 [package]
-license = "Apache-2.0"
+license = {workspace = true}
 
 name = "dek-plugin-sdk"
 version.workspace = true

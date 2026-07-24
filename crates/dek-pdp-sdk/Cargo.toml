@@ -1,9 +1,12 @@
 [package]
-license = "Apache-2.0"
+license = {workspace = true}
 
 name = "dek-pdp-sdk"
 version.workspace = true
 edition.workspace = true
+repository = {workspace = true}
+rust-version = {workspace = true}
+authors = {workspace = true}
 
 
 [dependencies]

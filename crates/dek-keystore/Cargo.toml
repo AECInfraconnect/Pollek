@@ -1,9 +1,12 @@
 [package]
-license = "Apache-2.0"
+license = {workspace = true}
 
 name = "dek-keystore"
 version = "0.1.0"
-edition = "2021"
+edition = {workspace = true}
+repository = {workspace = true}
+rust-version = {workspace = true}
+authors = {workspace = true}
 
 
 [dependencies]

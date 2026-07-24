@@ -1,12 +1,14 @@
 [package]
-license = "Apache-2.0"
+license = {workspace = true}
 
 name = "dek-core"
 version = "0.1.0"
-edition = "2021"
+edition = {workspace = true}
 
-authors = ["Pollek DEK Team"]
+authors = {workspace = true}
 description = "Pollek DEK Supervisor and Agent"
+repository = {workspace = true}
+rust-version = {workspace = true}
 
 [features]
 default = ["full"]

@@ -1,9 +1,12 @@
 [package]
 name = "dek-a2a-mediator"
-version = "1.0.0-beta.10"
-edition = "2021"
-license = "Apache-2.0"
+version = {workspace = true}
+edition = {workspace = true}
+license = {workspace = true}
 description = "Inter-Agent Trust Protocol (IATP) Mediator for A2A communication"
+repository = {workspace = true}
+rust-version = {workspace = true}
+authors = {workspace = true}
 
 [dependencies]
 anyhow = "1.0"

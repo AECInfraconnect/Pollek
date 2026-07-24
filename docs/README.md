@@ -35,8 +35,8 @@ Welcome to the Pollek Local Enforcement Kit documentation.
 
 ## Release Notes
 
-- [v1.0.0-beta.10](../RELEASE_NOTES_v1.0.0-beta.10.md) (latest)
-- [v1.0.0-beta.5](../RELEASE_NOTES_v1.0.0-beta.5.md)
+- [v1.0.0-beta.10](RELEASE_NOTES_v1.0.0-beta.10.md) (latest)
+- [v1.0.0-beta.5](RELEASE_NOTES_v1.0.0-beta.5.md)
 - [v1.0.0-beta.1](RELEASE_NOTES_v1.0.0-beta.1.md)
 - [Full Changelog](../CHANGELOG.md)
 

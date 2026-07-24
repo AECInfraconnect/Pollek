@@ -1,14 +1,17 @@
 [package]
-license = "Apache-2.0"
+license = {workspace = true}
 
 name = "dek-policy-syncer"
 version = "0.1.0"
-edition = "2021"
+edition = {workspace = true}
 
 
 # Orchestrates the policy sync lifecycle (pull+verify+activate) and owns the
 # fail-safe EnforcementState (freshness gate). Reuses dek-bundle-sync for
 # fetch/verify and dek-activation for activation; does NOT re-implement them.
+repository = {workspace = true}
+rust-version = {workspace = true}
+authors = {workspace = true}
 
 [dependencies]
 dek-bundle-sync = { path = "../dek-bundle-sync" }

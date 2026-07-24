@@ -1,9 +1,12 @@
 [package]
 name = "dek-execution-sandbox"
-version = "1.0.0-beta.10"
-edition = "2021"
-license = "Apache-2.0"
+version = {workspace = true}
+edition = {workspace = true}
+license = {workspace = true}
 description = "Execution sandboxing for isolated and short-lived tool execution"
+repository = {workspace = true}
+rust-version = {workspace = true}
+authors = {workspace = true}
 
 [dependencies]
 anyhow = "1.0"

@@ -50,4 +50,4 @@ dek-cli update --channel beta
 
 ## Full Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for the complete history of changes from beta.7 through beta.10.
+See [CHANGELOG.md](../CHANGELOG.md) for the complete history of changes from beta.7 through beta.10.
