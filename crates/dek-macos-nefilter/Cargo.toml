@@ -1,12 +1,14 @@
 [package]
-license = "Apache-2.0"
+license = {workspace = true}
 
 name = "dek-macos-nefilter"
 version = "0.1.0"
-edition = "2021"
+edition = {workspace = true}
 
-authors = ["Pollek Cloud Team <team@pollek.cloud>"]
+authors = {workspace = true}
 description = "macOS Network Extension (NEFilter) IPC adapter for Pollek DEK"
+repository = {workspace = true}
+rust-version = {workspace = true}
 
 [dependencies]
 dek-domain-schema = { path = "../dek-domain-schema" }

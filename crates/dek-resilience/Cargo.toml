@@ -1,8 +1,8 @@
 [package]
-license = "Apache-2.0"
+license = {workspace = true}
 name = "dek-resilience"
 version = "0.1.0"
-edition = "2021"
+edition = {workspace = true}
 
 # SaaS-scale primitives shared by the PEP processes (proxy, ext-authz):
 #  - CircuitBreaker: wrap a PDP/evaluator; open on repeated failure -> fail-closed
@@ -10,6 +10,9 @@ edition = "2021"
 #  - AdmissionControl: global + per-tenant concurrency limits; over limit ->
 #    reject (caller denies) so one tenant can't starve others or blow memory.
 # Both are fail-closed by design.
+repository = {workspace = true}
+rust-version = {workspace = true}
+authors = {workspace = true}
 
 [dependencies]
 tokio = { version = "1", features = ["sync", "time", "rt", "macros"] }

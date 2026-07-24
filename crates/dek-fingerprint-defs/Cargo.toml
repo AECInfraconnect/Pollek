@@ -1,8 +1,11 @@
 [package]
 name = "dek-fingerprint-defs"
-version = "1.0.0-beta.10"
-edition = "2021"
-license = "Apache-2.0"
+version = {workspace = true}
+edition = {workspace = true}
+license = {workspace = true}
+repository = {workspace = true}
+rust-version = {workspace = true}
+authors = {workspace = true}
 
 [dependencies]
 serde = { workspace = true }
@@ -20,3 +23,6 @@ hex = "0.4"
 dek-bundle-sync = { path = "../dek-bundle-sync" }
 regex = "1.12.4"
 lazy_static = "1.5.0"
+
+[lints]
+workspace = true

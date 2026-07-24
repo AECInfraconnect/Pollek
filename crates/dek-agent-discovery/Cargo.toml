@@ -2,8 +2,10 @@
 name = "dek-agent-discovery"
 version.workspace = true
 edition.workspace = true
-license = "Apache-2.0"
+license = {workspace = true}
 rust-version.workspace = true
+repository = {workspace = true}
+authors = {workspace = true}
 
 [dependencies]
 anyhow.workspace = true
