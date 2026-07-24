@@ -6,7 +6,7 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "sonner";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { ConfirmProvider } from "./components/ui/ConfirmDialog";
@@ -14,8 +14,11 @@ import { NAV } from "./config/navigation";
 import { ModeProvider, useMode } from "./context/ModeContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { cleanupLegacyDashboardStorage } from "./lib/storageMigrations";
-import { Wizard } from "./pages/Wizard";
 import { dashboardRoutes } from "./routes/dashboardRoutes";
+
+const Wizard = lazy(() =>
+  import("./pages/Wizard").then((m) => ({ default: m.Wizard })),
+);
 
 const ModeGuard = () => {
   const { mode } = useMode();
@@ -66,7 +69,14 @@ function AppContent() {
                 )}
               </Route>
             </Route>
-            <Route path="/wizard" element={<Wizard />} />
+            <Route
+              path="/wizard"
+              element={
+                <Suspense fallback={null}>
+                  <Wizard />
+                </Suspense>
+              }
+            />
           </Routes>
         </Router>
       </ConfirmProvider>
