@@ -52,3 +52,21 @@ jobs:
         run: |
           ls -lh dek-linux-amd64.tar.gz
           tar -tzf dek-linux-amd64.tar.gz
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        with:
+          node-version: "22"
+      - name: Build local admin dashboard
+        working-directory: apps/local-admin-dashboard
+        run: |
+          npm ci
+          npm run build
+      - name: Build .deb and verify the dashboard is packaged at the standard path
+        run: |
+          cargo install cargo-deb --locked
+          cargo deb -p dek-core
+          DEB=$(ls target/debian/*.deb | head -n1)
+          echo "Inspecting $DEB"
+          dpkg -c "$DEB" | tee /tmp/deb-contents.txt
+          grep -q "usr/share/pollek-dek/dashboard/index.html" /tmp/deb-contents.txt
+          grep -q "usr/bin/local-control-plane" /tmp/deb-contents.txt
+          grep -q "usr/share/pollek-dek/dashboard/assets/" /tmp/deb-contents.txt

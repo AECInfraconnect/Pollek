@@ -1,0 +1,20 @@
+[Unit]
+Description=Pollek DEK Local Admin Dashboard (Local Control Plane)
+Documentation=https://github.com/AECInfraconnect/Pollek
+After=network.target
+
+[Service]
+# Serves the local admin dashboard + Local Control Plane API on 127.0.0.1:43891.
+# The dashboard assets ship at the standard FHS path; local-control-plane also
+# auto-discovers this location relative to its own binary, so the variable below
+# is an explicit belt-and-braces default rather than a requirement.
+ExecStart=/usr/bin/local-control-plane
+Environment=DEK_DASHBOARD_DIR=/usr/share/pollek-dek/dashboard
+Environment=DEK_LCP_DATA=/var/lib/pollek-dek
+Restart=always
+RestartSec=5
+User=root
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

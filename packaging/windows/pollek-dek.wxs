@@ -7,7 +7,11 @@
 
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="ProgramFilesFolder">
-                <Directory Id="INSTALLFOLDER" Name="PollekDEK" />
+                <Directory Id="INSTALLFOLDER" Name="PollekDEK">
+                    <!-- Standard Windows location for the dashboard assets, beside the
+                         binaries. local-control-plane auto-discovers <exe_dir>\dashboard. -->
+                    <Directory Id="DASHBOARDDIR" Name="dashboard" />
+                </Directory>
             </Directory>
             <Directory Id="CommonAppDataFolder">
                 <Directory Id="DATAFOLDER" Name="PollekDEK" />
@@ -26,10 +30,18 @@
             <Component Id="DekUpdaterExe" Guid="*">
                 <File Id="dek_updater_exe" Source="target\release\dek-updater.exe" KeyPath="yes" />
             </Component>
+            <Component Id="LocalControlPlaneExe" Guid="*">
+                <File Id="local_control_plane_exe" Source="target\release\local-control-plane.exe" KeyPath="yes" />
+                <ServiceInstall Id="DashboardServiceInstaller" Type="ownProcess" Name="PollekDEKDashboard" DisplayName="Pollek DEK Local Admin Dashboard" Description="Serves the Pollek DEK local admin dashboard and Local Control Plane API on 127.0.0.1:43891" Start="auto" Account="LocalSystem" ErrorControl="normal" />
+                <ServiceControl Id="StartDashboardService" Stop="both" Remove="uninstall" Name="PollekDEKDashboard" Wait="yes" />
+            </Component>
         </ComponentGroup>
 
         <Feature Id="ProductFeature" Title="Pollek DEK Core" Level="1">
             <ComponentGroupRef Id="ProductComponents" />
+            <!-- Dashboard assets, harvested from apps/local-admin-dashboard/dist by
+                 heat.exe at build time into target\wix\dashboard.wxs. -->
+            <ComponentGroupRef Id="HarvestedDashboard" />
         </Feature>
     </Product>
 </Wix>

@@ -111,14 +111,16 @@ maintainer = "Pollek DEK Team"
 copyright = "2026 Pollek"
 license-file = ["../../LICENSE", "4"]
 depends = "$auto"
-compression-type = "xz"
 section = "admin"
 priority = "optional"
 assets = [
     ["target/release/dek-core", "usr/bin/", "755"],
     ["target/release/dek-mcp-proxy", "usr/bin/", "755"],
     ["target/release/dek-updater", "usr/bin/", "755"],
-    ["../../packaging/linux/pollek-dek.service", "lib/systemd/system/pollek-dek.service", "644"]
+    ["target/release/local-control-plane", "usr/bin/", "755"],
+    ["../../apps/local-admin-dashboard/dist/**/*", "usr/share/pollek-dek/dashboard/", "644"],
+    ["../../packaging/linux/pollek-dek.service", "lib/systemd/system/pollek-dek.service", "644"],
+    ["../../packaging/linux/pollek-dek-dashboard.service", "lib/systemd/system/pollek-dek-dashboard.service", "644"]
 ]
 maintainer-scripts = "../../packaging/linux/scripts"
 
