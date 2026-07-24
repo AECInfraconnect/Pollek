@@ -111,7 +111,6 @@ maintainer = "Pollek DEK Team"
 copyright = "2026 Pollek"
 license-file = ["../../LICENSE", "4"]
 depends = "$auto"
-compression-type = "xz"
 section = "admin"
 priority = "optional"
 assets = [
