@@ -3,6 +3,9 @@ name = "dummy_policy"
 version = "0.1.0"
 edition = "2024"
 license.workspace = true
+repository = {workspace = true}
+rust-version = {workspace = true}
+authors = {workspace = true}
 
 [dependencies]
 
