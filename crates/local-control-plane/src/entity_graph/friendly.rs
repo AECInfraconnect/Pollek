@@ -436,3 +436,27 @@ pub(super) fn capability_note(result: &str, category: &str) -> &'static str {
     }
     "Pollek can watch this activity and explain what to review next."
 }
+
+fn next_step(result: &str, category: &str) -> &'static str {
+    if result == "blocked" {
+        return "Review the rule if this should be allowed next time.";
+    }
+    if result == "redacted" {
+        return "Review the safety rule and confirm the AI app is using the guard path for prompts and outputs.";
+    }
+    match category {
+        "files" => {
+            "Set a rule for this folder, or restrict file access inside the AI app settings."
+        }
+        "web" => "Set an approved website rule, or restrict network access in the AI app settings.",
+        "commands" | "apps" => {
+            "Ask before commands, or disable command execution inside the AI app."
+        }
+        "email" => "Keep email access opt-in and review the connector permissions.",
+        "plugins" => "Review installed plugins, granted capabilities, and whether any connector can send data off this device.",
+        "safety" => {
+            "Keep watching, enable Prompt Guard for this AI app, or tighten the AI app's own safety settings."
+        }
+        _ => "Keep watching or create a rule from similar activity.",
+    }
+}
