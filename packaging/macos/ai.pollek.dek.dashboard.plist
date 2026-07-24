@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>ai.pollek.dek.dashboard</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/local-control-plane</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- local-control-plane also auto-discovers this path relative to its
+             own binary; set explicitly as a belt-and-braces default. -->
+        <key>DEK_DASHBOARD_DIR</key>
+        <string>/usr/local/share/pollek-dek/dashboard</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+</dict>
+</plist>
